@@ -47,7 +47,7 @@ namespace
 
 	void ImportVideo(AEGP_SuiteHandler& suites, Aet::Video& video, AEGP_ItemH folder)
 	{
-		auto getSurfaceName = [](Aet::Video& video)
+		auto getVideoName = [](Aet::Video& video)
 		{
 			if (video.Sources.size() == 1)
 				return video.Sources.front().Name;
@@ -64,7 +64,7 @@ namespace
 			return nameBuffer;
 		};
 
-		const auto name = getSurfaceName(video);
+		const auto name = getVideoName(video);
 
 		if (true && video.Sources.size() > 0)
 		{
@@ -96,11 +96,11 @@ namespace
 			}
 		}
 
-		// TODO: surface->Frames
+		// TODO: video->Frames
 		const A_Time duration = { 1, 1 };
 
-		// suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, name.c_str(), surface->Size.x, surface->Size.y, &duration, &surface->GuiData.AE_Footage);
-		const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*surface->Color*/ };
+		// suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, name.c_str(), video->Size.x, video->Size.y, &duration, &video->GuiData.AE_Footage);
+		const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
 		suites.FootageSuite5()->AEGP_NewSolidFootage(name.c_str(), video.Size.x, video.Size.y, &color, &video.GuiData.AE_Footage);
 
 		suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
@@ -410,11 +410,11 @@ A_Err ImportAetSet(Aet::AetSet& aetSet, AE_FIM_ImportOptions importOptions, AE_F
 	AEGP_ItemH aeCompFolder;
 	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comps"), aeDataFolder, &aeCompFolder);
 
-	AEGP_ItemH aeSurfaceFolder;
-	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"surfaces"), aeDataFolder, &aeSurfaceFolder);
+	AEGP_ItemH aeVideoFolder;
+	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"videos"), aeDataFolder, &aeVideoFolder);
 
 	for (auto& video : mainScene.Videos)
-		ImportVideo(suites, *video, aeSurfaceFolder);
+		ImportVideo(suites, *video, aeVideoFolder);
 
 	{
 		const A_Time duration = FrameToATime(mainScene.EndFrame);
