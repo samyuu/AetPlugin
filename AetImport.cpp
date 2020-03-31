@@ -106,6 +106,11 @@ namespace
 		suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
 	}
 
+	void ImportAudio(AEGP_SuiteHandler& suites, Aet::Audio& audio, AEGP_ItemH folder)
+	{
+		// TODO:
+	}
+
 	void ImportBlendMode(AEGP_SuiteHandler& suites, Aet::Layer* layer)
 	{
 		auto getTransferModeFromBlendMode = [](Graphics::AetBlendMode blendMode)
@@ -441,13 +446,19 @@ A_Err ImportAetSet(Aet::AetSet& aetSet, AE_FIM_ImportOptions importOptions, AE_F
 	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"data"), aeRootFolder, &aeDataFolder);
 
 	AEGP_ItemH aeVideoFolder;
-	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"videos"), aeDataFolder, &aeVideoFolder);
+	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"video"), aeDataFolder, &aeVideoFolder);
+
+	AEGP_ItemH aeAudioFolder;
+	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"audio"), aeDataFolder, &aeAudioFolder);
 
 	AEGP_ItemH aeCompFolder;
-	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comps"), aeDataFolder, &aeCompFolder);
+	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comp"), aeDataFolder, &aeCompFolder);
 
 	for (auto& video : mainScene.Videos)
 		ImportVideo(suites, *video, aeVideoFolder);
+
+	for (auto& audio : mainScene.Audios)
+		ImportAudio(suites, *audio, aeAudioFolder);
 
 	{
 		const A_Time duration = FrameToATime(mainScene.EndFrame);
