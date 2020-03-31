@@ -13,8 +13,11 @@
 #include "Types.h"
 #include "CoreTypes.h"
 
-extern AEGP_PluginID GlobalPluginID;
-extern SPBasicSuite* GlobalBasicPicaSuite;
+namespace AetPlugin
+{
+	extern AEGP_PluginID GlobalPluginID;
+	extern SPBasicSuite* GlobalBasicPicaSuite;
+}
 
 // NOTE: This entry point is exported through the PiPL (.r file)
 extern "C" DllExport AEGP_PluginInitFuncPrototype EntryPointFunc;
