@@ -87,25 +87,6 @@ namespace AetPlugin
 	{
 		void ImportVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
 		{
-			auto getVideoName = [](const Aet::Video& video)
-			{
-				if (video.Sources.size() == 1)
-					return video.Sources.front().Name;
-
-				if (video.Sources.size() > 1)
-				{
-					// TODO:
-					return video.Sources.front().Name;
-				}
-
-				std::string nameBuffer = std::string(AEGP_MAX_ITEM_NAME_SIZE, '\0');
-				sprintf_s(nameBuffer.data(), nameBuffer.size(), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
-
-				return nameBuffer;
-			};
-
-			const auto name = getVideoName(video);
-
 			if (video.Sources.empty())
 			{
 				//const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
@@ -117,14 +98,19 @@ namespace AetPlugin
 				constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
 				const AEGP_ColorVal aeColor = { videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat, 1.0f };
 
-				suites.FootageSuite5()->AEGP_NewSolidFootage(name.c_str(), video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
+				char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
+				sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
+
+				suites.FootageSuite5()->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
 				suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
 			}
-			else if (video.Sources.size() > 0)
+			else
 			{
+				const std::string_view frontSourceName = video.Sources.front().Name;
+
 				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile) 
 				{
-					return Utilities::MatchesInsensitive(name, spriteFile.SanitizedFileName);
+					return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, frontSourceName);
 				});
 
 				if (matchingSpriteFile != WorkingDirectorySpriteFiles.end())
@@ -140,7 +126,7 @@ namespace AetPlugin
 				{
 					// TODO: video->Frames
 					const A_Time duration = { 1, 1 };
-					suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, name.c_str(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
+					suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceName.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 				}
 			}
 		}
