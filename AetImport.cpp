@@ -89,11 +89,8 @@ namespace AetPlugin
 		{
 			if (video.Sources.empty())
 			{
-				//const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
 				struct RGB8 { uint8_t R, G, B, Padding; };
 				const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
-
-				//const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
 
 				constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
 				const AEGP_ColorVal aeColor = { videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat, 1.0f };
@@ -329,17 +326,17 @@ namespace AetPlugin
 		{
 			if (layer.ItemType == Aet::ItemType::Video)
 			{
-				if (layer.GetVideoItem() != nullptr)
+				if (layer.GetVideoItem() != nullptr && layer.GetVideoItem()->GuiData.AE_FootageItem != nullptr)
 					suites.LayerSuite1()->AEGP_AddLayer(layer.GetVideoItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 			else if (layer.ItemType == Aet::ItemType::Audio)
 			{
-				// if (layer.GetAudioItem() != nullptr)
-				// 	suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				if (layer.GetAudioItem() != nullptr && layer.GetAudioItem()->GuiData.AE_FootageItem != nullptr)
+					suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 			else if (layer.ItemType == Aet::ItemType::Composition)
 			{
-				if (layer.GetCompItem() != nullptr)
+				if (layer.GetCompItem() != nullptr && layer.GetCompItem()->GuiData.AE_CompItem != nullptr)
 					suites.LayerSuite1()->AEGP_AddLayer(layer.GetCompItem()->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 
