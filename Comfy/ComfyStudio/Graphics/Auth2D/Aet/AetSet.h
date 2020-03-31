@@ -383,6 +383,8 @@ namespace Comfy::Graphics::Aet
 		~Audio() = default;
 
 	public:
+		mutable GuiExtraData GuiData;
+
 		unk32_t SoundID;
 
 	private:

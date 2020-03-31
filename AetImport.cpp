@@ -293,40 +293,38 @@ namespace AetPlugin
 
 		void ImportLayerVideo(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
 		{
-			if (layer.LayerVideo == nullptr)
-				return;
-
 			ImportLayerVideoBlendMode(suites, layer);
 			ImportLayerVideoKeyFrames(suites, layer);
+		}
+
+		void ImportLayerAudio(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			// TODO:
 		}
 
 		void ImportLayer(AEGP_SuiteHandler& suites, const Aet::Composition& parentComp, const Aet::Layer& layer)
 		{
 			if (layer.ItemType == Aet::ItemType::Video)
 			{
-				if (layer.GetVideoItem() == nullptr)
-					return;
-
-				suites.LayerSuite1()->AEGP_AddLayer(layer.GetVideoItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				if (layer.GetVideoItem() != nullptr)
+					suites.LayerSuite1()->AEGP_AddLayer(layer.GetVideoItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 			else if (layer.ItemType == Aet::ItemType::Audio)
 			{
-				if (layer.GetAudioItem() == nullptr)
-					return;
-
-				// TODO:
-				// suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				if (layer.GetAudioItem() != nullptr)
+					suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 			else if (layer.ItemType == Aet::ItemType::Composition)
 			{
-				if (layer.GetCompItem() == nullptr)
-					return;
-
-				suites.LayerSuite1()->AEGP_AddLayer(layer.GetCompItem()->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				if (layer.GetCompItem() != nullptr)
+					suites.LayerSuite1()->AEGP_AddLayer(layer.GetCompItem()->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 
 			if (layer.LayerVideo != nullptr)
 				ImportLayerVideo(suites, layer);
+
+			if (layer.LayerAudio != nullptr)
+				ImportLayerAudio(suites, layer);
 
 			if (layer.GuiData.AE_Layer != nullptr)
 			{
@@ -431,7 +429,7 @@ namespace AetPlugin
 		Aet::Scene& mainScene = *aetSet.GetScenes().front();
 		GlobalFrameRate = mainScene.FrameRate;
 
-		const A_Ratio aetFps = { static_cast<A_long>(mainScene.FrameRate * FixedPoint), static_cast<A_u_long>(FixedPoint) };
+		const A_Ratio sceneFps = { static_cast<A_long>(mainScene.FrameRate * FixedPoint), static_cast<A_u_long>(FixedPoint) };
 
 		AEGP_SuiteHandler suites = { GlobalBasicPicaSuite };
 
@@ -466,14 +464,14 @@ namespace AetPlugin
 			const A_Time duration = FrameToATime(mainScene.EndFrame);
 			const auto sceneName = FormatSceneName(aetSet, mainScene);
 
-			suites.CompSuite4()->AEGP_CreateComp(aeRootFolder, sceneName.c_str(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &aetFps, &mainScene.RootComposition->GuiData.AE_Comp);
+			suites.CompSuite4()->AEGP_CreateComp(aeRootFolder, sceneName.c_str(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &sceneFps, &mainScene.RootComposition->GuiData.AE_Comp);
 			suites.CompSuite4()->AEGP_GetItemFromComp(mainScene.RootComposition->GuiData.AE_Comp, &mainScene.RootComposition->GuiData.AE_CompItem);
 		}
 
 		for (auto& comp : mainScene.Compositions)
 		{
 			const A_Time duration = FrameToATime(GetCompDuration(*comp));
-			suites.CompSuite4()->AEGP_CreateComp(aeCompFolder, comp->GetName().data(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &aetFps, &comp->GuiData.AE_Comp);
+			suites.CompSuite4()->AEGP_CreateComp(aeCompFolder, comp->GetName().data(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &sceneFps, &comp->GuiData.AE_Comp);
 			suites.CompSuite4()->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 
