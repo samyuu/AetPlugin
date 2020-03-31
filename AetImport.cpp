@@ -129,7 +129,29 @@ namespace AetPlugin
 			// TODO:
 		}
 
-		void ImportLayerTransfermode(AEGP_SuiteHandler& suites, const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
+		void ImportLayerFlags(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			const uint16_t layerFlags = *(const uint16_t*)(&layer.Flags);
+			for (size_t flagsBitIndex = 0; flagsBitIndex < sizeof(layerFlags) * CHAR_BIT; flagsBitIndex++)
+			{
+				const uint16_t flagsBitMask = (1 << flagsBitIndex);
+				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags & flagsBitMask));
+			}
+		}
+
+		void ImportLayerQuality(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			suites.LayerSuite1()->AEGP_SetLayerQuality(layer.GuiData.AE_Layer, (static_cast<AEGP_LayerQuality>(layer.Quality) - 1));
+		}
+
+		void ImportLayerMarkers(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			//suites.MarkerSuite3()->AEGP_NewMarker();
+			//suites.MarkerSuite3()->AEGP_SetIndCuePointParam();
+			//suites.MarkerSuite3()->AEGP_SetMarkerString();
+		}
+
+		void ImportLayerTransferMode(AEGP_SuiteHandler& suites, const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
 		{
 			AEGP_LayerTransferMode layerTransferMode = {};
 			layerTransferMode.mode = (static_cast<PF_TransferMode>(transferMode.BlendMode) - 1);
@@ -287,7 +309,7 @@ namespace AetPlugin
 
 		void ImportLayerVideo(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
 		{
-			ImportLayerTransfermode(suites, layer, layer.LayerVideo->TransferMode);
+			ImportLayerTransferMode(suites, layer, layer.LayerVideo->TransferMode);
 			ImportLayerVideoKeyFrames(suites, layer, *layer.LayerVideo);
 		}
 
@@ -323,6 +345,10 @@ namespace AetPlugin
 			if (layer.GuiData.AE_Layer == nullptr)
 				return;
 
+			ImportLayerFlags(suites, layer);
+			ImportLayerQuality(suites, layer);
+			ImportLayerMarkers(suites, layer);
+
 			const A_Time startTime = FrameToATime(layer.StartFrame);
 			const A_Time duration = FrameToATime(layer.EndFrame - layer.StartFrame);
 
@@ -338,19 +364,14 @@ namespace AetPlugin
 				result = suites.StreamSuite5()->AEGP_SetStreamValue(GlobalPluginID, remapStreamValue2.streamH, &remapStreamValue2);
 
 				// TODO: THIS NEEDS AT LEAST TWO KEY FRAMES?????
-				if (true)
-				{
-					AEGP_StreamValue streamValue = {};
-					streamValue.streamH = remapStreamValue2.streamH;
-					streamValue.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
+				AEGP_StreamValue streamValue = {};
+				streamValue.streamH = remapStreamValue2.streamH;
+				streamValue.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
 
-					//const A_Time time = FrameToATime(0.0f); AEGP_KeyframeIndex index;
-					//suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
-					AEGP_KeyframeIndex index = 0;
-					suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
-				}
-
-				int temp = 0;
+				//const A_Time time = FrameToATime(0.0f); AEGP_KeyframeIndex index;
+				//suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+				AEGP_KeyframeIndex index = 0;
+				suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
 			}
 
 			if (layer.ItemType == Aet::ItemType::Composition)
