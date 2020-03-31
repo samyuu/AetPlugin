@@ -11,7 +11,34 @@ namespace AetPlugin
 {
 	namespace
 	{
-		static std::wstring WorkingImportDirectory;
+		std::wstring WorkingImportDirectory;
+		
+		struct SpriteFile
+		{
+			std::string SanitizedFileName;
+			std::wstring FilePath;
+		};
+
+		std::vector<SpriteFile> WorkingDirectorySpriteFiles;
+
+		void CheckWorkingDirectorySpriteFiles()
+		{
+			for (const auto& p : std::filesystem::directory_iterator(WorkingImportDirectory))
+			{
+				const auto path = p.path();
+				const auto fileName = path.filename().string();
+				
+				if (!Utilities::StartsWithInsensitive(fileName, "spr_") || !Utilities::EndsWithInsensitive(fileName, ".png"))
+					continue;
+
+				const auto fileNameWithoutExtension = std::string_view(fileName).substr(0, fileName.length() - std::strlen(".png"));
+				const auto fileNameWihoutSpr = fileNameWithoutExtension.substr(std::strlen("spr_"));
+				
+				SpriteFile& spriteFile = WorkingDirectorySpriteFiles.emplace_back();
+				spriteFile.SanitizedFileName = fileNameWihoutSpr;
+				spriteFile.FilePath = path.wstring();
+			}
+		}
 
 		constexpr A_Ratio OneToOneRatio = { 1, 1 };
 		constexpr float FixedPoint = 10000.0f;
@@ -54,11 +81,6 @@ namespace AetPlugin
 				character = ToLower(character);
 			return lowerCaseString;
 		}
-
-		bool IEquals(const std::string_view a, const std::string_view b)
-		{
-			return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](char a, char b) { return ToLower(a) == ToLower(b); });
-		}
 	}
 
 	namespace
@@ -84,44 +106,43 @@ namespace AetPlugin
 
 			const auto name = getVideoName(video);
 
-			if (true && video.Sources.size() > 0)
+			if (video.Sources.empty())
 			{
-				// TEMP: L"D:\\PS4\\CUSA08026 [DX] output\\rom_ps4_fix\\rom\\2d\\spr_mml\\spr_gam_cmn"
-				for (const auto& p : std::filesystem::directory_iterator(WorkingImportDirectory))
+				//const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
+				struct RGB8 { uint8_t R, G, B, Padding; };
+				const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
+
+				//const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
+
+				constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
+				const AEGP_ColorVal aeColor = { videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat, 1.0f };
+
+				suites.FootageSuite5()->AEGP_NewSolidFootage(name.c_str(), video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
+				suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
+			}
+			else if (video.Sources.size() > 0)
+			{
+				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile) 
 				{
-					const auto path = p.path();
-					const auto fileName = path.filename().string();
+					return Utilities::MatchesInsensitive(name, spriteFile.SanitizedFileName);
+				});
 
-					if (fileName.size() < 9 || !fileName._Starts_with("spr_"))
-						continue;
+				if (matchingSpriteFile != WorkingDirectorySpriteFiles.end())
+				{
+					AEGP_FootageLayerKey footageLayerKey = {};
+					footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
+					footageLayerKey.layer_indexL = 0;
 
-					const auto fileNameWihoutSpr = fileName.substr(4, fileName.size() - 8);
-
-					if (fileNameWihoutSpr.size() != name.size())
-						continue;
-
-					if (IEquals(name, fileNameWihoutSpr))
-					{
-						AEGP_FootageLayerKey footageLayerKey = {};
-						footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
-						footageLayerKey.layer_indexL = 0;
-
-						const auto widePath = path.wstring();
-						suites.FootageSuite5()->AEGP_NewFootage(GlobalPluginID, UTF16(widePath.c_str()), &footageLayerKey, nullptr, FALSE, nullptr, &video.GuiData.AE_Footage);
-						suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
-						return;
-					}
+					suites.FootageSuite5()->AEGP_NewFootage(GlobalPluginID, UTF16(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, nullptr, FALSE, nullptr, &video.GuiData.AE_Footage);
+					suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
+				}
+				else
+				{
+					// TODO: video->Frames
+					const A_Time duration = { 1, 1 };
+					suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, name.c_str(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 				}
 			}
-
-			// TODO: video->Frames
-			const A_Time duration = { 1, 1 };
-
-			// suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, name.c_str(), video->Size.x, video->Size.y, &duration, &video->GuiData.AE_Footage);
-			const AEGP_ColorVal color = { 1.0f, 0.04f, 0.35f, 0.82f /*video->Color*/ };
-			suites.FootageSuite5()->AEGP_NewSolidFootage(name.c_str(), video.Size.x, video.Size.y, &color, &video.GuiData.AE_Footage);
-
-			suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
 		}
 
 		void ImportAudio(AEGP_SuiteHandler& suites, const Aet::Audio& audio, AEGP_ItemH folder)
@@ -336,14 +357,14 @@ namespace AetPlugin
 					suites.LayerSuite1()->AEGP_AddLayer(layer.GetCompItem()->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 
+			if (layer.GuiData.AE_Layer == nullptr)
+				return;
+
 			if (layer.LayerVideo != nullptr)
 				ImportLayerVideo(suites, layer);
 
 			if (layer.LayerAudio != nullptr)
 				ImportLayerAudio(suites, layer);
-
-			if (layer.GuiData.AE_Layer == nullptr)
-				return;
 
 			ImportLayerFlags(suites, layer);
 			ImportLayerQuality(suites, layer);
@@ -474,6 +495,8 @@ namespace AetPlugin
 
 		AEGP_ItemH aeCompFolder;
 		suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comp"), aeDataFolder, &aeCompFolder);
+
+		CheckWorkingDirectorySpriteFiles();
 
 		for (auto& video : mainScene.Videos)
 			ImportVideo(suites, *video, aeVideoFolder);
