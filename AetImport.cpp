@@ -129,18 +129,12 @@ namespace AetPlugin
 			// TODO:
 		}
 
-		void ImportLayerVideoBlendMode(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		void ImportLayerTransfermode(AEGP_SuiteHandler& suites, const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
 		{
-			auto getTransferModeFromBlendMode = [](Graphics::AetBlendMode blendMode)
-			{
-				return static_cast<PF_TransferMode>(blendMode) - 1;
-			};
-
-			if (layer.ItemType != Aet::ItemType::Video)
-				return;
-
 			AEGP_LayerTransferMode layerTransferMode = {};
-			layerTransferMode.mode = getTransferModeFromBlendMode(layer.LayerVideo->TransferMode.BlendMode);
+			layerTransferMode.mode = (static_cast<PF_TransferMode>(transferMode.BlendMode) - 1);
+			layerTransferMode.flags = static_cast<AEGP_TransferFlags>(*reinterpret_cast<const uint8_t*>(&transferMode.Flags));
+			layerTransferMode.track_matte = static_cast<AEGP_TrackMatte>(transferMode.TrackMatte);
 
 			suites.LayerSuite6()->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 		}
@@ -216,15 +210,15 @@ namespace AetPlugin
 			return combinedKeyFrames;
 		}
 
-		void ImportLayerVideoKeyFrames(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		void ImportLayerVideoKeyFrames(AEGP_SuiteHandler& suites, const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
 		{
 			for (const auto& value : StreamPropertiesRemapData)
 			{
 				AEGP_StreamValue2 streamValue2 = {};
 				suites.StreamSuite5()->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, value.Stream, &streamValue2.streamH);
 
-				const auto& xKeyFrames = layer.LayerVideo->Transform[value.X];
-				const auto& yKeyFrames = layer.LayerVideo->Transform[value.Y];
+				const auto& xKeyFrames = layerVideo.Transform[value.X];
+				const auto& yKeyFrames = layerVideo.Transform[value.Y];
 
 				// NOTE: Set base value
 				{
@@ -293,8 +287,8 @@ namespace AetPlugin
 
 		void ImportLayerVideo(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
 		{
-			ImportLayerVideoBlendMode(suites, layer);
-			ImportLayerVideoKeyFrames(suites, layer);
+			ImportLayerTransfermode(suites, layer, layer.LayerVideo->TransferMode);
+			ImportLayerVideoKeyFrames(suites, layer, *layer.LayerVideo);
 		}
 
 		void ImportLayerAudio(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
@@ -326,57 +320,57 @@ namespace AetPlugin
 			if (layer.LayerAudio != nullptr)
 				ImportLayerAudio(suites, layer);
 
-			if (layer.GuiData.AE_Layer != nullptr)
+			if (layer.GuiData.AE_Layer == nullptr)
+				return;
+
+			const A_Time startTime = FrameToATime(layer.StartFrame);
+			const A_Time duration = FrameToATime(layer.EndFrame - layer.StartFrame);
+
+			// TODO: WTF IS THIS DOGSHIT
+			if (layer.StartOffset != 0.0f)
 			{
-				const A_Time startTime = FrameToATime(layer.StartFrame);
-				const A_Time duration = FrameToATime(layer.EndFrame - layer.StartFrame);
+				auto result = suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_TIME_REMAPPING, true);
 
-				// TODO: WTF IS THIS DOGSHIT
-				if (layer.StartOffset != 0.0f)
+				AEGP_StreamValue2 remapStreamValue2 = {};
+				result = suites.StreamSuite5()->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_TIME_REMAP, &remapStreamValue2.streamH);
+				remapStreamValue2.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
+
+				result = suites.StreamSuite5()->AEGP_SetStreamValue(GlobalPluginID, remapStreamValue2.streamH, &remapStreamValue2);
+
+				// TODO: THIS NEEDS AT LEAST TWO KEY FRAMES?????
+				if (true)
 				{
-					auto result = suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_TIME_REMAPPING, true);
+					AEGP_StreamValue streamValue = {};
+					streamValue.streamH = remapStreamValue2.streamH;
+					streamValue.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
 
-					AEGP_StreamValue2 remapStreamValue2 = {};
-					result = suites.StreamSuite5()->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_TIME_REMAP, &remapStreamValue2.streamH);
-					remapStreamValue2.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
-
-					result = suites.StreamSuite5()->AEGP_SetStreamValue(GlobalPluginID, remapStreamValue2.streamH, &remapStreamValue2);
-
-					// TODO: THIS NEEDS AT LEAST TWO KEY FRAMES?????
-					if (true)
-					{
-						AEGP_StreamValue streamValue = {};
-						streamValue.streamH = remapStreamValue2.streamH;
-						streamValue.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
-
-						//const A_Time time = FrameToATime(0.0f); AEGP_KeyframeIndex index;
-						//suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
-						AEGP_KeyframeIndex index = 0;
-						suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
-					}
-
-					int temp = 0;
+					//const A_Time time = FrameToATime(0.0f); AEGP_KeyframeIndex index;
+					//suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+					AEGP_KeyframeIndex index = 0;
+					suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
 				}
 
-				if (layer.ItemType == Aet::ItemType::Composition)
-				{
-					suites.LayerSuite1()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
-
-					// NOTE: Makes sure underlying blend modes etc are being preserved
-					suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
-				}
-				else
-				{
-					// TODO: Ehh wtf?
-					suites.LayerSuite1()->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &startTime, &duration);
-				}
-
-				suites.LayerSuite1()->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
-
-				// TODO: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
-				const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
-				suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+				int temp = 0;
 			}
+
+			if (layer.ItemType == Aet::ItemType::Composition)
+			{
+				suites.LayerSuite1()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
+
+				// NOTE: Makes sure underlying blend modes etc are being preserved
+				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
+			}
+			else
+			{
+				// TODO: Ehh wtf?
+				suites.LayerSuite1()->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &startTime, &duration);
+			}
+
+			suites.LayerSuite1()->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
+
+			// BUG: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
+			const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
+			suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 		}
 
 		void ImportLayersInComp(AEGP_SuiteHandler& suites, const Aet::Composition& comp)
