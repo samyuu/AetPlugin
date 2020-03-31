@@ -327,8 +327,8 @@ namespace AetPlugin
 			}
 			else if (layer.ItemType == Aet::ItemType::Audio)
 			{
-				if (layer.GetAudioItem() != nullptr)
-					suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				// if (layer.GetAudioItem() != nullptr)
+				// 	suites.LayerSuite1()->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 			}
 			else if (layer.ItemType == Aet::ItemType::Composition)
 			{
@@ -398,6 +398,12 @@ namespace AetPlugin
 		{
 			for (int i = static_cast<int>(comp.GetLayers().size()) - 1; i >= 0; i--)
 				ImportLayer(suites, comp, *comp.GetLayers()[i]);
+
+			for (auto& layer : comp.GetLayers())
+			{
+				if (layer->GetRefParentLayer() != nullptr && layer->GuiData.AE_Layer != nullptr && layer->GetRefParentLayer()->GuiData.AE_Layer != nullptr)
+					suites.LayerSuite8()->AEGP_SetLayerParent(layer->GuiData.AE_Layer, layer->GetRefParentLayer()->GuiData.AE_Layer);
+			}
 		}
 	}
 
