@@ -386,6 +386,39 @@ A_Err VerifyAetSetImportable(const std::wstring& filePath, bool& canImport)
 	return A_Err_NONE;
 }
 
+namespace
+{
+	char ToLower(char input)
+	{
+		constexpr char caseDifference = ('A' - 'a');
+		if (input >= 'A' && input <= 'Z')
+			return input - caseDifference;
+		return input;
+	}
+
+	std::string ToLower(std::string_view value)
+	{
+		auto lowerCaseString = std::string(value);
+		for (auto& character : lowerCaseString)
+			character = ToLower(character);
+		return lowerCaseString;
+	}
+
+	std::string FormatSceneName(const Aet::AetSet& set, const Aet::Scene& scene)
+	{
+		const std::string lowerCaseSetName = ToLower(set.Name);
+		const std::string lowerCaseSceneName = ToLower(scene.Name);
+
+		const auto setNameWithoutAet = std::string_view(lowerCaseSetName).substr(std::strlen("aet_"));
+		
+		std::string result;
+		result += setNameWithoutAet;
+		result += "_";
+		result += lowerCaseSceneName;
+		return result;
+	}
+}
+
 A_Err ImportAetSet(Aet::AetSet& aetSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 {
 	Aet::Scene& mainScene = *aetSet.GetScenes().front();
@@ -407,19 +440,20 @@ A_Err ImportAetSet(Aet::AetSet& aetSet, AE_FIM_ImportOptions importOptions, AE_F
 	AEGP_ItemH aeDataFolder;
 	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"data"), aeRootFolder, &aeDataFolder);
 
-	AEGP_ItemH aeCompFolder;
-	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comps"), aeDataFolder, &aeCompFolder);
-
 	AEGP_ItemH aeVideoFolder;
 	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"videos"), aeDataFolder, &aeVideoFolder);
+
+	AEGP_ItemH aeCompFolder;
+	suites.ItemSuite8()->AEGP_CreateNewFolder(UTF16(L"comps"), aeDataFolder, &aeCompFolder);
 
 	for (auto& video : mainScene.Videos)
 		ImportVideo(suites, *video, aeVideoFolder);
 
 	{
 		const A_Time duration = FrameToATime(mainScene.EndFrame);
+		const auto sceneName = FormatSceneName(aetSet, mainScene);
 
-		suites.CompSuite4()->AEGP_CreateComp(aeRootFolder, mainScene.Name.c_str(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &aetFps, &mainScene.RootComposition->GuiData.AE_Comp);
+		suites.CompSuite4()->AEGP_CreateComp(aeRootFolder, sceneName.c_str(), mainScene.Resolution.x, mainScene.Resolution.y, &OneToOneRatio, &duration, &aetFps, &mainScene.RootComposition->GuiData.AE_Comp);
 		suites.CompSuite4()->AEGP_GetItemFromComp(mainScene.RootComposition->GuiData.AE_Comp, &mainScene.RootComposition->GuiData.AE_CompItem);
 	}
 
