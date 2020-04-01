@@ -2,6 +2,8 @@
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
+#include <algorithm>
+#include <numeric>
 #include <filesystem>
 
 using namespace Comfy;
@@ -12,7 +14,7 @@ namespace AetPlugin
 	namespace
 	{
 		std::wstring WorkingImportDirectory;
-		
+
 		struct SpriteFile
 		{
 			std::string SanitizedFileName;
@@ -27,13 +29,13 @@ namespace AetPlugin
 			{
 				const auto path = p.path();
 				const auto fileName = path.filename().string();
-				
+
 				if (!Utilities::StartsWithInsensitive(fileName, "spr_") || !Utilities::EndsWithInsensitive(fileName, ".png"))
 					continue;
 
 				const auto fileNameWithoutExtension = std::string_view(fileName).substr(0, fileName.length() - std::strlen(".png"));
 				const auto fileNameWihoutSpr = fileNameWithoutExtension.substr(std::strlen("spr_"));
-				
+
 				SpriteFile& spriteFile = WorkingDirectorySpriteFiles.emplace_back();
 				spriteFile.SanitizedFileName = fileNameWihoutSpr;
 				spriteFile.FilePath = path.wstring();
@@ -64,6 +66,11 @@ namespace AetPlugin
 		A_Time FrameToATime(frame_t frame)
 		{
 			return { static_cast<A_long>(frame * FixedPoint), static_cast<A_u_long>(GlobalFrameRate * FixedPoint) };
+		}
+
+		frame_t ATimeToFrame(A_Time time)
+		{
+			return static_cast<frame_t>(time.value / time.scale);
 		}
 
 		char ToLower(char input)
@@ -105,7 +112,7 @@ namespace AetPlugin
 			{
 				const std::string_view frontSourceName = video.Sources.front().Name;
 
-				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile) 
+				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile)
 				{
 					return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, frontSourceName);
 				});
@@ -131,6 +138,56 @@ namespace AetPlugin
 		void ImportAudio(AEGP_SuiteHandler& suites, const Aet::Audio& audio, AEGP_ItemH folder)
 		{
 			// TODO:
+		}
+
+		frame_t GetLayerItemDuration(const Aet::Layer& layer)
+		{
+			if (layer.ItemType == Aet::ItemType::Video && layer.GetVideoItem() != nullptr)
+			{
+				return layer.EndFrame - layer.StartFrame;
+			}
+			else if (layer.ItemType == Aet::ItemType::Composition && layer.GetCompItem() != nullptr)
+			{
+				frame_t longestDuration = 0.0f;
+				for (const auto& layer : layer.GetCompItem()->GetLayers())
+					longestDuration = std::max(longestDuration, GetLayerItemDuration(*layer));
+				return longestDuration;
+			}
+
+			return 0.0f;
+		}
+
+		void ImportLayerTiming(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			const A_Time startTime = FrameToATime(layer.StartFrame);
+			const A_Time duration = FrameToATime((layer.EndFrame - layer.StartFrame) / layer.TimeScale);
+
+			if (layer.StartOffset != 0.0f)
+			{
+				const A_Time startOffset = FrameToATime(layer.StartOffset);
+				suites.LayerSuite8()->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
+
+				const A_Time offsetAdjustedStartTime = FrameToATime(-layer.StartOffset + layer.StartFrame);
+				suites.LayerSuite8()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offsetAdjustedStartTime);
+			}
+			else
+			{
+				// NOTE: This is the offset relative to the start of the comp
+				suites.LayerSuite8()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
+			}
+
+			// NOTE: Makes sure underlying transfer modes etc are being preserved
+			if (layer.ItemType == Aet::ItemType::Composition)
+				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
+
+			// BUG: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
+			// const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
+			// suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+		}
+
+		void ImportLayerName(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
+		{
+			suites.LayerSuite1()->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
 		}
 
 		void ImportLayerFlags(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
@@ -349,53 +406,11 @@ namespace AetPlugin
 			if (layer.LayerAudio != nullptr)
 				ImportLayerAudio(suites, layer);
 
+			ImportLayerTiming(suites, layer);
+			ImportLayerName(suites, layer);
 			ImportLayerFlags(suites, layer);
 			ImportLayerQuality(suites, layer);
 			ImportLayerMarkers(suites, layer);
-
-			const A_Time startTime = FrameToATime(layer.StartFrame);
-			const A_Time duration = FrameToATime(layer.EndFrame - layer.StartFrame);
-
-			// TODO: WTF IS THIS DOGSHIT
-			if (layer.StartOffset != 0.0f)
-			{
-				auto result = suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_TIME_REMAPPING, true);
-
-				AEGP_StreamValue2 remapStreamValue2 = {};
-				result = suites.StreamSuite5()->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_TIME_REMAP, &remapStreamValue2.streamH);
-				remapStreamValue2.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
-
-				result = suites.StreamSuite5()->AEGP_SetStreamValue(GlobalPluginID, remapStreamValue2.streamH, &remapStreamValue2);
-
-				// TODO: THIS NEEDS AT LEAST TWO KEY FRAMES?????
-				AEGP_StreamValue streamValue = {};
-				streamValue.streamH = remapStreamValue2.streamH;
-				streamValue.val.one_d = (1.0f / GlobalFrameRate) * layer.StartOffset;
-
-				//const A_Time time = FrameToATime(0.0f); AEGP_KeyframeIndex index;
-				//suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
-				AEGP_KeyframeIndex index = 0;
-				suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
-			}
-
-			if (layer.ItemType == Aet::ItemType::Composition)
-			{
-				suites.LayerSuite1()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
-
-				// NOTE: Makes sure underlying blend modes etc are being preserved
-				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
-			}
-			else
-			{
-				// TODO: Ehh wtf?
-				suites.LayerSuite1()->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &startTime, &duration);
-			}
-
-			suites.LayerSuite1()->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
-
-			// BUG: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
-			const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
-			suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 		}
 
 		void ImportLayersInComp(AEGP_SuiteHandler& suites, const Aet::Composition& comp)
