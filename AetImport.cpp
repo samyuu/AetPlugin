@@ -10,6 +10,7 @@ namespace AetPlugin
 {
 	namespace
 	{
+		static constexpr std::wstring_view AetPrefix = L"aet_";
 
 		std::string ToLower(std::string_view value)
 		{
@@ -22,7 +23,7 @@ namespace AetPlugin
 		std::string GetAetSetName(const Aet::AetSet& set)
 		{
 			const std::string lowerCaseSetName = ToLower(set.Name);
-			const auto setNameWithoutAet = std::string_view(lowerCaseSetName).substr(std::strlen("aet_"));
+			const auto setNameWithoutAet = std::string_view(lowerCaseSetName).substr(AetPrefix.length());
 			return ToLower(setNameWithoutAet);
 		}
 
@@ -56,7 +57,7 @@ namespace AetPlugin
 	{
 		const auto fileName = FileSystem::GetFileName(filePath, false);
 
-		if (!Utilities::StartsWithInsensitive(fileName, L"aet_"))
+		if (!Utilities::StartsWithInsensitive(fileName, AetPrefix))
 		{
 			canImport = false;
 			return A_Err_NONE;
@@ -86,7 +87,7 @@ namespace AetPlugin
 		ImportAllFootage(set, mainScene);
 		ImportAllCompositions(set, mainScene);
 
-		// suites.UtilitySuite3()->AEGP_ReportInfo(GlobalPluginID, "Let's hope for the best...");
+		// suites.UtilitySuite3->AEGP_ReportInfo(GlobalPluginID, "Let's hope for the best...");
 		return A_Err_NONE;
 	}
 
@@ -312,6 +313,22 @@ namespace AetPlugin
 		ImportLayerMarkers(layer);
 	}
 
+	void AetImporter::ImportLayerVideo(const Aet::Layer& layer)
+	{
+		ImportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
+		ImportLayerVideo2D(layer, layer.LayerVideo->Transform);
+	}
+
+	void AetImporter::ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
+	{
+		AEGP_LayerTransferMode layerTransferMode = {};
+		layerTransferMode.mode = (static_cast<PF_TransferMode>(transferMode.BlendMode) - 1);
+		layerTransferMode.flags = static_cast<AEGP_TransferFlags>(*reinterpret_cast<const uint8_t*>(&transferMode.Flags));
+		layerTransferMode.track_matte = static_cast<AEGP_TrackMatte>(transferMode.TrackMatte);
+
+		suites.LayerSuite8->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+	}
+
 	// TODO: Cleanup
 	namespace
 	{
@@ -324,7 +341,7 @@ namespace AetPlugin
 			{ AEGP_LayerStream_OPACITY,		Transform2DField_Opacity,	Transform2DField_Opacity,	100.0f },
 		};
 
-		struct AetVec2KeyFrame
+		struct KeyFrameVec2
 		{
 			frame_t Frame;
 			vec2 Value;
@@ -342,9 +359,9 @@ namespace AetPlugin
 			return nullptr;
 		}
 
-		std::vector<AetVec2KeyFrame> CombineXYKeyFrames(const Aet::Property1D& xKeyFrames, const Aet::Property1D& yKeyFrames)
+		std::vector<KeyFrameVec2> CombineXYKeyFrames(const Aet::Property1D& xKeyFrames, const Aet::Property1D& yKeyFrames)
 		{
-			std::vector<AetVec2KeyFrame> combinedKeyFrames;
+			std::vector<KeyFrameVec2> combinedKeyFrames;
 			combinedKeyFrames.reserve(xKeyFrames->size() + yKeyFrames->size());
 
 			for (auto& xKeyFrame : xKeyFrames.Keys)
@@ -362,7 +379,7 @@ namespace AetPlugin
 
 			for (auto& yKeyFrame : yKeyFrames.Keys)
 			{
-				auto existingKeyFrame = FindKeyFrameAt<AetVec2KeyFrame>(yKeyFrame.Frame, combinedKeyFrames);
+				auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec2>(yKeyFrame.Frame, combinedKeyFrames);
 				if (existingKeyFrame != nullptr)
 					continue;
 
@@ -373,100 +390,82 @@ namespace AetPlugin
 			std::sort(combinedKeyFrames.begin(), combinedKeyFrames.end(), [](const auto& a, const auto& b) { return a.Frame < b.Frame; });
 			return combinedKeyFrames;
 		}
+	}
 
-		template <typename FrameToAETimeFunc>
-		void ImportLayerVideoKeyFrames(AEGP_StreamSuite5* streamSuite5, AEGP_KeyframeSuite3* KeyframeSuite3, const Aet::Layer& layer, const Aet::LayerVideo& layerVideo, FrameToAETimeFunc frameToAETime)
+	void AetImporter::ImportLayerVideo2D(const Aet::Layer& layer, const Aet::LayerVideo2D& video2D)
+	{
+		for (const auto& value : StreamPropertiesRemapData)
 		{
-			for (const auto& value : StreamPropertiesRemapData)
+			AEGP_StreamValue2 streamValue2 = {};
+			suites.StreamSuite5->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, value.Stream, &streamValue2.streamH);
+
+			const auto& xKeyFrames = video2D[value.X];
+			const auto& yKeyFrames = video2D[value.Y];
+
+			// NOTE: Set base value
 			{
-				AEGP_StreamValue2 streamValue2 = {};
-				streamSuite5->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, value.Stream, &streamValue2.streamH);
+				streamValue2.val.two_d.x = xKeyFrames->size() > 0 ? xKeyFrames->front().Value * value.Factor : 0.0f;
+				streamValue2.val.two_d.y = yKeyFrames->size() > 0 ? yKeyFrames->front().Value * value.Factor : 0.0f;
 
-				const auto& xKeyFrames = layerVideo.Transform[value.X];
-				const auto& yKeyFrames = layerVideo.Transform[value.Y];
+				suites.StreamSuite5->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
+			}
 
-				// NOTE: Set base value
+#if 0
+			// TODO: Only the position can be separated. WTF?
+			A_Boolean separationLeader;
+			suites.DynamicStreamSuite4()->AEGP_IsSeparationLeader(streamValue2.streamH, &separationLeader);
+			if (xProperties != yProperties && separationLeader)
+			{
+				suites.DynamicStreamSuite4()->AEGP_SetDimensionsSeparated(streamValue2.streamH, true);
+				continue;
+				//suites.DynamicStreamSuite4()->AEGP_GetSeparationDimension();
+			}
+#endif
+
+			auto addKeyFrames = [&](frame_t frame, float xValue, float yValue)
+			{
+				const A_Time time = FrameToAETime(frame);
+				AEGP_KeyframeIndex index;
+
+				AEGP_StreamValue streamValue = {};
+				streamValue.streamH = streamValue2.streamH;
+
+				streamValue.val.two_d.x = xValue * value.Factor;
+				streamValue.val.two_d.y = yValue * value.Factor;
+
+				// TODO: Undo spam but AEGP_StartAddKeyframes doesn't have an insert function (?)
+				suites.KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+				suites.KeyframeSuite3->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
+			};
+
+			if (&xKeyFrames == &yKeyFrames)
+			{
+				if (xKeyFrames->size() > 1)
 				{
-					streamValue2.val.two_d.x = xKeyFrames->size() > 0 ? xKeyFrames->front().Value * value.Factor : 0.0f;
-					streamValue2.val.two_d.y = yKeyFrames->size() > 0 ? yKeyFrames->front().Value * value.Factor : 0.0f;
-
-					streamSuite5->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
+					for (auto& keyFrame : xKeyFrames.Keys)
+						addKeyFrames(keyFrame.Frame, keyFrame.Value, 0.0f);
 				}
 
 #if 0
-				// TODO: Only the position can be separated. WTF?
-				A_Boolean separationLeader;
-				suites.DynamicStreamSuite4()->AEGP_IsSeparationLeader(streamValue2.streamH, &separationLeader);
-				if (xProperties != yProperties && separationLeader)
+				if (yProperties->size() > 1 && xProperties != yProperties)
 				{
-					suites.DynamicStreamSuite4()->AEGP_SetDimensionsSeparated(streamValue2.streamH, true);
-					continue;
-					//suites.DynamicStreamSuite4()->AEGP_GetSeparationDimension();
+					for (auto& keyFrame : *yProperties)
+						addKeyFrames(keyFrame, true);
 				}
 #endif
-				auto addKeyFrames = [&](frame_t frame, float xValue, float yValue)
+			}
+			else
+			{
+				// TODO: Combine keyframes ??
+				auto combinedKeyFrames = CombineXYKeyFrames(xKeyFrames, yKeyFrames);
+
+				if (combinedKeyFrames.size() > 1)
 				{
-					const A_Time time = frameToAETime(frame);
-					AEGP_KeyframeIndex index;
-
-					AEGP_StreamValue streamValue = {};
-					streamValue.streamH = streamValue2.streamH;
-
-					streamValue.val.two_d.x = xValue * value.Factor;
-					streamValue.val.two_d.y = yValue * value.Factor;
-
-					// TODO: Undo spam but AEGP_StartAddKeyframes doesn't have an insert function (?)
-					KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
-					KeyframeSuite3->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
-				};
-
-				if (&xKeyFrames == &yKeyFrames)
-				{
-					if (xKeyFrames->size() > 1)
-					{
-						for (auto& keyFrame : xKeyFrames.Keys)
-							addKeyFrames(keyFrame.Frame, keyFrame.Value, 0.0f);
-					}
-
-#if 0
-					if (yProperties->size() > 1 && xProperties != yProperties)
-					{
-						for (auto& keyFrame : *yProperties)
-							addKeyFrames(keyFrame, true);
-					}
-#endif
-				}
-				else
-				{
-					// TODO: Combine keyframes ??
-					auto combinedKeyFrames = CombineXYKeyFrames(xKeyFrames, yKeyFrames);
-
-					if (combinedKeyFrames.size() > 1)
-					{
-						for (auto& keyFrame : combinedKeyFrames)
-							addKeyFrames(keyFrame.Frame, keyFrame.Value.x, keyFrame.Value.y);
-					}
+					for (auto& keyFrame : combinedKeyFrames)
+						addKeyFrames(keyFrame.Frame, keyFrame.Value.x, keyFrame.Value.y);
 				}
 			}
 		}
-	}
-
-	void AetImporter::ImportLayerVideo(const Aet::Layer& layer)
-	{
-		ImportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
-
-		// HACK:
-		ImportLayerVideoKeyFrames(suites.StreamSuite5, suites.KeyframeSuite3, layer, *layer.LayerVideo, [this](frame_t f) { return FrameToAETime(f); });
-	}
-
-	void AetImporter::ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
-	{
-		AEGP_LayerTransferMode layerTransferMode = {};
-		layerTransferMode.mode = (static_cast<PF_TransferMode>(transferMode.BlendMode) - 1);
-		layerTransferMode.flags = static_cast<AEGP_TransferFlags>(*reinterpret_cast<const uint8_t*>(&transferMode.Flags));
-		layerTransferMode.track_matte = static_cast<AEGP_TrackMatte>(transferMode.TrackMatte);
-
-		suites.LayerSuite8->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 	}
 
 	void AetImporter::ImportLayerAudio(const Aet::Layer& layer)

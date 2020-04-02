@@ -118,6 +118,7 @@ namespace AetPlugin
 
 		void ImportLayerVideo(const Aet::Layer& layer);
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
+		void ImportLayerVideo2D(const Aet::Layer& layer, const Aet::LayerVideo2D& video2D);
 
 		void ImportLayerAudio(const Aet::Layer& layer);
 		void ImportLayerTiming(const Aet::Layer& layer);
