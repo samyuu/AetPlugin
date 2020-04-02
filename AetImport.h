@@ -28,7 +28,25 @@ namespace AetPlugin
 		A_Err ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
 
 	protected:
-		AEGP_SuiteHandler suites = { GlobalBasicPicaSuite };
+		struct SuitesData
+		{
+			AEGP_SuiteHandler Handler = { GlobalBasicPicaSuite };
+
+#define ConCat(a, b) a ## b
+#define DeclareSuiteMember(suiteName) ConCat(AEGP_, suiteName)* suiteName = Handler.suiteName()
+
+			DeclareSuiteMember(ProjSuite5);
+			DeclareSuiteMember(ItemSuite8);
+			DeclareSuiteMember(FootageSuite5);
+			DeclareSuiteMember(CompSuite4);
+			DeclareSuiteMember(LayerSuite1);
+			DeclareSuiteMember(LayerSuite8);
+			DeclareSuiteMember(StreamSuite5);
+			DeclareSuiteMember(KeyframeSuite3);
+
+#undef DeclareSuiteMember
+#undef ConCat
+		} suites;
 
 	protected:
 		struct WorkingDirectoryData
@@ -49,7 +67,7 @@ namespace AetPlugin
 		{
 			float FrameRate = 0.0f;
 			A_Ratio AE_FrameRate;
-		} workingScene;
+		} workingScene = {};
 
 		void SetupWorkingAetSceneData(Aet::AetSet& set, const Aet::Scene& mainScene);
 		void CheckWorkingDirectorySpriteFiles();
@@ -73,7 +91,7 @@ namespace AetPlugin
 				AEGP_ItemH Comp;
 			} Folders;
 			
-		} project;
+		} project = {};
 
 		void GetProjectHandles();
 		void CreateProjectFolders();
@@ -97,6 +115,8 @@ namespace AetPlugin
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
 		void ImportLayerVideo(const Aet::Layer& layer);
+		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
+
 		void ImportLayerAudio(const Aet::Layer& layer);
 		void ImportLayerTiming(const Aet::Layer& layer);
 		void ImportLayerName(const Aet::Layer& layer);
