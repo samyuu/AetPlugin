@@ -43,6 +43,7 @@ namespace AetPlugin
 			DeclareSuiteMember(LayerSuite8);
 			DeclareSuiteMember(StreamSuite5);
 			DeclareSuiteMember(KeyframeSuite3);
+			DeclareSuiteMember(UtilitySuite3);
 
 #undef DeclareSuiteMember
 #undef ConCat
