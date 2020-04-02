@@ -11,41 +11,58 @@ using namespace Comfy::Graphics;
 
 namespace AetPlugin
 {
+	std::wstring WorkingImportDirectory;
+
+	std::string WorkingAetSpriteNamePrefix;
+	std::string WorkingAetSpriteNamePrefixUnderscore;
+
+	struct SpriteFile
+	{
+		std::string SanitizedFileName;
+		std::wstring FilePath;
+	};
+
+	std::vector<SpriteFile> WorkingDirectorySpriteFiles;
+
+	float WorkingAetFrameRate = 0.0f;
+
 	namespace
 	{
-		std::wstring WorkingImportDirectory;
+		constexpr std::string_view PngExtension = ".png";
+		constexpr std::string_view SprPrefix = "spr_";
 
-		struct SpriteFile
+		std::string_view StripPrefixIfExists(std::string_view stringInput, std::string_view prefix)
 		{
-			std::string SanitizedFileName;
-			std::wstring FilePath;
-		};
+			if (Utilities::StartsWithInsensitive(stringInput, prefix))
+				return stringInput.substr(prefix.size(), stringInput.size() - prefix.size());
 
-		std::vector<SpriteFile> WorkingDirectorySpriteFiles;
+			return stringInput;
+		}
 
 		void CheckWorkingDirectorySpriteFiles()
 		{
+			WorkingDirectorySpriteFiles.clear();
 			for (const auto& p : std::filesystem::directory_iterator(WorkingImportDirectory))
 			{
 				const auto path = p.path();
 				const auto fileName = path.filename().string();
 
-				if (!Utilities::StartsWithInsensitive(fileName, "spr_") || !Utilities::EndsWithInsensitive(fileName, ".png"))
+				if (!Utilities::EndsWithInsensitive(fileName, PngExtension))
 					continue;
 
-				const auto fileNameWithoutExtension = std::string_view(fileName).substr(0, fileName.length() - std::strlen(".png"));
-				const auto fileNameWihoutSpr = fileNameWithoutExtension.substr(std::strlen("spr_"));
+				std::string_view sanitizedFileName = std::string_view(fileName).substr(0, fileName.length() - PngExtension.size());
+
+				sanitizedFileName = StripPrefixIfExists(sanitizedFileName, SprPrefix);
+				sanitizedFileName = StripPrefixIfExists(sanitizedFileName, WorkingAetSpriteNamePrefixUnderscore);
 
 				SpriteFile& spriteFile = WorkingDirectorySpriteFiles.emplace_back();
-				spriteFile.SanitizedFileName = fileNameWihoutSpr;
+				spriteFile.SanitizedFileName = sanitizedFileName;
 				spriteFile.FilePath = path.wstring();
 			}
 		}
 
 		constexpr A_Ratio OneToOneRatio = { 1, 1 };
 		constexpr float FixedPoint = 10000.0f;
-
-		float GlobalFrameRate = 0.0f;
 
 		const A_UTF16Char* UTF16(const wchar_t* value)
 		{
@@ -65,7 +82,7 @@ namespace AetPlugin
 
 		A_Time FrameToATime(frame_t frame)
 		{
-			return { static_cast<A_long>(frame * FixedPoint), static_cast<A_u_long>(GlobalFrameRate * FixedPoint) };
+			return { static_cast<A_long>(frame * FixedPoint), static_cast<A_u_long>(WorkingAetFrameRate * FixedPoint) };
 		}
 
 		frame_t ATimeToFrame(A_Time time)
@@ -111,10 +128,11 @@ namespace AetPlugin
 			else
 			{
 				const std::string_view frontSourceName = video.Sources.front().Name;
+				const std::string_view frontSourceNameWithoutAetPrefix = StripPrefixIfExists(frontSourceName, WorkingAetSpriteNamePrefixUnderscore);
 
 				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile)
 				{
-					return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, frontSourceName);
+					return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, frontSourceNameWithoutAetPrefix);
 				});
 
 				if (matchingSpriteFile != WorkingDirectorySpriteFiles.end())
@@ -176,13 +194,9 @@ namespace AetPlugin
 				suites.LayerSuite8()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
 			}
 
-			// NOTE: Makes sure underlying transfer modes etc are being preserved
-			if (layer.ItemType == Aet::ItemType::Composition)
-				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
-
 			// BUG: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
-			// const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
-			// suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+			const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
+			suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 		}
 
 		void ImportLayerName(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
@@ -198,6 +212,10 @@ namespace AetPlugin
 				const uint16_t flagsBitMask = (1 << flagsBitIndex);
 				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags & flagsBitMask));
 			}
+
+			// NOTE: Makes sure underlying transfer modes etc are being preserved
+			if (layer.ItemType == Aet::ItemType::Composition)
+				suites.LayerSuite1()->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
 		}
 
 		void ImportLayerQuality(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
@@ -449,17 +467,19 @@ namespace AetPlugin
 
 	namespace
 	{
-		std::string FormatSceneName(const Aet::AetSet& set, const Aet::Scene& scene)
+		std::string GetAetSetName(const Aet::AetSet& set)
 		{
 			const std::string lowerCaseSetName = ToLower(set.Name);
-			const std::string lowerCaseSceneName = ToLower(scene.Name);
-
 			const auto setNameWithoutAet = std::string_view(lowerCaseSetName).substr(std::strlen("aet_"));
+			return ToLower(setNameWithoutAet);
+		}
 
+		std::string FormatSceneName(const Aet::AetSet& set, const Aet::Scene& scene)
+		{
 			std::string result;
-			result += setNameWithoutAet;
+			result += GetAetSetName(set);
 			result += "_";
-			result += lowerCaseSceneName;
+			result += ToLower(scene.Name);
 			return result;
 		}
 	}
@@ -467,7 +487,11 @@ namespace AetPlugin
 	A_Err ImportAetSet(Aet::AetSet& aetSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
 		Aet::Scene& mainScene = *aetSet.GetScenes().front();
-		GlobalFrameRate = mainScene.FrameRate;
+
+		WorkingAetFrameRate = mainScene.FrameRate;
+
+		WorkingAetSpriteNamePrefix = GetAetSetName(aetSet);
+		WorkingAetSpriteNamePrefixUnderscore = WorkingAetSpriteNamePrefix + "_";
 
 		const A_Ratio sceneFps = { static_cast<A_long>(mainScene.FrameRate * FixedPoint), static_cast<A_u_long>(FixedPoint) };
 
