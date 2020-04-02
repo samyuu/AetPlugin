@@ -177,12 +177,10 @@ namespace AetPlugin
 
 		void ImportLayerTiming(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
 		{
-			const A_Time startTime = FrameToATime(layer.StartFrame);
-			const A_Time duration = FrameToATime((layer.EndFrame - layer.StartFrame) / layer.TimeScale);
-
 			if (layer.StartOffset != 0.0f)
 			{
 				const A_Time startOffset = FrameToATime(layer.StartOffset);
+				const A_Time duration = FrameToATime((layer.EndFrame - layer.StartFrame) / layer.TimeScale);
 				suites.LayerSuite8()->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
 
 				const A_Time offsetAdjustedStartTime = FrameToATime(-layer.StartOffset + layer.StartFrame);
@@ -190,11 +188,11 @@ namespace AetPlugin
 			}
 			else
 			{
-				// NOTE: This is the offset relative to the start of the comp
+				const A_Time startTime = FrameToATime(layer.StartFrame);
 				suites.LayerSuite8()->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
 			}
 
-			// BUG: This doesnt't work because setting the stretch also automatically (thanks adobe) changes the in and out point
+			// BUG: Is this working correctly now... (?)
 			const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * FixedPoint), static_cast<A_u_long>(FixedPoint) };
 			suites.LayerSuite1()->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 		}
@@ -225,9 +223,27 @@ namespace AetPlugin
 
 		void ImportLayerMarkers(AEGP_SuiteHandler& suites, const Aet::Layer& layer)
 		{
-			//suites.MarkerSuite3()->AEGP_NewMarker();
-			//suites.MarkerSuite3()->AEGP_SetIndCuePointParam();
-			//suites.MarkerSuite3()->AEGP_SetMarkerString();
+			if (layer.Markers.empty())
+				return;
+
+			AEGP_StreamValue2 streamValue2 = {};
+			suites.StreamSuite5()->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
+
+			for (auto& marker : layer.Markers)
+			{
+				AEGP_MarkerVal markerValue = {};
+				AEGP_MarkerVal* markerValuePtr = &markerValue;
+				std::strcpy(markerValue.nameAC, marker->Name.c_str());
+
+				AEGP_StreamValue streamValue = {};
+				streamValue.streamH = streamValue2.streamH;
+				streamValue.val.markerH = &markerValuePtr;
+
+				const A_Time time = FrameToATime(marker->Frame);
+				AEGP_KeyframeIndex index;
+				suites.KeyframeSuite3()->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+				suites.KeyframeSuite3()->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
+			}
 		}
 
 		void ImportLayerTransferMode(AEGP_SuiteHandler& suites, const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode)
