@@ -104,9 +104,6 @@
     <ClInclude Include="..\..\..\Headers\PT_Public.h">
       <Filter>Headers\AE</Filter>
     </ClInclude>
-    <ClInclude Include="..\AetImport.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\AeExtraData.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -269,6 +266,12 @@
     <ClInclude Include="..\Comfy\lib\zlib\src\zutil.h">
       <Filter>Comfy\lib\zlib</Filter>
     </ClInclude>
+    <ClInclude Include="..\AetImport.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AEUtil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -283,9 +286,6 @@
       <Filter>Supporting Code</Filter>
     </ClCompile>
     <ClCompile Include="..\AetPlugin.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\AetImport.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\Comfy\ComfyCore\Core\Logger.cpp">
@@ -398,6 +398,9 @@
     </ClCompile>
     <ClCompile Include="..\Comfy\lib\zlib\src\zutil.c">
       <Filter>Comfy\lib\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AetImport.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

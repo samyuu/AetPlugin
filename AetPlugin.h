@@ -1,15 +1,5 @@
-#include "AEConfig.h"
-
+#include "AEUtil.h"
 #include "entry.h"
-#include "AE_GeneralPlug.h"
-#include "AE_Effect.h"
-#include "AE_EffectUI.h"
-#include "AE_EffectCB.h"
-#include "AE_AdvEffectSuites.h"
-#include "AE_EffectCBSuites.h"
-#include "AEGP_SuiteHandler.h"
-#include "AE_Macros.h"
-
 #include "Types.h"
 #include "CoreTypes.h"
 

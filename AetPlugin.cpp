@@ -8,20 +8,12 @@ namespace AetPlugin
 	AEGP_PluginID GlobalPluginID = -1;
 	SPBasicSuite* GlobalBasicPicaSuite = nullptr;
 
-	using namespace Comfy;
-	using namespace Comfy::Graphics;
-
 	namespace
 	{
-		inline const wchar_t* WideStr(const A_UTF16Char* value)
-		{
-			return reinterpret_cast<const wchar_t*>(value);
-		}
-
 		A_Err AEGP_FileVerifyCallbackHandler(const A_UTF16Char* filePath, AE_FIM_Refcon refcon, A_Boolean* a_canImport)
 		{
 			bool canImport = false;
-			const auto error = VerifyAetSetImportable(WideStr(filePath), canImport);
+			const auto error = AetImporter::VerifyAetSetImportable(AEUtil::WCast(filePath), canImport);
 
 			*a_canImport = canImport;
 			return error;
@@ -29,17 +21,15 @@ namespace AetPlugin
 
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)
 		{
-			const std::wstring filePathString = { WideStr(filePath) };
-			SetWorkingAetImportDirectory(std::wstring(FileSystem::GetDirectory(filePathString)));
+			const std::wstring filePathString = { AEUtil::WCast(filePath) };
+			const auto aetSet = AetImporter::LoadAetSet(filePathString);
 
-			Aet::AetSet aetSet;
-			aetSet.Name = Utilities::Utf16ToUtf8(FileSystem::GetFileName(filePathString, false));
-			aetSet.Load(filePathString);
-
-			if (aetSet.GetScenes().empty())
+			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
-			const auto error = ImportAetSet(aetSet, importOptions, action, itemHandle);
+			AetImporter importer = AetImporter(FileSystem::GetDirectory(filePathString));
+			const auto error = importer.ImportAetSet(*aetSet, importOptions, action, itemHandle);
+			
 			return error;
 		}
 

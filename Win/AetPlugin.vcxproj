@@ -347,6 +347,7 @@
     <ClInclude Include="..\AeExtraData.h" />
     <ClInclude Include="..\AetImport.h" />
     <ClInclude Include="..\AetPlugin.h" />
+    <ClInclude Include="..\AEUtil.h" />
     <ClInclude Include="..\Comfy\ComfyCore\CoreTypes.h" />
     <ClInclude Include="..\Comfy\ComfyCore\Core\Algorithm.h" />
     <ClInclude Include="..\Comfy\ComfyCore\Core\Logger.h" />
