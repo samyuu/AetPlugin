@@ -113,11 +113,11 @@ namespace AetPlugin
 		{
 			if (video.Sources.empty())
 			{
-				struct RGB8 { uint8_t R, G, B, Padding; };
+				struct RGB8 { uint8_t R, G, B, const Alpha = 0xFF; };
 				const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
 
 				constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
-				const AEGP_ColorVal aeColor = { videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat, 1.0f };
+				const AEGP_ColorVal aeColor = { videoColor.Alpha / rgb8ToFloat, videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat };
 
 				char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
 				sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
