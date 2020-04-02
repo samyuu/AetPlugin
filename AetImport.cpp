@@ -10,19 +10,12 @@ namespace AetPlugin
 {
 	namespace
 	{
-		char ToLower(char input)
-		{
-			constexpr char caseDifference = ('A' - 'a');
-			if (input >= 'A' && input <= 'Z')
-				return input - caseDifference;
-			return input;
-		}
 
 		std::string ToLower(std::string_view value)
 		{
 			auto lowerCaseString = std::string(value);
-			for (auto& character : lowerCaseString)
-				character = ToLower(character);
+			for (char& character : lowerCaseString)
+				character = static_cast<char>(tolower(character));
 			return lowerCaseString;
 		}
 
