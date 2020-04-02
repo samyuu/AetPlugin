@@ -175,23 +175,9 @@ namespace AetPlugin
 
 	void AetImporter::ImportAllCompositions(const Aet::AetSet& set, const Aet::Scene& scene)
 	{
-		{
-			const A_Time duration = FrameToAETime(scene.EndFrame);
-			const auto sceneName = FormatSceneName(set, scene);
-
-			suites.CompSuite4->AEGP_CreateComp(project.Folders.Root, sceneName.c_str(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
-			suites.CompSuite4->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
-		}
-
-		for (auto& comp : scene.Compositions)
-		{
-			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
-			suites.CompSuite4->AEGP_CreateComp(project.Folders.Comp, comp->GetName().data(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
-			suites.CompSuite4->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
-		}
+		ImportSceneComps(set, scene);
 
 		ImportLayersInComp(*scene.RootComposition);
-
 		for (int i = static_cast<int>(scene.Compositions.size()) - 1; i >= 0; i--)
 			ImportLayersInComp(*scene.Compositions[i]);
 	}
@@ -242,7 +228,7 @@ namespace AetPlugin
 			AEGP_FootageLayerKey footageLayerKey = {};
 			footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
 			footageLayerKey.layer_indexL = 0;
-			
+
 			if (video.Sources.size() > 1)
 				std::memcpy(footageLayerKey.nameAC, frontSourceNameWithoutAetPrefix.data(), frontSourceNameWithoutAetPrefix.size());
 
@@ -269,6 +255,22 @@ namespace AetPlugin
 	void AetImporter::ImportAudio(const Aet::Audio& audio)
 	{
 		// TODO:
+	}
+
+	void AetImporter::ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene)
+	{
+		const A_Time sceneDuration = FrameToAETime(scene.EndFrame);
+		const auto sceneName = FormatSceneName(set, scene);
+
+		suites.CompSuite4->AEGP_CreateComp(project.Folders.Root, sceneName.c_str(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
+		suites.CompSuite4->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
+
+		for (auto& comp : scene.Compositions)
+		{
+			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
+			suites.CompSuite4->AEGP_CreateComp(project.Folders.Comp, comp->GetName().data(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
+			suites.CompSuite4->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
+		}
 	}
 
 	void AetImporter::ImportLayersInComp(const Aet::Composition& comp)
@@ -471,7 +473,7 @@ namespace AetPlugin
 	void AetImporter::ImportLayerVideo(const Aet::Layer& layer)
 	{
 		ImportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
-		
+
 		// HACK:
 		ImportLayerVideoKeyFrames(suites.StreamSuite5, suites.KeyframeSuite3, layer, *layer.LayerVideo, [this](frame_t f) { return FrameToAETime(f); });
 	}

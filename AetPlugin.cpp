@@ -29,15 +29,15 @@ namespace AetPlugin
 
 			AetImporter importer = AetImporter(FileSystem::GetDirectory(filePathString));
 			const auto error = importer.ImportAetSet(*aetSet, importOptions, action, itemHandle);
-			
+
 			return error;
 		}
 
 		A_Err RegisterAetFileType()
 		{
-			constexpr std::array extensionsToRegister = 
-			{ 
-				std::array { 'b', 'i', 'n' }, 
+			constexpr std::array extensionsToRegister =
+			{
+				std::array { 'b', 'i', 'n' },
 				std::array { 'a', 'e', 'c' },
 			};
 

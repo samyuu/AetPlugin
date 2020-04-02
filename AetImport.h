@@ -111,6 +111,7 @@ namespace AetPlugin
 		void ImportAudio(const Aet::Audio& audio);
 
 	protected:
+		void ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene);
 		void ImportLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
