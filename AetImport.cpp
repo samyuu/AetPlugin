@@ -157,9 +157,27 @@ namespace AetPlugin
 
 		void ImportSpriteSequenceVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
 		{
-			// TODO:
-			for (auto& videoSource : video.Sources)
+			const auto frontSourceNameWithoutAetPrefix = StripPrefixIfExists(video.Sources.front().Name, WorkingAetSpriteNamePrefixUnderscore);
+			if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutAetPrefix); matchingSpriteFile != nullptr)
 			{
+				AEGP_FootageLayerKey footageLayerKey = {};
+				footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
+				footageLayerKey.layer_indexL = 0;
+				std::memcpy(footageLayerKey.nameAC, frontSourceNameWithoutAetPrefix.data(), frontSourceNameWithoutAetPrefix.size());
+
+				AEGP_FileSequenceImportOptions sequenceImportOptions = {};
+				sequenceImportOptions.all_in_folderB = true;
+				sequenceImportOptions.force_alphabeticalB = false;
+				sequenceImportOptions.start_frameL = 0;
+				sequenceImportOptions.end_frameL = static_cast<A_long>(video.Sources.size()) - 1;
+
+				suites.FootageSuite5()->AEGP_NewFootage(GlobalPluginID, UTF16(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, &sequenceImportOptions, FALSE, nullptr, &video.GuiData.AE_Footage);
+				suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
+			}
+			else
+			{
+				const A_Time duration = FrameToATime(1.0f);
+				suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 			}
 		}
 
@@ -253,7 +271,7 @@ namespace AetPlugin
 			{
 				AEGP_MarkerVal markerValue = {};
 				AEGP_MarkerVal* markerValuePtr = &markerValue;
-				std::strcpy(markerValue.nameAC, marker->Name.c_str());
+				std::memcpy(markerValue.nameAC, marker->Name.data(), marker->Name.size());
 
 				AEGP_StreamValue streamValue = {};
 				streamValue.streamH = streamValue2.streamH;
