@@ -75,12 +75,14 @@ namespace Comfy::Utilities
 
 	bool StartsWithInsensitive(std::string_view string, std::string_view prefix)
 	{
-		return std::equal(prefix.begin(), prefix.end(), string.begin());
+		return (string.length() >= prefix.length()) && MatchesInsensitive(string.substr(0, prefix.length()), prefix);
+		// return std::equal(prefix.begin(), prefix.end(), string.begin());
 	}
 
 	bool StartsWithInsensitive(std::wstring_view string, std::wstring_view prefix)
 	{
-		return std::equal(prefix.begin(), prefix.end(), string.begin());
+		return (string.length() >= prefix.length()) && MatchesInsensitive(string.substr(0, prefix.length()), prefix);
+		// return std::equal(prefix.begin(), prefix.end(), string.begin());
 	}
 
 	bool EndsWith(std::string_view string, char suffix)
