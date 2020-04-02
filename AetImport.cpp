@@ -109,48 +109,68 @@ namespace AetPlugin
 
 	namespace
 	{
-		void ImportVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
+		const SpriteFile* FindMatchingSpriteFile(std::string_view sourceName)
 		{
-			if (video.Sources.empty())
+			auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile)
 			{
-				struct RGB8 { uint8_t R, G, B, const Alpha = 0xFF; };
-				const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
+				return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, sourceName);
+			});
 
-				constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
-				const AEGP_ColorVal aeColor = { videoColor.Alpha / rgb8ToFloat, videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat };
+			return (matchingSpriteFile != WorkingDirectorySpriteFiles.end()) ? &(*matchingSpriteFile) : nullptr;
+		};
 
-				char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
-				sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
+		void ImportPlaceholderVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
+		{
+			struct RGB8 { uint8_t R, G, B; };
+			const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
 
-				suites.FootageSuite5()->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
+			constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
+			constexpr float aeAlpha = 1.0f;
+
+			const AEGP_ColorVal aeColor = { aeAlpha, videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat };
+
+			char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
+			sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
+
+			suites.FootageSuite5()->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
+			suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
+		}
+
+		void ImportSingleSpriteVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
+		{
+			const auto frontSourceNameWithoutAetPrefix = StripPrefixIfExists(video.Sources.front().Name, WorkingAetSpriteNamePrefixUnderscore);
+			if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutAetPrefix); matchingSpriteFile != nullptr)
+			{
+				AEGP_FootageLayerKey footageLayerKey = {};
+				footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
+				footageLayerKey.layer_indexL = 0;
+
+				suites.FootageSuite5()->AEGP_NewFootage(GlobalPluginID, UTF16(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, nullptr, FALSE, nullptr, &video.GuiData.AE_Footage);
 				suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
 			}
 			else
 			{
-				const std::string_view frontSourceName = video.Sources.front().Name;
-				const std::string_view frontSourceNameWithoutAetPrefix = StripPrefixIfExists(frontSourceName, WorkingAetSpriteNamePrefixUnderscore);
-
-				auto matchingSpriteFile = std::find_if(WorkingDirectorySpriteFiles.begin(), WorkingDirectorySpriteFiles.end(), [&](auto& spriteFile)
-				{
-					return Utilities::MatchesInsensitive(spriteFile.SanitizedFileName, frontSourceNameWithoutAetPrefix);
-				});
-
-				if (matchingSpriteFile != WorkingDirectorySpriteFiles.end())
-				{
-					AEGP_FootageLayerKey footageLayerKey = {};
-					footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
-					footageLayerKey.layer_indexL = 0;
-
-					suites.FootageSuite5()->AEGP_NewFootage(GlobalPluginID, UTF16(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, nullptr, FALSE, nullptr, &video.GuiData.AE_Footage);
-					suites.FootageSuite5()->AEGP_AddFootageToProject(video.GuiData.AE_Footage, folder, &video.GuiData.AE_FootageItem);
-				}
-				else
-				{
-					// TODO: video->Frames
-					const A_Time duration = { 1, 1 };
-					suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceName.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
-				}
+				const A_Time duration = FrameToATime(1.0f);
+				suites.FootageSuite5()->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 			}
+		}
+
+		void ImportSpriteSequenceVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
+		{
+			// TODO:
+			for (auto& videoSource : video.Sources)
+			{
+			}
+		}
+
+		void ImportVideo(AEGP_SuiteHandler& suites, const Aet::Video& video, AEGP_ItemH folder)
+		{
+			if (video.Sources.empty())
+				ImportPlaceholderVideo(suites, video, folder);
+			else if (video.Sources.size() == 1)
+				ImportSingleSpriteVideo(suites, video, folder);
+			else
+				ImportSpriteSequenceVideo(suites, video, folder);
 		}
 
 		void ImportAudio(AEGP_SuiteHandler& suites, const Aet::Audio& audio, AEGP_ItemH folder)
