@@ -322,25 +322,13 @@ namespace AetPlugin
 	// TODO: Cleanup
 	namespace
 	{
-		enum AetPropertyType
+		constexpr struct { AEGP_LayerStream Stream; Transform2DField_Enum X, Y; float Factor; } StreamPropertiesRemapData[] =
 		{
-			OriginX,
-			OriginY,
-			PositionX,
-			PositionY,
-			Rotation,
-			ScaleX,
-			ScaleY,
-			Opacity
-		};
-
-		constexpr struct { AEGP_LayerStream Stream; AetPropertyType X, Y; float Factor; } StreamPropertiesRemapData[] =
-		{
-			{ AEGP_LayerStream_ANCHORPOINT, OriginX,	OriginY,	1.0f },
-			{ AEGP_LayerStream_POSITION,	PositionX,	PositionY,	1.0f },
-			{ AEGP_LayerStream_ROTATION,	Rotation,	Rotation,	1.0f },
-			{ AEGP_LayerStream_SCALE,		ScaleX,		ScaleY,		100.0f },
-			{ AEGP_LayerStream_OPACITY,		Opacity,	Opacity,	100.0f },
+			{ AEGP_LayerStream_ANCHORPOINT, Transform2DField_OriginX,	Transform2DField_OriginY,	1.0f },
+			{ AEGP_LayerStream_POSITION,	Transform2DField_PositionX,	Transform2DField_PositionY,	1.0f },
+			{ AEGP_LayerStream_ROTATION,	Transform2DField_Rotation,	Transform2DField_Rotation,	1.0f },
+			{ AEGP_LayerStream_SCALE,		Transform2DField_ScaleX,	Transform2DField_ScaleY,	100.0f },
+			{ AEGP_LayerStream_OPACITY,		Transform2DField_Opacity,	Transform2DField_Opacity,	100.0f },
 		};
 
 		struct AetVec2KeyFrame
