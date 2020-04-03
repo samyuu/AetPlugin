@@ -45,7 +45,7 @@ namespace AetPlugin
 			for (const auto& extension : extensionsToRegister)
 			{
 				AEIO_FileKind kind = {};
-				memcpy(&kind.mac.type, "aet", 3);
+				std::memcpy(&kind.mac.type, "aet", 3);
 				kind.mac.creator = AEIO_ANY_CREATOR;
 
 				AEIO_FileKind fileKind = {};
@@ -75,7 +75,7 @@ namespace AetPlugin
 	}
 }
 
-A_Err EntryPointFunc(struct SPBasicSuite* pica_basicP, A_long major_versionL, A_long minor_versionL, AEGP_PluginID aegp_plugin_id, AEGP_GlobalRefcon* global_refconP)
+A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long minor_versionL, AEGP_PluginID aegp_plugin_id, AEGP_GlobalRefcon* global_refconP)
 {
 	AetPlugin::GlobalBasicPicaSuite = pica_basicP;
 	AetPlugin::GlobalPluginID = aegp_plugin_id;
