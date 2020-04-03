@@ -96,7 +96,7 @@ namespace Comfy::Graphics::Aet
 
 		void ReadLayerVideo3D(LayerVideo3D& transform, BinaryReader& reader)
 		{
-			ReadProperty1DPointer(transform.AnchorZ, reader);
+			ReadProperty1DPointer(transform.OriginZ, reader);
 			ReadProperty1DPointer(transform.PositionZ, reader);
 			ReadProperty3DPointer(transform.Direction, reader);
 			ReadProperty2DPointer(transform.Rotation, reader);
@@ -171,7 +171,7 @@ namespace Comfy::Graphics::Aet
 
 		void WriteTransform(const LayerVideo3D& transform, BinaryWriter& writer)
 		{
-			WriteProperty1DPointer(transform.AnchorZ, writer);
+			WriteProperty1DPointer(transform.OriginZ, writer);
 			WriteProperty1DPointer(transform.PositionZ, writer);
 			WriteProperty3DPointer(transform.Direction, writer);
 			WriteProperty2DPointer(transform.Rotation, writer);
@@ -222,7 +222,7 @@ namespace Comfy::Graphics::Aet
 
 		void SetLayerVideoStartFrame(LayerVideo3D& transform, frame_t startFrame)
 		{
-			SetProperty1DStartFrame(transform.AnchorZ, startFrame);
+			SetProperty1DStartFrame(transform.OriginZ, startFrame);
 			SetProperty1DStartFrame(transform.PositionZ, startFrame);
 			SetProperty1DStartFrame(transform.Direction.X, startFrame);
 			SetProperty1DStartFrame(transform.Direction.Y, startFrame);

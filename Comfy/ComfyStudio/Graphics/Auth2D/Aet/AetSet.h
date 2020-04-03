@@ -156,7 +156,7 @@ namespace Comfy::Graphics::Aet
 
 	struct LayerVideo3D
 	{
-		Property1D AnchorZ;
+		Property1D OriginZ;
 		Property1D PositionZ;
 		Property3D Direction;
 		Property2D Rotation;
