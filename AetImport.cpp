@@ -348,60 +348,6 @@ namespace AetPlugin
 		};
 	}
 
-	// TODO: Cleanup
-	namespace
-	{
-		struct KeyFrameVec2
-		{
-			frame_t Frame;
-			vec2 Value;
-			float Curve;
-		};
-
-		template <class KeyFrameType>
-		const KeyFrameType* FindKeyFrameAt(frame_t frame, const std::vector<KeyFrameType>& keyFrames)
-		{
-			for (const auto& keyFrame : keyFrames)
-			{
-				if (Aet::AetMgr::AreFramesTheSame(keyFrame.Frame, frame))
-					return &keyFrame;
-			}
-			return nullptr;
-		}
-
-		std::vector<KeyFrameVec2> CombineXYPropertiesToKeyFrameVec2s(const Aet::Property1D& propertyX, const Aet::Property1D& propertyY)
-		{
-			std::vector<KeyFrameVec2> combinedKeyFrames;
-			combinedKeyFrames.reserve(propertyX->size() + propertyY->size());
-
-			for (auto& xKeyFrame : propertyX.Keys)
-			{
-				vec2 value = { xKeyFrame.Value, 0.0f };
-
-				auto matchingYKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyY.Keys);
-				if (matchingYKeyFrame != nullptr)
-					value.y = matchingYKeyFrame->Value;
-				else
-					value.y = Aet::AetMgr::GetValueAt(propertyY, xKeyFrame.Frame);
-
-				combinedKeyFrames.push_back({ xKeyFrame.Frame, value, xKeyFrame.Curve });
-			}
-
-			for (auto& yKeyFrame : propertyY.Keys)
-			{
-				auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec2>(yKeyFrame.Frame, combinedKeyFrames);
-				if (existingKeyFrame != nullptr)
-					continue;
-
-				const float xValue = Aet::AetMgr::GetValueAt(propertyX, yKeyFrame.Frame);
-				combinedKeyFrames.push_back({ yKeyFrame.Frame, vec2(xValue, yKeyFrame.Value), yKeyFrame.Curve });
-			}
-
-			std::sort(combinedKeyFrames.begin(), combinedKeyFrames.end(), [](const auto& a, const auto& b) { return a.Frame < b.Frame; });
-			return combinedKeyFrames;
-		}
-	}
-
 	void AetImporter::ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
 	{
 		for (const AetTransformToAEStreamData& aetToAEStreamData : AetToAEStreamRemapData)
@@ -418,7 +364,7 @@ namespace AetPlugin
 			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
 			suites.StreamSuite5->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
 
-			if (xKeyFrames.Keys.size() <= 1)
+			if (xKeyFrames.Keys.size() <= 1 && yKeyFrames.Keys.size() <= 1)
 				continue;
 
 #if 0
@@ -431,11 +377,10 @@ namespace AetPlugin
 				if (isSeparationLeader)
 				{
 					suites.DynamicStreamSuite4->AEGP_SetDimensionsSeparated(streamValue2.streamH, true);
-					continue;
-		}
-	}
+					// continue;
+				}
+			}
 #endif
-
 			AEGP_AddKeyframesInfoH addKeyFrameInfo;
 			suites.KeyframeSuite3->AEGP_StartAddKeyframes(streamValue2.streamH, &addKeyFrameInfo);
 
@@ -460,13 +405,52 @@ namespace AetPlugin
 			}
 			else
 			{
-				const auto combinedVec2KeyFrames = CombineXYPropertiesToKeyFrameVec2s(xKeyFrames, yKeyFrames);
-				for (const KeyFrameVec2& keyFrame : combinedVec2KeyFrames)
+				CombineXYPropertiesToKeyFrameVec2s(xKeyFrames, yKeyFrames, combinedVec2KeyFramesCache);
+
+				for (const KeyFrameVec2& keyFrame : combinedVec2KeyFramesCache)
 					insertStreamKeyFrame(keyFrame.Frame, keyFrame.Value.x, keyFrame.Value.y);
 			}
 
 			suites.KeyframeSuite3->AEGP_EndAddKeyframes(true, addKeyFrameInfo);
-}
+		}
+	}
+
+	namespace
+	{
+		template <class KeyFrameType>
+		const KeyFrameType* FindKeyFrameAt(frame_t frame, const std::vector<KeyFrameType>& keyFrames)
+		{
+			auto found = std::find_if(keyFrames.begin(), keyFrames.end(), [&](auto& k) { return Aet::AetMgr::AreFramesTheSame(k.Frame, frame); });
+			return (found != keyFrames.end()) ? &(*found) : nullptr;
+		}
+	}
+
+	void AetImporter::CombineXYPropertiesToKeyFrameVec2s(const Aet::Property1D& propertyX, const Aet::Property1D& propertyY, std::vector<KeyFrameVec2>& outCombinedKeyFrames) const
+	{
+		outCombinedKeyFrames.clear();
+		outCombinedKeyFrames.reserve(propertyX->size() + propertyY->size());
+
+		for (const auto& xKeyFrame : propertyX.Keys)
+		{
+			const auto matchingYKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyY.Keys);
+			const vec2 value = 
+			{ 
+				xKeyFrame.Value, 
+				(matchingYKeyFrame != nullptr) ? matchingYKeyFrame->Value : Aet::AetMgr::GetValueAt(propertyY, xKeyFrame.Frame),
+			};
+			outCombinedKeyFrames.push_back({ xKeyFrame.Frame, value, xKeyFrame.Curve });
+		}
+
+		for (const auto& yKeyFrame : propertyY.Keys)
+		{
+			if (auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec2>(yKeyFrame.Frame, outCombinedKeyFrames); existingKeyFrame != nullptr)
+				continue;
+
+			const float xValue = Aet::AetMgr::GetValueAt(propertyX, yKeyFrame.Frame);
+			outCombinedKeyFrames.push_back({ yKeyFrame.Frame, vec2(xValue, yKeyFrame.Value), yKeyFrame.Curve });
+		}
+
+		std::sort(outCombinedKeyFrames.begin(), outCombinedKeyFrames.end(), [](const auto& a, const auto& b) { return a.Frame < b.Frame; });
 	}
 
 	void AetImporter::ImportLayerAudio(const Aet::Layer& layer)
