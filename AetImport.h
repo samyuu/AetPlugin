@@ -116,6 +116,7 @@ namespace AetPlugin
 		void ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene);
 		void ImportLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
+		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
 		void ImportLayerVideo(const Aet::Layer& layer);
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
@@ -132,5 +133,7 @@ namespace AetPlugin
 		void ImportLayerFlags(const Aet::Layer& layer);
 		void ImportLayerQuality(const Aet::Layer& layer);
 		void ImportLayerMarkers(const Aet::Layer& layer);
+
+		void SetLayerRefParentLayer(const Aet::Layer& layer);
 	};
 }

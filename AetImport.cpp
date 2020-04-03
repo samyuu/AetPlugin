@@ -193,6 +193,9 @@ namespace AetPlugin
 			ImportPlaceholderVideo(video);
 		else
 			ImportSpriteVideo(video);
+
+		if (video.GuiData.AE_Footage != nullptr)
+			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Video, &video.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportPlaceholderVideo(const Aet::Video& video)
@@ -209,9 +212,6 @@ namespace AetPlugin
 		sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
 
 		suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
-
-		if (video.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Video, &video.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
@@ -241,14 +241,13 @@ namespace AetPlugin
 			const A_Time duration = FrameToAETime(placeholderDuration);
 			suites.FootageSuite5->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 		}
-
-		if (video.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Video, &video.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportAudio(const Aet::Audio& audio)
 	{
 		// TODO:
+		if (audio.GuiData.AE_Footage != nullptr)
+			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Video, &audio.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene)
@@ -273,29 +272,12 @@ namespace AetPlugin
 			ImportLayer(comp, *comp.GetLayers()[i]);
 
 		for (const auto& layer : comp.GetLayers())
-		{
-			if (layer->GetRefParentLayer() != nullptr && layer->GuiData.AE_Layer != nullptr && layer->GetRefParentLayer()->GuiData.AE_Layer != nullptr)
-				suites.LayerSuite8->AEGP_SetLayerParent(layer->GuiData.AE_Layer, layer->GetRefParentLayer()->GuiData.AE_Layer);
-		}
+			SetLayerRefParentLayer(*layer);
 	}
 
 	void AetImporter::ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer)
 	{
-		if (layer.ItemType == Aet::ItemType::Video)
-		{
-			if (layer.GetVideoItem() != nullptr && layer.GetVideoItem()->GuiData.AE_FootageItem != nullptr)
-				suites.LayerSuite8->AEGP_AddLayer(layer.GetVideoItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
-		}
-		else if (layer.ItemType == Aet::ItemType::Audio)
-		{
-			if (layer.GetAudioItem() != nullptr && layer.GetAudioItem()->GuiData.AE_FootageItem != nullptr)
-				suites.LayerSuite8->AEGP_AddLayer(layer.GetAudioItem()->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
-		}
-		else if (layer.ItemType == Aet::ItemType::Composition)
-		{
-			if (layer.GetCompItem() != nullptr && layer.GetCompItem()->GuiData.AE_CompItem != nullptr)
-				suites.LayerSuite8->AEGP_AddLayer(layer.GetCompItem()->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
-		}
+		ImportLayerItemToComp(parentComp, layer);
 
 		if (layer.GuiData.AE_Layer == nullptr)
 			return;
@@ -311,6 +293,28 @@ namespace AetPlugin
 		ImportLayerFlags(layer);
 		ImportLayerQuality(layer);
 		ImportLayerMarkers(layer);
+	}
+
+	void AetImporter::ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer)
+	{
+		auto tryAddAEFootageLayerToComp = [&](const auto* layerItem)
+		{
+			if (layerItem != nullptr && layerItem->GuiData.AE_FootageItem != nullptr)
+				suites.LayerSuite8->AEGP_AddLayer(layerItem->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+		};
+
+		auto tryAddAECompLayerToComp = [&](const auto* layerItem)
+		{
+			if (layerItem != nullptr && layerItem->GuiData.AE_CompItem != nullptr)
+				suites.LayerSuite8->AEGP_AddLayer(layerItem->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+		};
+
+		if (layer.ItemType == Aet::ItemType::Video)
+			tryAddAEFootageLayerToComp(layer.GetVideoItem());
+		else if (layer.ItemType == Aet::ItemType::Audio)
+			tryAddAEFootageLayerToComp(layer.GetAudioItem());
+		else if (layer.ItemType == Aet::ItemType::Composition)
+			tryAddAECompLayerToComp(layer.GetCompItem());
 	}
 
 	void AetImporter::ImportLayerVideo(const Aet::Layer& layer)
@@ -433,9 +437,9 @@ namespace AetPlugin
 		for (const auto& xKeyFrame : propertyX.Keys)
 		{
 			const auto matchingYKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyY.Keys);
-			const vec2 value = 
-			{ 
-				xKeyFrame.Value, 
+			const vec2 value =
+			{
+				xKeyFrame.Value,
 				(matchingYKeyFrame != nullptr) ? matchingYKeyFrame->Value : Aet::AetMgr::GetValueAt(propertyY, xKeyFrame.Frame),
 			};
 			outCombinedKeyFrames.push_back({ xKeyFrame.Frame, value, xKeyFrame.Curve });
@@ -530,5 +534,14 @@ namespace AetPlugin
 			suites.KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
 			suites.KeyframeSuite3->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
 		}
+	}
+
+	void AetImporter::SetLayerRefParentLayer(const Aet::Layer& layer)
+	{
+		if (layer.GetRefParentLayer() == nullptr)
+			return;
+
+		if (layer.GuiData.AE_Layer != nullptr && layer.GetRefParentLayer()->GuiData.AE_Layer != nullptr)
+			suites.LayerSuite8->AEGP_SetLayerParent(layer.GuiData.AE_Layer, layer.GetRefParentLayer()->GuiData.AE_Layer);
 	}
 }
