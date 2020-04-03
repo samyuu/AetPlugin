@@ -42,6 +42,7 @@ namespace AetPlugin
 			DeclareSuiteMember(LayerSuite1);
 			DeclareSuiteMember(LayerSuite8);
 			DeclareSuiteMember(StreamSuite5);
+			DeclareSuiteMember(DynamicStreamSuite4);
 			DeclareSuiteMember(KeyframeSuite3);
 			DeclareSuiteMember(UtilitySuite3);
 
@@ -118,7 +119,7 @@ namespace AetPlugin
 
 		void ImportLayerVideo(const Aet::Layer& layer);
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
-		void ImportLayerVideo2D(const Aet::Layer& layer, const Aet::LayerVideo2D& video2D);
+		void ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo);
 
 		void ImportLayerAudio(const Aet::Layer& layer);
 		void ImportLayerTiming(const Aet::Layer& layer);
