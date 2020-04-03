@@ -160,10 +160,10 @@ namespace AetPlugin
 
 	void AetImporter::ImportAllFootage(const Aet::AetSet& set, const Aet::Scene& scene)
 	{
-		for (auto& video : scene.Videos)
+		for (const auto& video : scene.Videos)
 			ImportVideo(*video);
 
-		for (auto& audio : scene.Audios)
+		for (const auto& audio : scene.Audios)
 			ImportAudio(*audio);
 	}
 
@@ -179,7 +179,7 @@ namespace AetPlugin
 	frame_t AetImporter::GetCompDuration(const Aet::Composition& comp) const
 	{
 		frame_t latestFrame = 1.0f;
-		for (auto& layer : comp.GetLayers())
+		for (const auto& layer : comp.GetLayers())
 		{
 			if (layer->EndFrame > latestFrame)
 				latestFrame = layer->EndFrame;
@@ -259,7 +259,7 @@ namespace AetPlugin
 		suites.CompSuite4->AEGP_CreateComp(project.Folders.Root, sceneName.c_str(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
 		suites.CompSuite4->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
 
-		for (auto& comp : scene.Compositions)
+		for (const auto& comp : scene.Compositions)
 		{
 			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
 			suites.CompSuite4->AEGP_CreateComp(project.Folders.Comp, comp->GetName().data(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
@@ -272,7 +272,7 @@ namespace AetPlugin
 		for (int i = static_cast<int>(comp.GetLayers().size()) - 1; i >= 0; i--)
 			ImportLayer(comp, *comp.GetLayers()[i]);
 
-		for (auto& layer : comp.GetLayers())
+		for (const auto& layer : comp.GetLayers())
 		{
 			if (layer->GetRefParentLayer() != nullptr && layer->GuiData.AE_Layer != nullptr && layer->GetRefParentLayer()->GuiData.AE_Layer != nullptr)
 				suites.LayerSuite8->AEGP_SetLayerParent(layer->GuiData.AE_Layer, layer->GetRefParentLayer()->GuiData.AE_Layer);
@@ -400,7 +400,7 @@ namespace AetPlugin
 
 			if (singleProperty)
 			{
-				for (auto& keyFrame : xKeyFrames.Keys)
+				for (const auto& keyFrame : xKeyFrames.Keys)
 					insertStreamKeyFrame(keyFrame.Frame, keyFrame.Value, 0.0f);
 			}
 			else
@@ -455,7 +455,7 @@ namespace AetPlugin
 
 	void AetImporter::ImportLayerAudio(const Aet::Layer& layer)
 	{
-		// TODO:
+		// NOTE: This is unused by the game so this can be ignored for now
 	}
 
 	void AetImporter::ImportLayerTiming(const Aet::Layer& layer)
@@ -513,7 +513,7 @@ namespace AetPlugin
 		AEGP_StreamValue2 streamValue2 = {};
 		suites.StreamSuite5->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
 
-		for (auto& marker : layer.Markers)
+		for (const auto& marker : layer.Markers)
 		{
 			AEGP_MarkerVal markerValue = {};
 			AEGP_MarkerVal* markerValuePtr = &markerValue;
