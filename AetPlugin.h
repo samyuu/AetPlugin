@@ -3,6 +3,10 @@
 #include "Types.h"
 #include "CoreTypes.h"
 
+#ifndef ConCat
+#define ConCat(a, b) a ## b
+#endif /* ConCat */
+
 namespace AetPlugin
 {
 	extern AEGP_PluginID GlobalPluginID;

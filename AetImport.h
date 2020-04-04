@@ -33,7 +33,6 @@ namespace AetPlugin
 		{
 			AEGP_SuiteHandler Handler = { GlobalBasicPicaSuite };
 
-#define ConCat(a, b) a ## b
 #define DeclareSuiteMember(suiteName) ConCat(AEGP_, suiteName)* suiteName = Handler.suiteName()
 
 			DeclareSuiteMember(ProjSuite5);
@@ -48,7 +47,6 @@ namespace AetPlugin
 			DeclareSuiteMember(UtilitySuite3);
 
 #undef DeclareSuiteMember
-#undef ConCat
 		} suites;
 
 	protected:
