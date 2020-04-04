@@ -14,7 +14,7 @@ namespace AetPlugin
 		{
 			const auto verifyResult = AetImporter::VerifyAetSetImportable(AEUtil::WCast(filePath));
 			*a_canImport = (verifyResult == AetImporter::AetSetVerifyResult::Valid);
-			
+
 			return A_Err_NONE;
 		}
 

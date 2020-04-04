@@ -21,7 +21,7 @@ namespace AetPlugin
 	public:
 		static UniquePtr<Aet::AetSet> LoadAetSet(std::wstring_view filePath);
 
-		enum class AetSetVerifyResult 
+		enum class AetSetVerifyResult
 		{
 			Valid,
 			InvalidPath,
