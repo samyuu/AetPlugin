@@ -321,6 +321,21 @@ namespace AetPlugin
 			tryAddAECompLayerToComp(layer.GetCompItem());
 	}
 
+	bool AetImporter::LayerUsesStartOffset(const Aet::Layer& layer)
+	{
+		if (layer.ItemType == Aet::ItemType::Video)
+		{
+			if (layer.GetVideoItem() != nullptr && layer.GetVideoItem()->Sources.size() > 1)
+				return true;
+
+			return false;
+		}
+		else if (layer.ItemType == Aet::ItemType::Composition)
+			return true;
+		else
+			return false;
+	}
+
 	void AetImporter::ImportLayerVideo(const Aet::Layer& layer)
 	{
 		ImportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
@@ -406,7 +421,7 @@ namespace AetPlugin
 				// const A_Time time = FrameToAETime(frame - layer.StartFrame + layer.StartOffset);
 
 				// NOTE: Hopefully correct for everything
-				const frame_t startOffset = (layer.ItemType == Aet::ItemType::Composition) ? layer.StartOffset : 0.0f;
+				const frame_t startOffset = LayerUsesStartOffset(layer) ? layer.StartOffset : 0.0f;
 				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
 
 				AEGP_KeyframeIndex index;
@@ -483,26 +498,18 @@ namespace AetPlugin
 	void AetImporter::ImportLayerTiming(const Aet::Layer& layer)
 	{
 		// TODO: This still isn't entirely accurate it seems
-		if (layer.StartOffset != 0.0f && layer.ItemType == Aet::ItemType::Composition)
-		{
-			const A_Time startOffset = FrameToAETime(layer.StartOffset);
-			const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
-			suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
 
-			const A_Time offsetAdjustedStartTime = FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame);
-			suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offsetAdjustedStartTime);
-		}
-		else
-		{
-			const A_Time startOffset = FrameToAETime(0.0f);
-			const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
-			suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
+		const A_Time inPoint = LayerUsesStartOffset(layer) ?
+			FrameToAETime(layer.StartOffset) :
+			FrameToAETime(0.0f);
+		const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
+		suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
 
-			const A_Time startTime = FrameToAETime(layer.StartFrame);
-			suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
-		}
+		const A_Time offset = LayerUsesStartOffset(layer) ?
+			FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame) :
+			FrameToAETime(layer.StartFrame);
+		suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
 
-		// NOTE: { Stretch = (1.0 / TimeScale) } appears to be correct
 		const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 	}

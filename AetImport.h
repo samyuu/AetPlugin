@@ -56,7 +56,7 @@ namespace AetPlugin
 			std::wstring ImportDirectory;
 			std::vector<SpriteFileData> AvailableSpriteFiles;
 		} workingDirectory;
-		
+
 		const SpriteFileData* FindMatchingSpriteFile(std::string_view sourceName) const;
 
 	protected:
@@ -80,7 +80,7 @@ namespace AetPlugin
 	protected:
 		A_Time FrameToAETime(frame_t frame) const;
 		frame_t AETimeToFrame(A_Time time) const;
-		
+
 	protected:
 		struct ProjectData
 		{
@@ -95,7 +95,7 @@ namespace AetPlugin
 				AEGP_ItemH Audio;
 				AEGP_ItemH Comp;
 			} Folders;
-			
+
 		} project = {};
 
 		void GetProjectHandles();
@@ -109,7 +109,7 @@ namespace AetPlugin
 
 	protected:
 		void ImportVideo(const Aet::Video& video);
-		
+
 		void ImportPlaceholderVideo(const Aet::Video& video);
 		void ImportSpriteVideo(const Aet::Video& video);
 
@@ -120,6 +120,8 @@ namespace AetPlugin
 		void ImportLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
+
+		static bool LayerUsesStartOffset(const Aet::Layer& layer);
 
 		void ImportLayerVideo(const Aet::Layer& layer);
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
