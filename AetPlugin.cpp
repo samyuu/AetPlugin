@@ -12,11 +12,10 @@ namespace AetPlugin
 	{
 		A_Err AEGP_FileVerifyCallbackHandler(const A_UTF16Char* filePath, AE_FIM_Refcon refcon, A_Boolean* a_canImport)
 		{
-			bool canImport = false;
-			const auto error = AetImporter::VerifyAetSetImportable(AEUtil::WCast(filePath), canImport);
-
-			*a_canImport = canImport;
-			return error;
+			const auto verifyResult = AetImporter::VerifyAetSetImportable(AEUtil::WCast(filePath));
+			*a_canImport = (verifyResult == AetImporter::AetSetVerifyResult::Valid);
+			
+			return A_Err_NONE;
 		}
 
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)

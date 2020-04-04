@@ -20,7 +20,18 @@ namespace AetPlugin
 	{
 	public:
 		static UniquePtr<Aet::AetSet> LoadAetSet(std::wstring_view filePath);
-		static A_Err VerifyAetSetImportable(std::wstring_view filePath, bool& canImport);
+
+		enum class AetSetVerifyResult 
+		{
+			Valid,
+			InvalidPath,
+			InvalidFile,
+			InvalidPointer,
+			InvalidCount,
+			InvalidData,
+		};
+
+		static AetSetVerifyResult VerifyAetSetImportable(std::wstring_view filePath);
 
 	public:
 		AetImporter(std::wstring_view workingDirectory);

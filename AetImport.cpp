@@ -1,6 +1,8 @@
 #include "AetImport.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
+#include "FileSystem/Stream/FileStream.h"
+#include "FileSystem/BinaryReader.h"
 #include "FileSystem/FileHelper.h"
 #include <filesystem>
 
@@ -45,26 +47,131 @@ namespace AetPlugin
 
 	UniquePtr<Aet::AetSet> AetImporter::LoadAetSet(std::wstring_view filePath)
 	{
+		const auto verifyResult = VerifyAetSetImportable(filePath);
+		if (verifyResult != AetSetVerifyResult::Valid)
+			return nullptr;
+
 		auto set = MakeUnique<Aet::AetSet>();
 		set->Name = Utilities::Utf16ToUtf8(FileSystem::GetFileName(filePath, false));
 		set->Load(filePath);
 		return set;
 	}
 
-	A_Err AetImporter::VerifyAetSetImportable(std::wstring_view filePath, bool& canImport)
+	AetImporter::AetSetVerifyResult AetImporter::VerifyAetSetImportable(std::wstring_view filePath)
 	{
 		const auto fileName = FileSystem::GetFileName(filePath, false);
-
 		if (!Utilities::StartsWithInsensitive(fileName, AetPrefix))
+			return AetSetVerifyResult::InvalidPath;
+
+		auto fileStream = FileSystem::FileStream(filePath);
+		if (!fileStream.IsOpen())
+			return AetSetVerifyResult::InvalidFile;
+
+		auto reader = FileSystem::BinaryReader(fileStream);
+
+		struct SceneRawData
 		{
-			canImport = false;
-			return A_Err_NONE;
+			uint32_t NameOffset;
+			frame_t StartFrame;
+			frame_t EndFrame;
+			frame_t FrameRate;
+			uint32_t BackgroundColor;
+			int32_t Width;
+			int32_t Height;
+			uint32_t CameraOffset;
+			uint32_t CompositionCount;
+			uint32_t CompositionOffset;
+			uint32_t VideoCount;
+			uint32_t VideoOffset;
+			uint32_t AudioCount;
+			uint32_t AudioOffset;
+		};
+
+		constexpr FileAddr validScenePlusPointerSize = static_cast<FileAddr>(sizeof(SceneRawData) + (sizeof(uint32_t) * 2));
+		if (reader.GetLength() < validScenePlusPointerSize)
+			return AetSetVerifyResult::InvalidPointer;
+
+		std::array<uint8_t, 4> fileMagic;
+		reader.ReadBuffer(fileMagic.data(), sizeof(fileMagic));
+
+		// NOTE: Thanks CS3 for making it this easy
+		if (std::memcmp(fileMagic.data(), "AETC", sizeof(fileMagic)) == 0)
+			return AetSetVerifyResult::Valid;
+
+		const auto isValidPointer = [&](FileAddr address) { return (address <= reader.GetLength()); };
+
+		reader.SetPosition(static_cast<FileAddr>(0));
+
+		constexpr uint32_t maxReasonableSceneCount = 64;
+		std::array<FileAddr, maxReasonableSceneCount> scenePointers = {};
+
+		for (uint32_t i = 0; i < maxReasonableSceneCount; i++)
+		{
+			scenePointers[i] = reader.ReadPtr();
+
+			if (scenePointers[i] == FileAddr::NullPtr)
+				break;
+			else if (!isValidPointer(scenePointers[i]))
+				return AetSetVerifyResult::InvalidPointer;
 		}
 
-		// TODO: Check file properties
-		canImport = true;
+		const bool insufficientSceneFileSpace = (scenePointers[0] + static_cast<FileAddr>(sizeof(SceneRawData))) >= reader.GetLength();
+		if (scenePointers[0] == FileAddr::NullPtr || insufficientSceneFileSpace)
+			return AetSetVerifyResult::InvalidPointer;
 
-		return A_Err_NONE;
+		SceneRawData rawScene;
+		reader.SetPosition(scenePointers[0]);
+		reader.ReadBuffer(&rawScene, sizeof(rawScene));
+
+		const std::array<FileAddr, 5> fileOffsetsToCheck =
+		{
+			static_cast<FileAddr>(rawScene.NameOffset),
+			static_cast<FileAddr>(rawScene.CameraOffset),
+			static_cast<FileAddr>(rawScene.CompositionOffset),
+			static_cast<FileAddr>(rawScene.VideoOffset),
+			static_cast<FileAddr>(rawScene.AudioOffset),
+		};
+
+		if (!std::any_of(fileOffsetsToCheck.begin(), fileOffsetsToCheck.end(), isValidPointer))
+			return AetSetVerifyResult::InvalidPointer;
+
+		const std::array<uint32_t, 3> arraySizesToCheck =
+		{
+			rawScene.CompositionCount,
+			rawScene.VideoCount,
+			rawScene.AudioCount,
+		};
+
+		constexpr uint32_t reasonableArraySizeLimit = 999999;
+		if (std::any_of(arraySizesToCheck.begin(), arraySizesToCheck.end(), [&](const auto size) { return size > reasonableArraySizeLimit; }))
+			return AetSetVerifyResult::InvalidCount;
+
+		const auto isReasonableFrameRangeDuration = [&](frame_t frame)
+		{
+			constexpr frame_t reasonableStartEndFrameLimit = 100000.0f;
+			return (frame > -reasonableStartEndFrameLimit) && (frame < +reasonableStartEndFrameLimit);
+		};
+
+		const auto isReasonableFrameRate = [](frame_t frameRate)
+		{
+			constexpr frame_t reasonableFrameRateLimit = 999.0f;
+			return (frameRate > 0.0f && frameRate <= reasonableFrameRateLimit);
+		};
+
+		const auto isReasonableSize = [](int32_t size)
+		{
+			constexpr int32_t reasonableSizeLimit = 30000;
+			return (size > 0 && size <= reasonableSizeLimit);
+		};
+
+		if (!isReasonableFrameRangeDuration(rawScene.StartFrame) ||
+			!isReasonableFrameRangeDuration(rawScene.EndFrame) ||
+			!isReasonableFrameRate(rawScene.FrameRate) ||
+			!isReasonableSize(rawScene.Width) ||
+			!isReasonableSize(rawScene.Height))
+			return AetSetVerifyResult::InvalidCount;
+
+		return AetSetVerifyResult::Valid;
 	}
 
 	AetImporter::AetImporter(std::wstring_view workingDirectory)
