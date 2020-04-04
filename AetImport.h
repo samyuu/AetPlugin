@@ -38,7 +38,7 @@ namespace AetPlugin
 			DeclareSuiteMember(ProjSuite5);
 			DeclareSuiteMember(ItemSuite8);
 			DeclareSuiteMember(FootageSuite5);
-			DeclareSuiteMember(CompSuite4);
+			DeclareSuiteMember(CompSuite11);
 			DeclareSuiteMember(LayerSuite1);
 			DeclareSuiteMember(LayerSuite8);
 			DeclareSuiteMember(StreamSuite5);
@@ -62,16 +62,19 @@ namespace AetPlugin
 	protected:
 		struct WorkingAetData
 		{
-			std::string SpriteNamePrefix, SpriteNamePrefixUnderscore;
-		} workingAet;
+			const Aet::AetSet* Set = nullptr;
+			std::string NamePrefix, NamePrefixUnderscore;
+		} workingSet;
 
 		struct WorkingSceneData
 		{
+			const Aet::Scene* Scene = nullptr;
 			float FrameRate = 0.0f;
 			A_Ratio AE_FrameRate;
 		} workingScene = {};
 
-		void SetupWorkingAetSceneData(Aet::AetSet& set, const Aet::Scene& mainScene);
+		void SetupWorkingSetData(const Aet::AetSet& set);
+		void SetupWorkingSceneData(const Aet::Scene& scene);
 		void CheckWorkingDirectorySpriteFiles();
 
 	protected:
@@ -99,8 +102,8 @@ namespace AetPlugin
 		void CreateProjectFolders();
 
 	protected:
-		void ImportAllFootage(const Aet::AetSet& set, const Aet::Scene& scene);
-		void ImportAllCompositions(const Aet::AetSet& set, const Aet::Scene& scene);
+		void ImportAllFootage();
+		void ImportAllCompositions();
 
 		frame_t GetCompDuration(const Aet::Composition& comp) const;
 
@@ -113,7 +116,7 @@ namespace AetPlugin
 		void ImportAudio(const Aet::Audio& audio);
 
 	protected:
-		void ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene);
+		void ImportSceneComps();
 		void ImportLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);

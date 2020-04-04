@@ -74,16 +74,18 @@ namespace AetPlugin
 
 	A_Err AetImporter::ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
-		Aet::Scene& mainScene = *set.GetScenes().front();
-
-		SetupWorkingAetSceneData(set, mainScene);
+		SetupWorkingSetData(set);
 		CheckWorkingDirectorySpriteFiles();
 
 		GetProjectHandles();
 		CreateProjectFolders();
 
-		ImportAllFootage(set, mainScene);
-		ImportAllCompositions(set, mainScene);
+		for (const auto& scene : workingSet.Set->GetScenes())
+		{
+			SetupWorkingSceneData(*scene);
+			ImportAllFootage();
+			ImportAllCompositions();
+		}
 
 		// suites.UtilitySuite3->AEGP_ReportInfo(GlobalPluginID, "Let's hope for the best...");
 		return A_Err_NONE;
@@ -100,13 +102,18 @@ namespace AetPlugin
 		return (matchingSpriteFile != spriteFiles.end()) ? &(*matchingSpriteFile) : nullptr;
 	}
 
-	void AetImporter::SetupWorkingAetSceneData(Aet::AetSet& set, const Aet::Scene& mainScene)
+	void AetImporter::SetupWorkingSetData(const Aet::AetSet& set)
 	{
-		workingAet.SpriteNamePrefix = GetAetSetName(set);
-		workingAet.SpriteNamePrefixUnderscore = workingAet.SpriteNamePrefix + "_";
+		workingSet.Set = &set;
+		workingSet.NamePrefix = GetAetSetName(set);
+		workingSet.NamePrefixUnderscore = workingSet.NamePrefix + "_";
+	}
 
-		workingScene.FrameRate = mainScene.FrameRate;
-		workingScene.AE_FrameRate = { static_cast<A_long>(mainScene.FrameRate * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };;
+	void AetImporter::SetupWorkingSceneData(const Aet::Scene& scene)
+	{
+		workingScene.Scene = &scene;
+		workingScene.FrameRate = scene.FrameRate;
+		workingScene.AE_FrameRate = { static_cast<A_long>(scene.FrameRate * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 	}
 
 	void AetImporter::CheckWorkingDirectorySpriteFiles()
@@ -123,7 +130,7 @@ namespace AetPlugin
 			std::string_view sanitizedFileName = std::string_view(fileName).substr(0, fileName.length() - SpriteFileData::PngExtension.size());
 
 			sanitizedFileName = StripPrefixIfExists(sanitizedFileName, SpriteFileData::SprPrefix);
-			sanitizedFileName = StripPrefixIfExists(sanitizedFileName, workingAet.SpriteNamePrefixUnderscore);
+			sanitizedFileName = StripPrefixIfExists(sanitizedFileName, workingSet.NamePrefixUnderscore);
 
 			SpriteFileData& spriteFile = workingDirectory.AvailableSpriteFiles.emplace_back();
 			spriteFile.SanitizedFileName = sanitizedFileName;
@@ -156,22 +163,22 @@ namespace AetPlugin
 		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"comp"), project.Folders.Data, &project.Folders.Comp);
 	}
 
-	void AetImporter::ImportAllFootage(const Aet::AetSet& set, const Aet::Scene& scene)
+	void AetImporter::ImportAllFootage()
 	{
-		for (const auto& video : scene.Videos)
+		for (const auto& video : workingScene.Scene->Videos)
 			ImportVideo(*video);
 
-		for (const auto& audio : scene.Audios)
+		for (const auto& audio : workingScene.Scene->Audios)
 			ImportAudio(*audio);
 	}
 
-	void AetImporter::ImportAllCompositions(const Aet::AetSet& set, const Aet::Scene& scene)
+	void AetImporter::ImportAllCompositions()
 	{
-		ImportSceneComps(set, scene);
+		ImportSceneComps();
 
-		ImportLayersInComp(*scene.RootComposition);
-		for (int i = static_cast<int>(scene.Compositions.size()) - 1; i >= 0; i--)
-			ImportLayersInComp(*scene.Compositions[i]);
+		ImportLayersInComp(*workingScene.Scene->RootComposition);
+		for (int i = static_cast<int>(workingScene.Scene->Compositions.size()) - 1; i >= 0; i--)
+			ImportLayersInComp(*workingScene.Scene->Compositions[i]);
 	}
 
 	frame_t AetImporter::GetCompDuration(const Aet::Composition& comp) const
@@ -203,12 +210,12 @@ namespace AetPlugin
 		char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
 		sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
 
-		suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &aeColor, &video.GuiData.AE_Footage);
+		suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
 	}
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
 	{
-		const auto frontSourceNameWithoutAetPrefix = StripPrefixIfExists(video.Sources.front().Name, workingAet.SpriteNamePrefixUnderscore);
+		const auto frontSourceNameWithoutAetPrefix = StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
 		if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutAetPrefix); matchingSpriteFile != nullptr)
 		{
 			AEGP_FootageLayerKey footageLayerKey = {};
@@ -242,13 +249,18 @@ namespace AetPlugin
 			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Video, &audio.GuiData.AE_FootageItem);
 	}
 
-	void AetImporter::ImportSceneComps(const Aet::AetSet& set, const Aet::Scene& scene)
+	void AetImporter::ImportSceneComps()
 	{
-		const A_Time sceneDuration = FrameToAETime(scene.EndFrame);
-		const auto sceneName = FormatSceneName(set, scene);
+		const auto& scene = *workingScene.Scene;
 
-		suites.CompSuite4->AEGP_CreateComp(project.Folders.Root, sceneName.c_str(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
-		suites.CompSuite4->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
+		const A_Time sceneDuration = FrameToAETime(scene.EndFrame);
+		const auto sceneName = FormatSceneName(*workingSet.Set, scene);
+
+		suites.CompSuite11->AEGP_CreateComp(project.Folders.Root, AEUtil::UTF16Cast(Utf8ToUtf16(sceneName).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
+		suites.CompSuite11->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
+
+		const auto backgroundColor = AEUtil::ColorRGB8(scene.BackgroundColor);
+		suites.CompSuite11->AEGP_SetCompBGColor(scene.RootComposition->GuiData.AE_Comp, &backgroundColor);
 
 		for (const auto& comp : scene.Compositions)
 		{
@@ -382,7 +394,21 @@ namespace AetPlugin
 
 			auto insertStreamKeyFrame = [&](frame_t frame, float xValue, float yValue)
 			{
-				const A_Time time = FrameToAETime(frame);
+				// TODO: Is this correct (?)
+
+				// BUG: Broken key frames for gam_eff000 (eff_petal using start frame)
+				// const A_Time time = FrameToAETime(frame); 
+
+				// BUG: Broken key frames for gam_loadsc (chara03_appear using start offset)
+				// const A_Time time = FrameToAETime(frame - layer.StartFrame);
+
+				// BUG: Problem with start offsets for static videos
+				// const A_Time time = FrameToAETime(frame - layer.StartFrame + layer.StartOffset);
+
+				// NOTE: Hopefully correct for everything
+				const frame_t startOffset = (layer.ItemType == Aet::ItemType::Composition) ? layer.StartOffset : 0.0f;
+				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
+
 				AEGP_KeyframeIndex index;
 
 				AEGP_StreamValue streamValue = {};
@@ -457,22 +483,26 @@ namespace AetPlugin
 	void AetImporter::ImportLayerTiming(const Aet::Layer& layer)
 	{
 		// TODO: This still isn't entirely accurate it seems
-		if (layer.StartOffset != 0.0f)
+		if (layer.StartOffset != 0.0f && layer.ItemType == Aet::ItemType::Composition)
 		{
 			const A_Time startOffset = FrameToAETime(layer.StartOffset);
-			const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) / layer.TimeScale);
+			const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
 			suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
 
-			const A_Time offsetAdjustedStartTime = FrameToAETime(-layer.StartOffset + layer.StartFrame);
+			const A_Time offsetAdjustedStartTime = FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame);
 			suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offsetAdjustedStartTime);
 		}
 		else
 		{
+			const A_Time startOffset = FrameToAETime(0.0f);
+			const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
+			suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &startOffset, &duration);
+
 			const A_Time startTime = FrameToAETime(layer.StartFrame);
 			suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &startTime);
 		}
 
-		// BUG: Is this working correctly now... (?)
+		// NOTE: { Stretch = (1.0 / TimeScale) } appears to be correct
 		const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 	}
