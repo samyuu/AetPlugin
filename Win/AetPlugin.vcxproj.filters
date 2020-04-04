@@ -272,6 +272,9 @@
     <ClInclude Include="..\AEUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\AetExport.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -400,6 +403,9 @@
       <Filter>Comfy\lib\zlib</Filter>
     </ClCompile>
     <ClCompile Include="..\AetImport.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\AetExport.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
