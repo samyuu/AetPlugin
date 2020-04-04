@@ -8,6 +8,8 @@
 #include "AE_EffectCBSuites.h"
 #include "AEGP_SuiteHandler.h"
 #include "AE_Macros.h"
+#include <algorithm>
+#include <numeric>
 
 namespace AEUtil
 {
@@ -22,5 +24,16 @@ namespace AEUtil
 	inline const wchar_t* WCast(const A_UTF16Char* value)
 	{
 		return reinterpret_cast<const wchar_t*>(value);
+	}
+
+	inline AEGP_ColorVal ColorRGB8(uint32_t inputColor)
+	{
+		struct RGB8 { uint8_t R, G, B; };
+		const RGB8 colorRGB8 = *reinterpret_cast<const RGB8*>(&inputColor);
+
+		constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
+		constexpr float aeAlpha = 1.0f;
+
+		return AEGP_ColorVal { aeAlpha, colorRGB8.R / rgb8ToFloat, colorRGB8.G / rgb8ToFloat, colorRGB8.B / rgb8ToFloat };
 	}
 }

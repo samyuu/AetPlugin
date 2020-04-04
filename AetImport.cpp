@@ -2,8 +2,6 @@
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
-#include <algorithm>
-#include <numeric>
 #include <filesystem>
 
 namespace AetPlugin
@@ -200,13 +198,7 @@ namespace AetPlugin
 
 	void AetImporter::ImportPlaceholderVideo(const Aet::Video& video)
 	{
-		struct RGB8 { uint8_t R, G, B; };
-		const RGB8 videoColor = *reinterpret_cast<const RGB8*>(&video.Color);
-
-		constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
-		constexpr float aeAlpha = 1.0f;
-
-		const AEGP_ColorVal aeColor = { aeAlpha, videoColor.R / rgb8ToFloat, videoColor.G / rgb8ToFloat, videoColor.B / rgb8ToFloat };
+		const AEGP_ColorVal videoColor = AEUtil::ColorRGB8(video.Color);
 
 		char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
 		sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
@@ -261,8 +253,8 @@ namespace AetPlugin
 		for (const auto& comp : scene.Compositions)
 		{
 			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
-			suites.CompSuite4->AEGP_CreateComp(project.Folders.Comp, comp->GetName().data(), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
-			suites.CompSuite4->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
+			suites.CompSuite11->AEGP_CreateComp(project.Folders.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
+			suites.CompSuite11->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 	}
 
