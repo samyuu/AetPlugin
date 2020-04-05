@@ -46,16 +46,16 @@ namespace AetPlugin
 
 #define DeclareSuiteMember(suiteName) ConCat(AEGP_, suiteName)* suiteName = Handler.suiteName()
 
-			DeclareSuiteMember(ProjSuite5);
-			DeclareSuiteMember(ItemSuite8);
-			DeclareSuiteMember(FootageSuite5);
-			DeclareSuiteMember(CompSuite11);
-			DeclareSuiteMember(LayerSuite1);
-			DeclareSuiteMember(LayerSuite8);
-			DeclareSuiteMember(StreamSuite5);
-			DeclareSuiteMember(DynamicStreamSuite4);
-			DeclareSuiteMember(KeyframeSuite3);
-			DeclareSuiteMember(UtilitySuite3);
+			DeclareSuiteMember(ProjSuite5); // AE 10.0
+			DeclareSuiteMember(ItemSuite1); // AE 5.0
+			DeclareSuiteMember(FootageSuite5); // AE 10.0
+			DeclareSuiteMember(CompSuite7); // AE 9.0
+			DeclareSuiteMember(LayerSuite1); // AE 5.0
+			DeclareSuiteMember(LayerSuite3); // AE 6.0
+			DeclareSuiteMember(StreamSuite4); // AE 9
+			DeclareSuiteMember(DynamicStreamSuite4); // AE 9.0
+			DeclareSuiteMember(KeyframeSuite3); // AE 6.5
+			DeclareSuiteMember(UtilitySuite3); // AE 10.0
 
 #undef DeclareSuiteMember
 		} suites;

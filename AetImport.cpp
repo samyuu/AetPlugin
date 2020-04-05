@@ -263,11 +263,11 @@ namespace AetPlugin
 
 	void AetImporter::CreateProjectFolders()
 	{
-		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"root"), project.RootItemHandle, &project.Folders.Root);
-		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"data"), project.Folders.Root, &project.Folders.Data);
-		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"video"), project.Folders.Data, &project.Folders.Video);
-		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"audio"), project.Folders.Data, &project.Folders.Audio);
-		suites.ItemSuite8->AEGP_CreateNewFolder(AEUtil::UTF16Cast(L"comp"), project.Folders.Data, &project.Folders.Comp);
+		suites.ItemSuite1->AEGP_CreateNewFolder("root", project.RootItemHandle, &project.Folders.Root);
+		suites.ItemSuite1->AEGP_CreateNewFolder("data", project.Folders.Root, &project.Folders.Data);
+		suites.ItemSuite1->AEGP_CreateNewFolder("video", project.Folders.Data, &project.Folders.Video);
+		suites.ItemSuite1->AEGP_CreateNewFolder("audio", project.Folders.Data, &project.Folders.Audio);
+		suites.ItemSuite1->AEGP_CreateNewFolder("comp", project.Folders.Data, &project.Folders.Comp);
 	}
 
 	void AetImporter::ImportAllFootage()
@@ -363,17 +363,17 @@ namespace AetPlugin
 		const A_Time sceneDuration = FrameToAETime(scene.EndFrame);
 		const auto sceneName = FormatSceneName(*workingSet.Set, scene);
 
-		suites.CompSuite11->AEGP_CreateComp(project.Folders.Root, AEUtil::UTF16Cast(Utf8ToUtf16(sceneName).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
-		suites.CompSuite11->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
+		suites.CompSuite7->AEGP_CreateComp(project.Folders.Root, AEUtil::UTF16Cast(Utf8ToUtf16(sceneName).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
+		suites.CompSuite7->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
 
 		const auto backgroundColor = AEUtil::ColorRGB8(scene.BackgroundColor);
-		suites.CompSuite11->AEGP_SetCompBGColor(scene.RootComposition->GuiData.AE_Comp, &backgroundColor);
+		suites.CompSuite7->AEGP_SetCompBGColor(scene.RootComposition->GuiData.AE_Comp, &backgroundColor);
 
 		for (const auto& comp : scene.Compositions)
 		{
 			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
-			suites.CompSuite11->AEGP_CreateComp(project.Folders.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
-			suites.CompSuite11->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
+			suites.CompSuite7->AEGP_CreateComp(project.Folders.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
+			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 	}
 
@@ -411,13 +411,13 @@ namespace AetPlugin
 		auto tryAddAEFootageLayerToComp = [&](const auto* layerItem)
 		{
 			if (layerItem != nullptr && layerItem->GuiData.AE_FootageItem != nullptr)
-				suites.LayerSuite8->AEGP_AddLayer(layerItem->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				suites.LayerSuite3->AEGP_AddLayer(layerItem->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 		};
 
 		auto tryAddAECompLayerToComp = [&](const auto* layerItem)
 		{
 			if (layerItem != nullptr && layerItem->GuiData.AE_CompItem != nullptr)
-				suites.LayerSuite8->AEGP_AddLayer(layerItem->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				suites.LayerSuite3->AEGP_AddLayer(layerItem->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 		};
 
 		if (layer.ItemType == Aet::ItemType::Video)
@@ -456,7 +456,7 @@ namespace AetPlugin
 		layerTransferMode.flags = static_cast<AEGP_TransferFlags>(*reinterpret_cast<const uint8_t*>(&transferMode.Flags));
 		layerTransferMode.track_matte = static_cast<AEGP_TrackMatte>(transferMode.TrackMatte);
 
-		suites.LayerSuite8->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+		suites.LayerSuite3->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 	}
 
 	namespace
@@ -483,7 +483,7 @@ namespace AetPlugin
 		for (const AetTransformToAEStreamData& aetToAEStreamData : AetToAEStreamRemapData)
 		{
 			AEGP_StreamValue2 streamValue2 = {};
-			suites.StreamSuite5->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, aetToAEStreamData.Stream, &streamValue2.streamH);
+			suites.StreamSuite4->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, aetToAEStreamData.Stream, &streamValue2.streamH);
 
 			const bool singleProperty = (aetToAEStreamData.FieldX == aetToAEStreamData.FieldY);
 			const Aet::Property1D& xKeyFrames = layerVideo.Transform[aetToAEStreamData.FieldX];
@@ -492,7 +492,7 @@ namespace AetPlugin
 			// NOTE: Set initial stream value
 			streamValue2.val.two_d.x = !xKeyFrames->empty() ? (xKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
 			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
-			suites.StreamSuite5->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
+			suites.StreamSuite4->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
 
 			if (xKeyFrames.Keys.size() <= 1 && yKeyFrames.Keys.size() <= 1)
 				continue;
@@ -610,12 +610,12 @@ namespace AetPlugin
 			FrameToAETime(layer.StartOffset) :
 			FrameToAETime(0.0f);
 		const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
-		suites.LayerSuite8->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
+		suites.LayerSuite3->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
 
 		const A_Time offset = LayerUsesStartOffset(layer) ?
 			FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame) :
 			FrameToAETime(layer.StartFrame);
-		suites.LayerSuite8->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
+		suites.LayerSuite3->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
 
 		const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
@@ -651,7 +651,7 @@ namespace AetPlugin
 			return;
 
 		AEGP_StreamValue2 streamValue2 = {};
-		suites.StreamSuite5->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
+		suites.StreamSuite4->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
 
 		for (const auto& marker : layer.Markers)
 		{
@@ -678,6 +678,6 @@ namespace AetPlugin
 			return;
 
 		if (layer.GuiData.AE_Layer != nullptr && layer.GetRefParentLayer()->GuiData.AE_Layer != nullptr)
-			suites.LayerSuite8->AEGP_SetLayerParent(layer.GuiData.AE_Layer, layer.GetRefParentLayer()->GuiData.AE_Layer);
+			suites.LayerSuite3->AEGP_SetLayerParent(layer.GuiData.AE_Layer, layer.GetRefParentLayer()->GuiData.AE_Layer);
 	}
 }
