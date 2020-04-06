@@ -40,25 +40,7 @@ namespace AetPlugin
 		A_Err ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
 
 	protected:
-		struct SuitesData
-		{
-			AEGP_SuiteHandler Handler = { GlobalBasicPicaSuite };
-
-#define DeclareSuiteMember(suiteName) ConCat(AEGP_, suiteName)* suiteName = Handler.suiteName()
-
-			DeclareSuiteMember(ProjSuite5); // AE 10.0
-			DeclareSuiteMember(ItemSuite1); // AE 5.0
-			DeclareSuiteMember(FootageSuite5); // AE 10.0
-			DeclareSuiteMember(CompSuite7); // AE 9.0
-			DeclareSuiteMember(LayerSuite1); // AE 5.0
-			DeclareSuiteMember(LayerSuite3); // AE 6.0
-			DeclareSuiteMember(StreamSuite4); // AE 9
-			DeclareSuiteMember(DynamicStreamSuite4); // AE 9.0
-			DeclareSuiteMember(KeyframeSuite3); // AE 6.5
-			DeclareSuiteMember(UtilitySuite3); // AE 10.0
-
-#undef DeclareSuiteMember
-		} suites;
+		SuitesData suites;
 
 	protected:
 		struct WorkingDirectoryData

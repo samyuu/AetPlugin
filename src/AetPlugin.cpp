@@ -1,12 +1,15 @@
 #include "AetPlugin.h"
 #include "AetImport.h"
+#include "AetExport.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
 
 namespace AetPlugin
 {
-	AEGP_PluginID GlobalPluginID = -1;
-	SPBasicSuite* GlobalBasicPicaSuite = nullptr;
+	AEGP_PluginID PluginID = -1;
+	SPBasicSuite* BasicPicaSuite = nullptr;
+
+	AEGP_Command ExportAetSetCommand = -1;
 
 	namespace
 	{
@@ -38,10 +41,8 @@ namespace AetPlugin
 			return error;
 		}
 
-		A_Err RegisterAetSetFileType()
+		A_Err RegisterAetSetFileTypeImport(const SuitesData& suites)
 		{
-			const auto suites = AEGP_SuiteHandler(GlobalBasicPicaSuite);
-
 			std::array<AEIO_FileKind, 1> fileTypes = {};
 			for (auto& fileType : fileTypes)
 			{
@@ -61,8 +62,8 @@ namespace AetPlugin
 			AE_FIM_ImportFlavorRef importFlavorRef = AE_FIM_ImportFlavorRef_NONE;
 
 			A_Err err = A_Err_NONE;
-			ERR(suites.FIMSuite3()->AEGP_RegisterImportFlavor("Project DIVA AetSet", &importFlavorRef));
-			ERR(suites.FIMSuite3()->AEGP_RegisterImportFlavorFileTypes(importFlavorRef,
+			ERR(suites.FIMSuite3->AEGP_RegisterImportFlavor("Project DIVA AetSet", &importFlavorRef));
+			ERR(suites.FIMSuite3->AEGP_RegisterImportFlavorFileTypes(importFlavorRef,
 				static_cast<A_long>(fileTypes.size()), fileTypes.data(),
 				static_cast<A_long>(fileExtensions.size()), fileExtensions.data()));
 
@@ -74,7 +75,60 @@ namespace AetPlugin
 			importCallbacks.import_cb = AEGP_FileImportCallbackHandler;
 			importCallbacks.verify_cb = AEGP_FileVerifyCallbackHandler;
 
-			ERR(suites.FIMSuite3()->AEGP_RegisterImportFlavorImportCallbacks(importFlavorRef, AE_FIM_ImportFlag_COMP, &importCallbacks));
+			ERR(suites.FIMSuite3->AEGP_RegisterImportFlavorImportCallbacks(importFlavorRef, AE_FIM_ImportFlag_COMP, &importCallbacks));
+			return err;
+		}
+
+		A_Err AEGP_UpdateMenuHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_UpdateMenuRefcon refconPV, AEGP_WindowType active_window)
+		{
+			if (!ExportAetSetCommand)
+				return A_Err_NONE;
+		
+			const SuitesData suites;
+
+			A_Err err = A_Err_NONE;
+			ERR(suites.CommandSuite1->AEGP_EnableCommand(ExportAetSetCommand));
+			return err;
+		}
+
+		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
+		{
+			*handledPB = false;
+			if (command != ExportAetSetCommand)
+				return A_Err_NONE;
+
+			const SuitesData suites;
+
+			A_Err err = A_Err_NONE;
+			suites.UtilitySuite3->AEGP_ReportInfo(PluginID, __FUNCTION__"(): Ehm yeah, hi I guess?");
+
+			// auto exporter = AetExporter();
+			// err = exporter.ExportAetSet();
+			*handledPB = true;
+
+			return err;
+		}
+
+		A_Err RegisterAetSetFileTypeExport(const SuitesData& suites)
+		{
+			A_Err err = A_Err_NONE;
+
+			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&ExportAetSetCommand));
+			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
+
+			ERR(suites.RegisterSuite5->AEGP_RegisterCommandHook(PluginID, AEGP_HP_BeforeAE, AEGP_Command_ALL, AEGP_CommandHook, nullptr));
+			ERR(suites.RegisterSuite5->AEGP_RegisterUpdateMenuHook(PluginID, AEGP_UpdateMenuHook, nullptr));
+
+			return err;
+		}
+
+		A_Err RegisterAetSetFileType()
+		{
+			const SuitesData suites;
+
+			A_Err err = A_Err_NONE;
+			ERR(RegisterAetSetFileTypeImport(suites));
+			ERR(RegisterAetSetFileTypeExport(suites));
 			return err;
 		}
 	}
@@ -82,8 +136,8 @@ namespace AetPlugin
 
 A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long minor_versionL, AEGP_PluginID aegp_plugin_id, AEGP_GlobalRefcon* global_refconP)
 {
-	AetPlugin::GlobalBasicPicaSuite = pica_basicP;
-	AetPlugin::GlobalPluginID = aegp_plugin_id;
+	AetPlugin::BasicPicaSuite = pica_basicP;
+	AetPlugin::PluginID = aegp_plugin_id;
 
 	const auto error = AetPlugin::RegisterAetSetFileType();
 	return error;

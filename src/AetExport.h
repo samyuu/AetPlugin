@@ -5,4 +5,19 @@
 namespace AetPlugin
 {
 	// TODO:
+	class AetExporter : NonCopyable
+	{
+	public:
+		AetExporter(std::wstring_view workingDirectory);
+		~AetExporter() = default;
+
+	protected:
+		SuitesData suites;
+
+	protected:
+		struct WorkingDirectoryData
+		{
+			std::wstring ImportDirectory;
+		} workingDirectory;
+	};
 }

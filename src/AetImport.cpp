@@ -338,14 +338,14 @@ namespace AetPlugin
 			sequenceImportOptions.start_frameL = 0;
 			sequenceImportOptions.end_frameL = static_cast<A_long>(video.Sources.size()) - 1;
 
-			suites.FootageSuite5->AEGP_NewFootage(GlobalPluginID, AEUtil::UTF16Cast(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, &sequenceImportOptions, FALSE, nullptr, &video.GuiData.AE_Footage);
+			suites.FootageSuite5->AEGP_NewFootage(PluginID, AEUtil::UTF16Cast(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, &sequenceImportOptions, FALSE, nullptr, &video.GuiData.AE_Footage);
 		}
 		else
 		{
 			constexpr frame_t placeholderDuration = 270.0f;
 
 			const A_Time duration = FrameToAETime(placeholderDuration);
-			suites.FootageSuite5->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
+			suites.FootageSuite5->AEGP_NewPlaceholderFootage(PluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 		}
 	}
 
@@ -483,7 +483,7 @@ namespace AetPlugin
 		for (const AetTransformToAEStreamData& aetToAEStreamData : AetToAEStreamRemapData)
 		{
 			AEGP_StreamValue2 streamValue2 = {};
-			suites.StreamSuite4->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, aetToAEStreamData.Stream, &streamValue2.streamH);
+			suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, aetToAEStreamData.Stream, &streamValue2.streamH);
 
 			const bool singleProperty = (aetToAEStreamData.FieldX == aetToAEStreamData.FieldY);
 			const Aet::Property1D& xKeyFrames = layerVideo.Transform[aetToAEStreamData.FieldX];
@@ -492,7 +492,7 @@ namespace AetPlugin
 			// NOTE: Set initial stream value
 			streamValue2.val.two_d.x = !xKeyFrames->empty() ? (xKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
 			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
-			suites.StreamSuite4->AEGP_SetStreamValue(GlobalPluginID, streamValue2.streamH, &streamValue2);
+			suites.StreamSuite4->AEGP_SetStreamValue(PluginID, streamValue2.streamH, &streamValue2);
 
 			if (xKeyFrames.Keys.size() <= 1 && yKeyFrames.Keys.size() <= 1)
 				continue;
@@ -656,7 +656,7 @@ namespace AetPlugin
 			return;
 
 		AEGP_StreamValue2 streamValue2 = {};
-		suites.StreamSuite4->AEGP_GetNewLayerStream(GlobalPluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
+		suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamValue2.streamH);
 
 		for (const auto& marker : layer.Markers)
 		{

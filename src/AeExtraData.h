@@ -1,3 +1,4 @@
+#pragma once
 #include "AEConfig.h"
 
 #include "entry.h"
