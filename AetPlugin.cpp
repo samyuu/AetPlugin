@@ -35,6 +35,7 @@ namespace AetPlugin
 		A_Err RegisterAetFileType()
 		{
 			const auto suites = AEGP_SuiteHandler(GlobalBasicPicaSuite);
+			// suites.RegisterSuite5()->AEGP_RegisterUpdateMenuHook();
 
 			static constexpr std::array extensionsToRegister =
 			{
