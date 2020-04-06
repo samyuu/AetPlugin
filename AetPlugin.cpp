@@ -20,21 +20,23 @@ namespace AetPlugin
 
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)
 		{
-			const std::wstring filePathString = { AEUtil::WCast(filePath) };
+			const auto filePathString = std::wstring(AEUtil::WCast(filePath));
 			const auto aetSet = AetImporter::LoadAetSet(filePathString);
 
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
-			AetImporter importer = AetImporter(FileSystem::GetDirectory(filePathString));
-			const auto error = importer.ImportAetSet(*aetSet, importOptions, action, itemHandle);
+			auto importer = AetImporter(FileSystem::GetDirectory(filePathString));
+			A_Err error = importer.ImportAetSet(*aetSet, importOptions, action, itemHandle);
 
 			return error;
 		}
 
 		A_Err RegisterAetFileType()
 		{
-			constexpr std::array extensionsToRegister =
+			const auto suites = AEGP_SuiteHandler(GlobalBasicPicaSuite);
+
+			static constexpr std::array extensionsToRegister =
 			{
 				std::array { 'b', 'i', 'n' },
 				std::array { 'a', 'e', 'c' },
@@ -53,7 +55,6 @@ namespace AetPlugin
 				fileKind.ext.extension[1] = extension[1];
 				fileKind.ext.extension[2] = extension[2];
 
-				AEGP_SuiteHandler suites = { GlobalBasicPicaSuite };
 				AE_FIM_ImportFlavorRef importFlavorRef = AE_FIM_ImportFlavorRef_NONE;
 
 				ERR(suites.FIMSuite3()->AEGP_RegisterImportFlavor("XXX Project DIVA Aet", &importFlavorRef));
