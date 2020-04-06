@@ -47,63 +47,6 @@
     <ClInclude Include="resource.h">
       <Filter>Headers\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\A.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_AdvEffectSuites.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_Effect.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectCB.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectCBSuites.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectSuitesHelper.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectSuites.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectUI.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_GeneralPlug.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_GeneralPlugOld.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_Hook.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_IO.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AE_Macros.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\PT_Public.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\PF_Masks.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Util\AEGP_SuiteHandler.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Util\entry.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\FIEL_Public.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Examples\Headers\AEConfig.h">
-      <Filter>Headers\AE</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\AeExtraData.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -278,6 +221,63 @@
     <ClInclude Include="..\src\Comfy\lib\zlib\include\zlib.h">
       <Filter>Comfy\lib\zlib</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_AdvEffectSuites.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\A.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_EffectCB.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_EffectCBSuites.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_Effect.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_EffectSuites.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_EffectSuitesHelper.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_EffectUI.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_GeneralPlug.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_GeneralPlugOld.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_Hook.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_IO.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_Macros.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\AEConfig.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\PT_Public.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Util\entry.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\FIEL_Public.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Headers\PF_Masks.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.h">
+      <Filter>Headers\AE</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -285,12 +285,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Examples\Util\MissingSuiteError.cpp">
-      <Filter>Source\AE</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Examples\Util\AEGP_SuiteHandler.cpp">
-      <Filter>Source\AE</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\AetExport.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -410,6 +404,12 @@
     </ClCompile>
     <ClCompile Include="..\src\Comfy\lib\zlib\src\zutil.c">
       <Filter>Comfy\lib\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.cpp">
+      <Filter>Source\AE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AfterEffectsSDK\Util\MissingSuiteError.cpp">
+      <Filter>Source\AE</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
