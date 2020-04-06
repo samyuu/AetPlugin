@@ -35,10 +35,12 @@ namespace AetPlugin
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
+			A_Err err = A_Err_NONE; 
+			
 			auto importer = AetImporter(FileSystem::GetDirectory(filePathString));
-			A_Err error = importer.ImportAetSet(*aetSet, importOptions, action, itemHandle);
+			ERR(importer.ImportAetSet(*aetSet, importOptions, action, itemHandle));
 
-			return error;
+			return err;
 		}
 
 		A_Err RegisterAetSetFileTypeImport(const SuitesData& suites)
