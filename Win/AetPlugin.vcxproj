@@ -107,7 +107,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\Headers;..\..\..\Headers\SP;..\..\..\Headers\Win;..\..\..\Resources;..\..\..\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Examples\Headers;$(SolutionDir)..\..\..\Examples\Headers\SP;$(SolutionDir)..\..\..\Examples\Headers\Win;$(SolutionDir)..\..\..\Examples\Resources;$(SolutionDir)..\..\..\Examples\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -169,7 +169,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\Headers;..\..\..\Headers\SP;..\..\..\Headers\Win;..\..\..\Resources;..\..\..\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Examples\Headers;$(SolutionDir)..\..\..\Examples\Headers\SP;$(SolutionDir)..\..\..\Examples\Headers\Win;$(SolutionDir)..\..\..\Examples\Resources;$(SolutionDir)..\..\..\Examples\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -234,7 +234,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\Headers;..\..\..\Headers\SP;..\..\..\Headers\Win;..\..\..\Resources;..\..\..\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Examples\Headers;$(SolutionDir)..\..\..\Examples\Headers\SP;$(SolutionDir)..\..\..\Examples\Headers\Win;$(SolutionDir)..\..\..\Examples\Resources;$(SolutionDir)..\..\..\Examples\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -296,7 +296,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\Headers;..\..\..\Headers\SP;..\..\..\Headers\Win;..\..\..\Resources;..\..\..\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Examples\Headers;$(SolutionDir)..\..\..\Examples\Headers\SP;$(SolutionDir)..\..\..\Examples\Headers\Win;$(SolutionDir)..\..\..\Examples\Resources;$(SolutionDir)..\..\..\Examples\Util;..\Comfy\ComfyCore;..\Comfy\ComfyFileSystem;..\Comfy\ComfyStudio;..\Comfy\lib\glm\include;..\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -350,6 +350,25 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Examples\Headers\A.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AEConfig.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_AdvEffectSuites.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_Effect.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectCB.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectCBSuites.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectSuites.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectSuitesHelper.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_EffectUI.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_GeneralPlug.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_GeneralPlugOld.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_Hook.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_IO.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\AE_Macros.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\FIEL_Public.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\PF_Masks.h" />
+    <ClInclude Include="..\..\..\Examples\Headers\PT_Public.h" />
+    <ClInclude Include="..\..\..\Examples\Util\AEGP_SuiteHandler.h" />
+    <ClInclude Include="..\..\..\Examples\Util\entry.h" />
     <ClInclude Include="..\AeExtraData.h" />
     <ClInclude Include="..\AetExport.h" />
     <ClInclude Include="..\AetImport.h" />
@@ -409,35 +428,16 @@
     <ClInclude Include="..\Comfy\lib\zlib\src\trees.h" />
     <ClInclude Include="..\Comfy\lib\zlib\src\zutil.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\..\..\Headers\A.h" />
-    <ClInclude Include="..\..\..\Headers\AE_AdvEffectSuites.h" />
-    <ClInclude Include="..\..\..\Headers\AE_Effect.h" />
-    <ClInclude Include="..\..\..\Headers\AE_EffectCB.h" />
-    <ClInclude Include="..\..\..\Headers\AE_EffectCBSuites.h" />
-    <ClInclude Include="..\..\..\Headers\AE_EffectSuites.h" />
-    <ClInclude Include="..\..\..\Util\AE_EffectSuitesHelper.h" />
-    <ClInclude Include="..\..\..\Headers\AE_EffectUI.h" />
-    <ClInclude Include="..\..\..\Headers\AE_GeneralPlug.h" />
-    <ClInclude Include="..\..\..\Headers\AE_GeneralPlugOld.h" />
-    <ClInclude Include="..\..\..\Headers\AE_Hook.h" />
-    <ClInclude Include="..\..\..\Headers\AE_IO.h" />
-    <ClInclude Include="..\..\..\Headers\AE_Macros.h" />
-    <ClInclude Include="..\..\..\Util\AEGP_SuiteHandler.h" />
-    <ClInclude Include="..\..\..\Util\entry.h" />
-    <ClInclude Include="..\..\..\Headers\FIEL_Public.h" />
-    <ClInclude Include="..\..\..\Headers\PF_Masks.h" />
-    <ClInclude Include="..\..\..\Headers\PR_Public.h" />
-    <ClInclude Include="..\..\..\Headers\PT_Public.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\AetPlugin_PiPL.r">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compiling the PiPL</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compiling the PiPL</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /I "$(ProjectDir)..\..\..\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /I "$(ProjectDir)..\..\..\Examples\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
 "$(ProjectDir)..\..\..\Resources\PiPLTool" "$(IntDir)%(Filename).rr" "$(IntDir)%(Filename).rrc"
 cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)"\\"%(Filename)"_temp.rc
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /I "$(ProjectDir)..\..\..\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /I "$(ProjectDir)..\..\..\Examples\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
 "$(ProjectDir)..\..\..\Resources\PiPLTool" "$(IntDir)%(Filename).rr" "$(IntDir)%(Filename).rrc"
 cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)"\\"%(Filename)"_temp.rc
 </Command>
@@ -445,11 +445,11 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)%(Filename)_temp.rc;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling the PiPL</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling the PiPL</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /I "$(ProjectDir)..\..\..\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /I "$(ProjectDir)..\..\..\Examples\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
 "$(ProjectDir)..\..\..\Resources\PiPLTool" "$(IntDir)%(Filename).rr" "$(IntDir)%(Filename).rrc"
 cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)"\\"%(Filename)"_temp.rc
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cl /I "$(ProjectDir)..\..\..\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cl /I "$(ProjectDir)..\..\..\Examples\Headers" /EP ".."\\"%(Filename).r" &gt; "$(IntDir)"\\"%(Filename).rr"
 "$(ProjectDir)..\..\..\Resources\PiPLTool" "$(IntDir)%(Filename).rr" "$(IntDir)%(Filename).rrc"
 cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)"\\"%(Filename)"_temp.rc
 </Command>
@@ -461,8 +461,8 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ResourceCompile Include="AetPlugin_PiPL.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Util\AEGP_SuiteHandler.cpp" />
-    <ClCompile Include="..\..\..\Util\MissingSuiteError.cpp" />
+    <ClCompile Include="..\..\..\Examples\Util\AEGP_SuiteHandler.cpp" />
+    <ClCompile Include="..\..\..\Examples\Util\MissingSuiteError.cpp" />
     <ClCompile Include="..\AetExport.cpp" />
     <ClCompile Include="..\AetImport.cpp" />
     <ClCompile Include="..\AetPlugin.cpp" />
