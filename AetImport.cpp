@@ -10,7 +10,7 @@ namespace AetPlugin
 {
 	namespace
 	{
-		static constexpr std::wstring_view AetPrefix = L"aet_";
+		constexpr std::wstring_view AetPrefix = L"aet_";
 
 		std::string ToLower(std::string_view value)
 		{
@@ -342,7 +342,7 @@ namespace AetPlugin
 		}
 		else
 		{
-			static constexpr frame_t placeholderDuration = 270.0f;
+			constexpr frame_t placeholderDuration = 270.0f;
 
 			const A_Time duration = FrameToAETime(placeholderDuration);
 			suites.FootageSuite5->AEGP_NewPlaceholderFootage(GlobalPluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
@@ -468,7 +468,7 @@ namespace AetPlugin
 			float ScaleFactor;
 		};
 
-		static constexpr std::array AetToAEStreamRemapData =
+		constexpr std::array AetToAEStreamRemapData =
 		{
 			AetTransformToAEStreamData { AEGP_LayerStream_ANCHORPOINT,	Transform2DField_OriginX,	Transform2DField_OriginY,	1.0f },
 			AetTransformToAEStreamData { AEGP_LayerStream_POSITION,		Transform2DField_PositionX,	Transform2DField_PositionY,	1.0f },
