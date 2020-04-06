@@ -53,7 +53,7 @@ namespace AetPlugin
 			static constexpr const char* Data = "data";
 			static constexpr const char* Video = "video";
 			static constexpr const char* Audio = "audio";
-			static constexpr const char* Comp = "Comp";
+			static constexpr const char* Comp = "comp";
 		};
 	};
 }
