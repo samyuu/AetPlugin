@@ -527,18 +527,23 @@ namespace AetPlugin
 				// BUG: Problem with start offsets for static videos
 				// const A_Time time = FrameToAETime(frame - layer.StartFrame + layer.StartOffset);
 
+#if 1 // NOTE: Manual remapping
 				// NOTE: Hopefully correct for everything
 				const frame_t startOffset = LayerUsesStartOffset(layer) ? layer.StartOffset : 0.0f;
 				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
-
+				
 				AEGP_KeyframeIndex index;
+				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_LayerTime, &time, &index);
+#else
+				const A_Time time = FrameToAETime(frame);
+				AEGP_KeyframeIndex index;
+				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_CompTime, &time, &index);
+#endif
 
 				AEGP_StreamValue streamValue = {};
 				streamValue.streamH = streamValue2.streamH;
 				streamValue.val.two_d.x = xValue * aetToAEStreamData.ScaleFactor;
 				streamValue.val.two_d.y = yValue * aetToAEStreamData.ScaleFactor;
-
-				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_LayerTime, &time, &index);
 				suites.KeyframeSuite3->AEGP_SetAddKeyframe(addKeyFrameInfo, index, &streamValue);
 			};
 
@@ -667,7 +672,8 @@ namespace AetPlugin
 			AEGP_KeyframeIndex index;
 
 			// NOTE: AEGP_StartAddKeyframes / AEGP_EndAddKeyframes is not supported for markers
-			suites.KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+			// suites.KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_LayerTime, &time, &index);
+			suites.KeyframeSuite3->AEGP_InsertKeyframe(streamValue.streamH, AEGP_LTimeMode_CompTime, &time, &index);
 			suites.KeyframeSuite3->AEGP_SetKeyframeValue(streamValue.streamH, index, &streamValue);
 		}
 	}
