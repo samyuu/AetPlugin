@@ -427,6 +427,7 @@
     <ClInclude Include="..\src\Comfy\lib\zlib\src\inftrees.h" />
     <ClInclude Include="..\src\Comfy\lib\zlib\src\trees.h" />
     <ClInclude Include="..\src\Comfy\lib\zlib\src\zutil.h" />
+    <ClInclude Include="..\src\FormatUtil.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

@@ -278,6 +278,9 @@
     <ClInclude Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.h">
       <Filter>Headers\AE</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\FormatUtil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">

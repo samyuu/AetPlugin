@@ -1,4 +1,5 @@
 #include "AetImport.h"
+#include "FormatUtil.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/Stream/FileStream.h"
@@ -10,21 +11,11 @@ namespace AetPlugin
 {
 	namespace
 	{
-		constexpr std::wstring_view AetPrefix = L"aet_";
-
-		std::string ToLower(std::string_view value)
-		{
-			auto lowerCaseString = std::string(value);
-			for (char& character : lowerCaseString)
-				character = static_cast<char>(tolower(character));
-			return lowerCaseString;
-		}
-
 		std::string GetAetSetName(const Aet::AetSet& set)
 		{
-			const std::string lowerCaseSetName = ToLower(set.Name);
+			const std::string lowerCaseSetName = FormatUtil::ToLower(set.Name);
 			const auto setNameWithoutAet = std::string_view(lowerCaseSetName).substr(AetPrefix.length());
-			return ToLower(setNameWithoutAet);
+			return FormatUtil::ToLower(setNameWithoutAet);
 		}
 
 		std::string FormatSceneName(const Aet::AetSet& set, const Aet::Scene& scene)
@@ -32,16 +23,8 @@ namespace AetPlugin
 			std::string result;
 			result += GetAetSetName(set);
 			result += "_";
-			result += ToLower(scene.Name);
+			result += FormatUtil::ToLower(scene.Name);
 			return result;
-		}
-
-		std::string_view StripPrefixIfExists(std::string_view stringInput, std::string_view prefix)
-		{
-			if (Utilities::StartsWithInsensitive(stringInput, prefix))
-				return stringInput.substr(prefix.size(), stringInput.size() - prefix.size());
-
-			return stringInput;
 		}
 	}
 
@@ -60,7 +43,7 @@ namespace AetPlugin
 	AetImporter::AetSetVerifyResult AetImporter::VerifyAetSetImportable(std::wstring_view filePath)
 	{
 		const auto fileName = FileSystem::GetFileName(filePath, false);
-		if (!Utilities::StartsWithInsensitive(fileName, AetPrefix))
+		if (!Utilities::StartsWithInsensitive(fileName, AetPrefixW))
 			return AetSetVerifyResult::InvalidPath;
 
 		auto fileStream = FileSystem::FileStream(filePath);
@@ -236,8 +219,8 @@ namespace AetPlugin
 
 			std::string_view sanitizedFileName = std::string_view(fileName).substr(0, fileName.length() - SpriteFileData::PngExtension.size());
 
-			sanitizedFileName = StripPrefixIfExists(sanitizedFileName, SpriteFileData::SprPrefix);
-			sanitizedFileName = StripPrefixIfExists(sanitizedFileName, workingSet.NamePrefixUnderscore);
+			sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, SpriteFileData::SprPrefix);
+			sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, workingSet.NamePrefixUnderscore);
 
 			SpriteFileData& spriteFile = workingDirectory.AvailableSpriteFiles.emplace_back();
 			spriteFile.SanitizedFileName = sanitizedFileName;
@@ -263,11 +246,11 @@ namespace AetPlugin
 
 	void AetImporter::CreateProjectFolders()
 	{
-		suites.ItemSuite1->AEGP_CreateNewFolder("root", project.RootItemHandle, &project.Folders.Root);
-		suites.ItemSuite1->AEGP_CreateNewFolder("data", project.Folders.Root, &project.Folders.Data);
-		suites.ItemSuite1->AEGP_CreateNewFolder("video", project.Folders.Data, &project.Folders.Video);
-		suites.ItemSuite1->AEGP_CreateNewFolder("audio", project.Folders.Data, &project.Folders.Audio);
-		suites.ItemSuite1->AEGP_CreateNewFolder("comp", project.Folders.Data, &project.Folders.Comp);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Root, project.RootItemHandle, &project.Folders.Root);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Data, project.Folders.Root, &project.Folders.Data);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Video, project.Folders.Data, &project.Folders.Video);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Audio, project.Folders.Data, &project.Folders.Audio);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Comp, project.Folders.Data, &project.Folders.Comp);
 	}
 
 	void AetImporter::ImportAllFootage()
@@ -315,14 +298,14 @@ namespace AetPlugin
 		const AEGP_ColorVal videoColor = AEUtil::ColorRGB8(video.Color);
 
 		char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
-		sprintf_s(placeholderNameBuffer, std::size(placeholderNameBuffer), "Placeholder (%dx%d)", video.Size.x, video.Size.y);
+		sprintf(placeholderNameBuffer, "Placeholder (%dx%d)", video.Size.x, video.Size.y);
 
 		suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
 	}
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
 	{
-		const auto frontSourceNameWithoutAetPrefix = StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
+		const auto frontSourceNameWithoutAetPrefix = FormatUtil::StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
 		if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutAetPrefix); matchingSpriteFile != nullptr)
 		{
 			AEGP_FootageLayerKey footageLayerKey = {};
@@ -531,7 +514,7 @@ namespace AetPlugin
 				// NOTE: Hopefully correct for everything
 				const frame_t startOffset = LayerUsesStartOffset(layer) ? layer.StartOffset : 0.0f;
 				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
-				
+
 				AEGP_KeyframeIndex index;
 				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_LayerTime, &time, &index);
 #else

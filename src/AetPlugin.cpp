@@ -35,8 +35,8 @@ namespace AetPlugin
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
-			A_Err err = A_Err_NONE; 
-			
+			A_Err err = A_Err_NONE;
+
 			auto importer = AetImporter(FileSystem::GetDirectory(filePathString));
 			ERR(importer.ImportAetSet(*aetSet, importOptions, action, itemHandle));
 
@@ -48,7 +48,7 @@ namespace AetPlugin
 			std::array<AEIO_FileKind, 1> fileTypes = {};
 			for (auto& fileType : fileTypes)
 			{
-				fileType.mac.type = AEIO_FileType_GENERIC;
+				fileType.mac.type = 'AETC';
 				fileType.mac.creator = AEIO_ANY_CREATOR;
 			}
 
@@ -85,7 +85,7 @@ namespace AetPlugin
 		{
 			if (!ExportAetSetCommand)
 				return A_Err_NONE;
-		
+
 			const SuitesData suites;
 
 			A_Err err = A_Err_NONE;

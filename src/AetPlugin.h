@@ -10,6 +10,12 @@
 
 namespace AetPlugin
 {
+	constexpr std::string_view AetPrefix = "aet_";
+	constexpr std::wstring_view AetPrefixW = L"aet_";
+
+	constexpr std::string_view SprPrefix = "spr_";
+	constexpr std::wstring_view SprPrefixW = L"spr_";
+
 	extern AEGP_PluginID PluginID;
 	extern SPBasicSuite* BasicPicaSuite;
 	extern AEGP_Command ExportAetSetCommand;
@@ -25,6 +31,7 @@ namespace AetPlugin
 		DeclareSuiteMember(RegisterSuite5); // AE 10.0
 		DeclareSuiteMember(ProjSuite5); // AE 10.0
 		DeclareSuiteMember(ItemSuite1); // AE 5.0
+		DeclareSuiteMember(ItemSuite8); // AE 9.0
 		DeclareSuiteMember(FootageSuite5); // AE 10.0
 		DeclareSuiteMember(CompSuite7); // AE 9.0
 		DeclareSuiteMember(LayerSuite1); // AE 5.0
@@ -33,8 +40,21 @@ namespace AetPlugin
 		DeclareSuiteMember(DynamicStreamSuite4); // AE 9.0
 		DeclareSuiteMember(KeyframeSuite3); // AE 6.5
 		DeclareSuiteMember(UtilitySuite3); // AE 10.0
+		DeclareSuiteMember(MemorySuite1); // AE 5.0
 
 #undef DeclareSuiteMember
+	};
+
+	struct ProjectStructure
+	{
+		struct Names
+		{
+			static constexpr const char* Root = "root";
+			static constexpr const char* Data = "data";
+			static constexpr const char* Video = "video";
+			static constexpr const char* Audio = "audio";
+			static constexpr const char* Comp = "Comp";
+		};
 	};
 }
 
