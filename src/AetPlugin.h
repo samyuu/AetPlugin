@@ -67,8 +67,6 @@ namespace AetPlugin
 					- comp
 					- video
 				- {set_name}_{scene_name_0}
-
-		- {set_name}
 			- {scene_name_1}
 				- data
 					- audio
