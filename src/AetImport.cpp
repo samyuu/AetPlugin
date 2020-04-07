@@ -313,7 +313,11 @@ namespace AetPlugin
 			footageLayerKey.layer_indexL = 0;
 
 			if (video.Sources.size() > 1)
-				std::memcpy(footageLayerKey.nameAC, frontSourceNameWithoutAetPrefix.data(), frontSourceNameWithoutAetPrefix.size());
+			{
+				// BUG: The Footage name still isn't correct
+				const auto sequenceBaseName = FormatUtil::StripSuffixIfExists(frontSourceNameWithoutAetPrefix, "_000");
+				std::memcpy(footageLayerKey.nameAC, sequenceBaseName.data(), sequenceBaseName.size());
+			}
 
 			AEGP_FileSequenceImportOptions sequenceImportOptions = {};
 			sequenceImportOptions.all_in_folderB = (video.Sources.size() > 1);
