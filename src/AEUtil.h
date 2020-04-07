@@ -13,6 +13,9 @@
 
 namespace AEUtil
 {
+	struct RGB8 { uint8_t R, G, B, A; };
+	constexpr float RGB8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
+
 	static constexpr A_Ratio OneToOneRatio = { 1, 1 };
 	static constexpr float FixedPoint = 10000.0f;
 
@@ -28,12 +31,25 @@ namespace AEUtil
 
 	inline AEGP_ColorVal ColorRGB8(uint32_t inputColor)
 	{
-		struct RGB8 { uint8_t R, G, B; };
 		const RGB8 colorRGB8 = *reinterpret_cast<const RGB8*>(&inputColor);
+		return AEGP_ColorVal
+		{
+			static_cast<float>(1.0f),
+			static_cast<float>(colorRGB8.R / RGB8ToFloat),
+			static_cast<float>(colorRGB8.G / RGB8ToFloat),
+			static_cast<float>(colorRGB8.B / RGB8ToFloat),
+		};
+	}
 
-		constexpr float rgb8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());
-		constexpr float aeAlpha = 1.0f;
-
-		return AEGP_ColorVal { aeAlpha, colorRGB8.R / rgb8ToFloat, colorRGB8.G / rgb8ToFloat, colorRGB8.B / rgb8ToFloat };
+	inline uint32_t ColorRGB8(AEGP_ColorVal inputColor)
+	{
+		const RGB8 colorRGB8 =
+		{
+			static_cast<uint8_t>(inputColor.redF / RGB8ToFloat),
+			static_cast<uint8_t>(inputColor.greenF / RGB8ToFloat),
+			static_cast<uint8_t>(inputColor.blueF / RGB8ToFloat),
+			static_cast<uint8_t>(0x00),
+		};
+		return *reinterpret_cast<const uint32_t*>(&colorRGB8);
 	}
 }
