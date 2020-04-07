@@ -45,9 +45,39 @@ namespace AetPlugin
 #undef DeclareSuiteMember
 	};
 
-	struct ProjectStructure
+	namespace ProjectStructure
 	{
-		struct Names
+		// NOTE: Currently:
+		/*
+		- root
+			- data
+				- audio
+				- comp
+				- video
+			- {set_name}_{scene_name_0}
+			- {set_name}_{scene_name_1}
+		*/
+
+		// NOTE: But it might be better to:
+		/*
+		- {set_name}
+			- {scene_name_0}
+				- data
+					- audio
+					- comp
+					- video
+				- {set_name}_{scene_name_0}
+
+		- {set_name}
+			- {scene_name_1}
+				- data
+					- audio
+					- comp
+					- video
+				- {set_name}_{scene_name_1}
+		*/
+
+		namespace Names
 		{
 			static constexpr const char* Root = "root";
 			static constexpr const char* Data = "data";
@@ -55,6 +85,28 @@ namespace AetPlugin
 			static constexpr const char* Audio = "audio";
 			static constexpr const char* Comp = "comp";
 		};
+	};
+
+	namespace Comment
+	{
+		static constexpr std::string_view Scene = "Scene";
+		static constexpr std::string_view SprID = "SprID";
+
+		using Buffer = std::array<char, AEGP_MAX_RQITEM_COMMENT_SIZE>;
+
+		inline Buffer Format(std::string_view propertyID, std::string_view property)
+		{
+			Buffer buffer;
+			sprintf(buffer.data(), "#AetSet.%.*s: { %.*s }", static_cast<int>(propertyID.size()), propertyID.data(), static_cast<int>(property.size()), property.data());
+			return buffer;
+		}
+
+		inline void Set(const SuitesData& suites, std::string_view propertyID, std::string_view property, AEGP_ItemH item)
+		{
+			const auto buffer = Format(propertyID, property);
+			if (item != nullptr)
+				suites.ItemSuite8->AEGP_SetItemComment(item, buffer.data());
+		}
 	};
 }
 

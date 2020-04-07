@@ -11,6 +11,10 @@ namespace AetPlugin
 
 	AEGP_Command ExportAetSetCommand = -1;
 
+#if 1 // TEMP:
+	constexpr std::wstring_view DEBUG_AETSET_EXPORT_PATH = L"Y:/Dev/AfterEffectsSDK/Projects/AetPlugin/test/export/aet_test.bin";
+#endif /* 1 */
+
 	namespace
 	{
 		constexpr std::array AetSetFileExtensions =
@@ -99,24 +103,32 @@ namespace AetPlugin
 			if (command != ExportAetSetCommand)
 				return A_Err_NONE;
 
+			*handledPB = true;
 			const SuitesData suites;
 
-			A_Err err = A_Err_NONE;
-			suites.UtilitySuite3->AEGP_ReportInfo(PluginID, __FUNCTION__"(): Ehm yeah, hi I guess?");
+			const auto outputFilePath = std::wstring(DEBUG_AETSET_EXPORT_PATH);
 
-			// auto exporter = AetExporter();
-			// err = exporter.ExportAetSet();
-			*handledPB = true;
+			auto exporter = AetExporter(FileSystem::GetDirectory(outputFilePath));
+			auto aetSet = exporter.ExportAetSet();
 
-			return err;
+			if (aetSet == nullptr)
+				return A_Err_GENERIC;
+
+			aetSet->Save(outputFilePath);
+
+			return A_Err_NONE;
 		}
 
 		A_Err RegisterAetSetFileTypeExport(const SuitesData& suites)
 		{
 			A_Err err = A_Err_NONE;
+			
+			// TODO: Menu items for exporting databases (aet_db + spr_db) containing only the info for this AetSet (?)
+			// TODO: Menu items for setting all (or only the missing) SprID comments (to their murmur hash) (?)
+			// TODO: On export optionally (?) write log file and or show message of all the aep unsupported data that could not be exported (effects, text, etc.) (?)
 
 			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&ExportAetSetCommand));
-			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
+			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet...", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
 
 			ERR(suites.RegisterSuite5->AEGP_RegisterCommandHook(PluginID, AEGP_HP_BeforeAE, AEGP_Command_ALL, AEGP_CommandHook, nullptr));
 			ERR(suites.RegisterSuite5->AEGP_RegisterUpdateMenuHook(PluginID, AEGP_UpdateMenuHook, nullptr));
@@ -124,13 +136,60 @@ namespace AetPlugin
 			return err;
 		}
 
-		A_Err RegisterAetSetFileType()
+		A_Err RegisterAetSetFileType(const SuitesData& suites)
 		{
-			const SuitesData suites;
-
 			A_Err err = A_Err_NONE;
 			ERR(RegisterAetSetFileTypeImport(suites));
 			ERR(RegisterAetSetFileTypeExport(suites));
+			return err;
+		}
+
+		A_Err AEGP_DeathHook(AEGP_GlobalRefcon unused1, AEGP_DeathRefcon unused2)
+		{
+			try
+			{
+				const AetPlugin::SuitesData suites;
+				A_Err err = A_Err_NONE;
+
+				struct MemStats
+				{
+					A_long Count;
+					A_long Size;
+				} memStats = {};
+
+				ERR(suites.MemorySuite1->AEGP_GetMemStats(PluginID, &memStats.Count, &memStats.Size));
+
+				if (memStats.Count > 0 || memStats.Size > 0)
+				{
+					char infoBuffer[AEGP_MAX_ABOUT_STRING_SIZE];
+					sprintf_s(infoBuffer, __FUNCTION__"(): Leaked %d allocations, for a total of %d kbytes", memStats.Count, memStats.Size);
+
+					ERR(suites.UtilitySuite3->AEGP_ReportInfo(PluginID, infoBuffer));
+				}
+
+				return err;
+			}
+			catch (const A_Err thrownErr)
+			{
+				return thrownErr;
+			}
+		}
+
+		A_Err RegisterDeathHook(const SuitesData& suites)
+		{
+			A_Err err = A_Err_NONE;
+#if _DEBUG
+			ERR(suites.RegisterSuite5->AEGP_RegisterDeathHook(PluginID, AEGP_DeathHook, nullptr));
+#endif /* _DEBUG */
+			return err;
+		}
+
+		A_Err SetMemoryReporting(const SuitesData& suites)
+		{
+			A_Err err = A_Err_NONE;
+#if _DEBUG
+			ERR(suites.MemorySuite1->AEGP_SetMemReportingOn(true));
+#endif /* _DEBUG */
 			return err;
 		}
 	}
@@ -141,6 +200,11 @@ A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long mi
 	AetPlugin::BasicPicaSuite = pica_basicP;
 	AetPlugin::PluginID = aegp_plugin_id;
 
-	const auto error = AetPlugin::RegisterAetSetFileType();
-	return error;
+	const AetPlugin::SuitesData suites;
+
+	A_Err err = A_Err_NONE;
+	ERR(AetPlugin::RegisterDeathHook(suites));
+	ERR(AetPlugin::RegisterAetSetFileType(suites));
+	ERR(AetPlugin::SetMemoryReporting(suites));
+	return err;
 }
