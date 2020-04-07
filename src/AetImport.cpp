@@ -321,7 +321,7 @@ namespace AetPlugin
 			sequenceImportOptions.start_frameL = 0;
 			sequenceImportOptions.end_frameL = static_cast<A_long>(video.Sources.size()) - 1;
 
-			suites.FootageSuite5->AEGP_NewFootage(PluginID, AEUtil::UTF16Cast(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, &sequenceImportOptions, FALSE, nullptr, &video.GuiData.AE_Footage);
+			suites.FootageSuite5->AEGP_NewFootage(PluginID, AEUtil::UTF16Cast(matchingSpriteFile->FilePath.c_str()), &footageLayerKey, &sequenceImportOptions, false, nullptr, &video.GuiData.AE_Footage);
 		}
 		else
 		{
@@ -609,9 +609,25 @@ namespace AetPlugin
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 	}
 
+	namespace
+	{
+		std::string_view GetLayerItemName(const Aet::Layer& layer)
+		{
+			if (layer.GetVideoItem() != nullptr)
+				return (layer.GetVideoItem()->Sources.size() == 1) ? layer.GetVideoItem()->Sources.front().Name : "";
+			else if (layer.GetAudioItem() != nullptr)
+				return "";
+			else if (layer.GetCompItem() != nullptr)
+				return layer.GetCompItem()->GetName();
+			return "";
+		}
+	}
+
 	void AetImporter::ImportLayerName(const Aet::Layer& layer)
 	{
-		suites.LayerSuite1->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
+		// NOTE: To ensure square brackets appear around the layer name in the layer name view
+		if (GetLayerItemName(layer) != layer.GetName())
+			suites.LayerSuite1->AEGP_SetLayerName(layer.GuiData.AE_Layer, layer.GetName().c_str());
 	}
 
 	void AetImporter::ImportLayerFlags(const Aet::Layer& layer)
@@ -623,7 +639,7 @@ namespace AetPlugin
 			suites.LayerSuite1->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags& flagsBitMask));
 		}
 
-		// NOTE: Makes sure underlying transfer modes etc are being preserved
+		// NOTE: Makes sure underlying transfer modes etc are being preserved as well as the underlying layers aren't being cut off outside the comp region
 		if (layer.ItemType == Aet::ItemType::Composition)
 			suites.LayerSuite1->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
 	}
