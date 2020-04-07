@@ -1,4 +1,6 @@
 #pragma once
+#include "Types.h"
+#include "CoreTypes.h"
 #include "AEConfig.h"
 #include "AE_GeneralPlug.h"
 #include "AE_Effect.h"
@@ -27,6 +29,20 @@ namespace AEUtil
 	inline const wchar_t* WCast(const A_UTF16Char* value)
 	{
 		return reinterpret_cast<const wchar_t*>(value);
+	}
+
+	inline std::wstring MoveFreeUTF16String(AEGP_MemorySuite1* memorySuite1, AEGP_MemHandle memHandle)
+	{
+		void* underlyingData;
+		memorySuite1->AEGP_LockMemHandle(memHandle, &underlyingData);
+
+		const auto underlyingString = reinterpret_cast<const A_UTF16Char*>(underlyingData);
+		const auto result = std::wstring(WCast(underlyingString));
+
+		memorySuite1->AEGP_UnlockMemHandle(memHandle);
+		memorySuite1->AEGP_FreeMemHandle(memHandle);
+
+		return result;
 	}
 
 	inline AEGP_ColorVal ColorRGB8(uint32_t inputColor)

@@ -36,7 +36,7 @@ namespace AetPlugin
 			A_long Index;
 			AEGP_ProjectH Handle;
 			A_char Name[AEGP_MAX_PROJ_NAME_SIZE];
-			AEGP_MemHandle Path;
+			std::wstring Path;
 			AEGP_ItemH RootFolder;
 
 			std::vector<AEItemData> Items;

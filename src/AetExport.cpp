@@ -14,8 +14,6 @@ namespace AetPlugin
 
 	AetExporter::~AetExporter()
 	{
-		if (workingProject.Path != nullptr)
-			suites.MemorySuite1->AEGP_FreeMemHandle(workingProject.Path);
 	}
 
 	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet()
@@ -40,7 +38,11 @@ namespace AetPlugin
 		workingProject.Index = 0;
 		suites.ProjSuite5->AEGP_GetProjectByIndex(workingProject.Index, &workingProject.Handle);
 		suites.ProjSuite5->AEGP_GetProjectName(workingProject.Handle, workingProject.Name);
-		suites.ProjSuite5->AEGP_GetProjectPath(workingProject.Handle, &workingProject.Path);
+
+		AEGP_MemHandle pathHandle;
+		suites.ProjSuite5->AEGP_GetProjectPath(workingProject.Handle, &pathHandle);
+		workingProject.Path = AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle);
+
 		suites.ProjSuite5->AEGP_GetProjectRootFolder(workingProject.Handle, &workingProject.RootFolder);
 
 		AEGP_ItemH firstItem;
