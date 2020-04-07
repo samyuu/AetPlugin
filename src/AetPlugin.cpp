@@ -122,10 +122,12 @@ namespace AetPlugin
 		A_Err RegisterAetSetFileTypeExport(const SuitesData& suites)
 		{
 			A_Err err = A_Err_NONE;
-			
-			// TODO: Menu items for exporting databases (aet_db + spr_db) containing only the info for this AetSet (?)
-			// TODO: Menu items for setting all (or only the missing) SprID comments (to their murmur hash) (?)
+
+			// TODO: Menu item for exporting databases (aet_db + spr_db) containing only the info for this AetSet (?)
+			// TODO: Menu item for setting all (or only the missing) SprID comments (to their murmur hash) (?)
 			// TODO: On export optionally (?) write log file and or show message of all the aep unsupported data that could not be exported (effects, text, etc.) (?)
+			// TODO: Menu item for checking supported features instead of doing so on export (?)
+			// TODO: Menu item for collpasing all compositions as required by the format (?)
 
 			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&ExportAetSetCommand));
 			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet...", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
