@@ -66,14 +66,14 @@ BEGIN
         BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "Samyuu\0"
-            VALUE "FileDescription", "Project DIVA aet plugin\0"
+            VALUE "FileDescription", "Project DIVA AetSet plugin\0"
             VALUE "FileVersion", "1, 0, 0, 1\0"
             VALUE "InternalName", "AetPlugin\0"
-            VALUE "LegalCopyright", "Copyright © 2019 Samyuu\0"
+            VALUE "LegalCopyright", "Copyright © 2020 Samyuu\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "AetPlugin.aex\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "Aet Plugin\0"
+            VALUE "ProductName", "AetSet Plugin\0"
             VALUE "ProductVersion", "1, 0, 0, 1\0"
             VALUE "SpecialBuild", "\0"
         END
