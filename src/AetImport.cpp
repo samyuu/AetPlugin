@@ -177,6 +177,11 @@ namespace AetPlugin
 			ImportAllCompositions();
 		}
 
+		// suites.Handler.AdvAppSuite2()->PF_SaveProject();
+		// const std::wstring projectPath = workingDirectory.ImportDirectory + L"/" + Utf8ToUtf16(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix)) + L".aep";
+		// const std::wstring projectPath = Utf8ToUtf16(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
+		// suites.ProjSuite5->AEGP_SaveProjectToPath(project.ProjectHandle, AEUtil::UTF16Cast(projectPath.c_str()));
+
 		// suites.UtilitySuite3->AEGP_ReportInfo(GlobalPluginID, "Let's hope for the best...");
 		return A_Err_NONE;
 	}
@@ -291,6 +296,34 @@ namespace AetPlugin
 
 		if (video.GuiData.AE_Footage != nullptr)
 			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Video, &video.GuiData.AE_FootageItem);
+
+#if 1 // DEBUG:
+		if (!video.Sources.empty())
+		{
+			char commentBuffer[AEGP_MAX_RQITEM_COMMENT_SIZE] = {};
+
+			for (auto& source : video.Sources)
+			{
+				char appendBuffer[32];
+				sprintf(appendBuffer, "0x%02X", source.ID);
+				std::strcat(commentBuffer, appendBuffer);
+
+				if (&source != &video.Sources.back())
+					std::strcat(commentBuffer, ", ");
+			}
+
+			Comment::Set(suites, Comment::SprID, commentBuffer, video.GuiData.AE_FootageItem);
+		}
+
+		if (video.Sources.size() > 1)
+		{
+			AEGP_FootageInterp interpretation;
+			suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+			interpretation.native_fpsF = workingScene.FrameRate;
+			interpretation.conform_fpsF = workingScene.FrameRate;
+			suites.FootageSuite5->AEGP_SetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+		}
+#endif
 	}
 
 	void AetImporter::ImportPlaceholderVideo(const Aet::Video& video)
@@ -362,6 +395,10 @@ namespace AetPlugin
 			suites.CompSuite7->AEGP_CreateComp(project.Folders.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
+
+#if 1 // DEBUG:
+		Comment::Set(suites, Comment::Scene, scene.Name, scene.RootComposition->GuiData.AE_CompItem);
+#endif
 	}
 
 	void AetImporter::ImportLayersInComp(const Aet::Composition& comp)
