@@ -1,5 +1,6 @@
 #pragma once
 #include "AEUtil.h"
+#include "CommentUtil.h"
 #include "entry.h"
 #include "Types.h"
 #include "CoreTypes.h"
@@ -83,28 +84,6 @@ namespace AetPlugin
 			static constexpr const char* Audio = "audio";
 			static constexpr const char* Comp = "comp";
 		};
-	};
-
-	namespace Comment
-	{
-		static constexpr std::string_view Scene = "Scene";
-		static constexpr std::string_view SprID = "SprID";
-
-		using Buffer = std::array<char, AEGP_MAX_RQITEM_COMMENT_SIZE>;
-
-		inline Buffer Format(std::string_view propertyID, std::string_view property)
-		{
-			Buffer buffer;
-			sprintf(buffer.data(), "#AetSet.%.*s: { %.*s }", static_cast<int>(propertyID.size()), propertyID.data(), static_cast<int>(property.size()), property.data());
-			return buffer;
-		}
-
-		inline void Set(const SuitesData& suites, std::string_view propertyID, std::string_view property, AEGP_ItemH item)
-		{
-			const auto buffer = Format(propertyID, property);
-			if (item != nullptr)
-				suites.ItemSuite8->AEGP_SetItemComment(item, buffer.data());
-		}
 	};
 }
 

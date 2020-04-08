@@ -281,6 +281,9 @@
     <ClInclude Include="..\src\FormatUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\CommentUtil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
