@@ -48,18 +48,6 @@ namespace AetPlugin
 
 	namespace ProjectStructure
 	{
-		// NOTE: Currently:
-		/*
-		- root
-			- data
-				- audio
-				- comp
-				- video
-			- {set_name}_{scene_name_0}
-			- {set_name}_{scene_name_1}
-		*/
-
-		// NOTE: But it might be better to:
 		/*
 		- {set_name}
 			- {scene_name_0}
@@ -78,7 +66,6 @@ namespace AetPlugin
 
 		namespace Names
 		{
-			static constexpr const char* Root = "root";
 			static constexpr const char* Data = "data";
 			static constexpr const char* Video = "video";
 			static constexpr const char* Audio = "audio";

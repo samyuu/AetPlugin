@@ -170,9 +170,11 @@ namespace AetPlugin
 		GetProjectHandles();
 		CreateProjectFolders();
 
+		size_t sceneIndex = 0;
 		for (const auto& scene : workingSet.Set->GetScenes())
 		{
-			SetupWorkingSceneData(*scene);
+			SetupWorkingSceneData(*scene, sceneIndex++);
+			CreateSceneFolders();
 			ImportAllFootage();
 			ImportAllCompositions();
 		}
@@ -204,9 +206,10 @@ namespace AetPlugin
 		workingSet.NamePrefixUnderscore = workingSet.NamePrefix + "_";
 	}
 
-	void AetImporter::SetupWorkingSceneData(const Aet::Scene& scene)
+	void AetImporter::SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex)
 	{
 		workingScene.Scene = &scene;
+		workingScene.SceneIndex = sceneIndex;
 		workingScene.FrameRate = scene.FrameRate;
 		workingScene.AE_FrameRate = { static_cast<A_long>(scene.FrameRate * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 	}
@@ -251,11 +254,20 @@ namespace AetPlugin
 
 	void AetImporter::CreateProjectFolders()
 	{
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Root, project.RootItemHandle, &project.Folders.Root);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Data, project.Folders.Root, &project.Folders.Data);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Video, project.Folders.Data, &project.Folders.Video);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Audio, project.Folders.Data, &project.Folders.Audio);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Comp, project.Folders.Data, &project.Folders.Comp);
+		const auto& setRootName = workingSet.NamePrefix;
+		suites.ItemSuite1->AEGP_CreateNewFolder(setRootName.c_str(), project.RootItemHandle, &project.Folders.Root);
+
+		CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, workingSet.Set->Name });
+	}
+
+	void AetImporter::CreateSceneFolders()
+	{
+		const auto sceneRootName = FormatUtil::ToLower(workingScene.Scene->Name);
+		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Data, project.Folders.Scene.Root, &project.Folders.Scene.Data);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Video, project.Folders.Scene.Data, &project.Folders.Scene.Video);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Audio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Comp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
 	}
 
 	void AetImporter::ImportAllFootage()
@@ -295,7 +307,7 @@ namespace AetPlugin
 			ImportSpriteVideo(video);
 
 		if (video.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Video, &video.GuiData.AE_FootageItem);
+			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Scene.Video, &video.GuiData.AE_FootageItem);
 
 #if 1 // DEBUG:
 		if (!video.Sources.empty())
@@ -312,7 +324,7 @@ namespace AetPlugin
 					std::strcat(commentBuffer, ", ");
 			}
 
-			Comment::Set(suites, Comment::SprID, commentBuffer, video.GuiData.AE_FootageItem);
+			CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer });
 		}
 
 		if (video.Sources.size() > 1)
@@ -373,7 +385,7 @@ namespace AetPlugin
 	{
 		// TODO:
 		if (audio.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Video, &audio.GuiData.AE_FootageItem);
+			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Scene.Video, &audio.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportSceneComps()
@@ -383,7 +395,7 @@ namespace AetPlugin
 		const A_Time sceneDuration = FrameToAETime(scene.EndFrame);
 		const auto sceneName = FormatSceneName(*workingSet.Set, scene);
 
-		suites.CompSuite7->AEGP_CreateComp(project.Folders.Root, AEUtil::UTF16Cast(Utf8ToUtf16(sceneName).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
+		suites.CompSuite7->AEGP_CreateComp(project.Folders.Scene.Root, AEUtil::UTF16Cast(Utf8ToUtf16(sceneName).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &sceneDuration, &workingScene.AE_FrameRate, &scene.RootComposition->GuiData.AE_Comp);
 		suites.CompSuite7->AEGP_GetItemFromComp(scene.RootComposition->GuiData.AE_Comp, &scene.RootComposition->GuiData.AE_CompItem);
 
 		const auto backgroundColor = AEUtil::ColorRGB8(scene.BackgroundColor);
@@ -392,12 +404,12 @@ namespace AetPlugin
 		for (const auto& comp : scene.Compositions)
 		{
 			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
-			suites.CompSuite7->AEGP_CreateComp(project.Folders.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
+			suites.CompSuite7->AEGP_CreateComp(project.Folders.Scene.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 
 #if 1 // DEBUG:
-		Comment::Set(suites, Comment::Scene, scene.Name, scene.RootComposition->GuiData.AE_CompItem);
+		CommentUtil::Set(suites.ItemSuite8, scene.RootComposition->GuiData.AE_CompItem, { CommentUtil::Keys::Scene, scene.Name, workingScene.SceneIndex });
 #endif
 	}
 

@@ -61,12 +61,13 @@ namespace AetPlugin
 		struct WorkingSceneData
 		{
 			const Aet::Scene* Scene = nullptr;
+			size_t SceneIndex = 0;
 			float FrameRate = 0.0f;
 			A_Ratio AE_FrameRate;
 		} workingScene = {};
 
 		void SetupWorkingSetData(const Aet::AetSet& set);
-		void SetupWorkingSceneData(const Aet::Scene& scene);
+		void SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex);
 		void CheckWorkingDirectorySpriteFiles();
 
 	protected:
@@ -82,10 +83,15 @@ namespace AetPlugin
 			struct FolderHandles
 			{
 				AEGP_ItemH Root;
-				AEGP_ItemH Data;
-				AEGP_ItemH Video;
-				AEGP_ItemH Audio;
-				AEGP_ItemH Comp;
+
+				struct SceneData
+				{
+					AEGP_ItemH Root;
+					AEGP_ItemH Data;
+					AEGP_ItemH Video;
+					AEGP_ItemH Audio;
+					AEGP_ItemH Comp;
+				} Scene;
 			} Folders;
 
 		} project = {};
@@ -94,6 +100,7 @@ namespace AetPlugin
 		void CreateProjectFolders();
 
 	protected:
+		void CreateSceneFolders();
 		void ImportAllFootage();
 		void ImportAllCompositions();
 
