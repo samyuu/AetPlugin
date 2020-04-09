@@ -210,7 +210,6 @@ namespace AetPlugin
 	{
 		workingScene.Scene = &scene;
 		workingScene.SceneIndex = sceneIndex;
-		workingScene.FrameRate = scene.FrameRate;
 		workingScene.AE_FrameRate = { static_cast<A_long>(scene.FrameRate * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 	}
 
@@ -238,7 +237,7 @@ namespace AetPlugin
 
 	A_Time AetImporter::FrameToAETime(frame_t frame) const
 	{
-		return { static_cast<A_long>(frame * AEUtil::FixedPoint), static_cast<A_u_long>(workingScene.FrameRate * AEUtil::FixedPoint) };
+		return { static_cast<A_long>(frame * AEUtil::FixedPoint), static_cast<A_u_long>(workingScene.Scene->FrameRate * AEUtil::FixedPoint) };
 	}
 
 	frame_t AetImporter::AETimeToFrame(A_Time time) const
@@ -331,8 +330,8 @@ namespace AetPlugin
 		{
 			AEGP_FootageInterp interpretation;
 			suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
-			interpretation.native_fpsF = workingScene.FrameRate;
-			interpretation.conform_fpsF = workingScene.FrameRate;
+			interpretation.native_fpsF = workingScene.Scene->FrameRate;
+			interpretation.conform_fpsF = workingScene.Scene->FrameRate;
 			suites.FootageSuite5->AEGP_SetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
 		}
 #endif

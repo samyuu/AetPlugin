@@ -62,7 +62,6 @@ namespace AetPlugin
 		{
 			const Aet::Scene* Scene = nullptr;
 			size_t SceneIndex = 0;
-			float FrameRate = 0.0f;
 			A_Ratio AE_FrameRate;
 		} workingScene = {};
 
