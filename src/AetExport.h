@@ -32,8 +32,6 @@ namespace AetPlugin
 			AEGP_ItemType Type;
 			std::pair<A_long, A_long> Dimensions;
 			AEItemData* Parent;
-
-			bool IsParentOf(const AEItemData& parent) const;
 		};
 
 		struct WorkingProjectData
@@ -61,6 +59,9 @@ namespace AetPlugin
 			Aet::AetSet* Set = nullptr;
 			AEItemData* Folder;
 			std::vector<AEItemData*> SceneComps;
+
+			std::string SprPrefix, SprHashPrefix;
+			
 		} workingSet;
 
 		void SetupWorkingSetData(Aet::AetSet& set);
@@ -77,6 +78,15 @@ namespace AetPlugin
 	protected:
 		void ExportScene();
 		void ExportAllCompositions();
-		void ExportAllFootage();
+
+		void ExportComp(Aet::Composition& comp);
+		void ExportLayer(Aet::Layer& layer);
+		
+		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
+		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
+		void ExportVideo(Aet::Video& video);
+
+		RefPtr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
+		RefPtr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);
 	};
 }

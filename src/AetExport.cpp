@@ -128,6 +128,9 @@ namespace AetPlugin
 		{
 			return sceneA->CommentProperty.KeyIndex.value_or(0) < sceneB->CommentProperty.KeyIndex.value_or(0);
 		});
+
+		workingSet.SprPrefix = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(workingSet.Set->Name, AetPrefix)) + "_";
+		workingSet.SprHashPrefix = FormatUtil::ToUpper(SprPrefix) + workingSet.SprPrefix;
 	}
 
 	void AetExporter::SetupWorkingSceneData(AEItemData* sceneComp)
@@ -152,7 +155,7 @@ namespace AetPlugin
 		suites.CompSuite7->AEGP_GetCompWorkAreaDuration(aeSceneComp.CompHandle, &compWorkAreaDuration);
 		scene.StartFrame = AEUtil::AETimeToFrame(compWorkAreaStart, scene.FrameRate);
 		scene.EndFrame = scene.StartFrame + AEUtil::AETimeToFrame(compWorkAreaDuration, scene.FrameRate);
-		
+
 		AEGP_ColorVal compBGColor;
 		suites.CompSuite7->AEGP_GetCompBGColor(aeSceneComp.CompHandle, &compBGColor);
 		scene.BackgroundColor = AEUtil::ColorRGB8(compBGColor);
@@ -161,66 +164,152 @@ namespace AetPlugin
 		suites.ItemSuite8->AEGP_GetItemDimensions(aeSceneComp.ItemHandle, &compWidth, &compHeight);
 		scene.Resolution = { compWidth, compHeight };
 
-		scene.Compositions;
-		scene.RootComposition = MakeRef<Aet::Composition>();
-
 		scene.Videos;
 		scene.Audios;
 
 		ExportAllCompositions();
-		ExportAllFootage();
 	}
 
 	void AetExporter::ExportAllCompositions()
 	{
+		workingScene.Scene->RootComposition = MakeRef<Aet::Composition>();
+		workingScene.Scene->RootComposition->GuiData.AE_Comp = workingScene.AESceneComp->CompHandle;
+		workingScene.Scene->RootComposition->GuiData.AE_CompItem = workingScene.AESceneComp->ItemHandle;
+		ExportComp(*workingScene.Scene->RootComposition);
+
+		// NOTE: Reverse once at the end because pushing to the end of the vector while creating the comps is a lot more efficient
+		std::reverse(workingScene.Scene->Compositions.begin(), workingScene.Scene->Compositions.end());
+		// std::reverse(workingScene.Scene->Videos.begin(), workingScene.Scene->Videos.end());
 	}
 
-	void AetExporter::ExportAllFootage()
+	void AetExporter::ExportComp(Aet::Composition& comp)
 	{
-		const std::string sprPrefix = FormatUtil::ToUpper(workingSet.Set->Name) + "_";
-		const std::string sprHashPrefix = "SPR_" + sprPrefix;
+		A_long compLayerCount;
+		suites.LayerSuite3->AEGP_GetCompNumLayers(comp.GuiData.AE_Comp, &compLayerCount);
 
-		for (auto& item : workingProject.Items)
+		auto& compLayers = comp.GetLayers();
+		compLayers.reserve(compLayerCount);
+
+		for (A_long i = 0; i < compLayerCount; i++)
 		{
-			if (item.Type == AEGP_ItemType_FOOTAGE)
-			{
-				const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix));
-				auto& video = workingScene.Scene->Videos.emplace_back(MakeRef<Aet::Video>());
+			auto& layer = *compLayers.emplace_back(MakeRef<Aet::Layer>());
+			suites.LayerSuite3->AEGP_GetCompLayerByIndex(comp.GuiData.AE_Comp, i, &layer.GuiData.AE_Layer);
 
-				suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &video->GuiData.AE_Footage);
-
-				AEGP_FootageSignature signature;
-				suites.FootageSuite5->AEGP_GetFootageSignature(video->GuiData.AE_Footage, &signature);
-
-				video->Size = { item.Dimensions.first, item.Dimensions.second };
-
-				if (signature == AEGP_FootageSignature_SOLID)
-				{
-					AEGP_ColorVal footageColor;
-					suites.FootageSuite5->AEGP_GetSolidFootageColor(item.ItemHandle, false, &footageColor);
-
-					video->Color = AEUtil::ColorRGB8(footageColor);
-				}
-				else
-				{
-					video->Color = 0xFFFFFF00;
-
-					auto& source = video->Sources.emplace_back();
-					source.Name = sprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
-					source.ID = HashIDString<SprID>(sprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
-				}
-
-				video->Frames = static_cast<float>(video->Sources.size());
-			}
+			ExportLayer(layer);
 		}
 	}
 
-	bool AetExporter::AEItemData::IsParentOf(const AEItemData& parent) const
+	void AetExporter::ExportLayer(Aet::Layer& layer)
 	{
-		if (Parent == nullptr)
-			return false;
-		else if (Parent == &parent)
-			return true;
-		return Parent->IsParentOf(parent);
+		A_char layerName[AEGP_MAX_LAYER_NAME_SIZE], layerSourceName[AEGP_MAX_LAYER_NAME_SIZE];
+		suites.LayerSuite3->AEGP_GetLayerName(layer.GuiData.AE_Layer, layerName, layerSourceName);
+
+		if (layerName[0] != '\0')
+			layer.SetName(layerName);
+		else
+			layer.SetName(layerSourceName);
+
+		AEGP_LayerQuality layerQuality;
+		suites.LayerSuite3->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
+		layer.Quality = (static_cast<Aet::LayerQuality>(layerQuality + 1));
+
+		AEGP_ItemH sourceItem;
+		suites.LayerSuite3->AEGP_GetLayerSourceItem(layer.GuiData.AE_Layer, &sourceItem);
+
+		AEGP_ItemType sourceItemType;
+		suites.ItemSuite8->AEGP_GetItemType(sourceItem, &sourceItemType);
+
+		if (sourceItemType == AEGP_ItemType_COMP)
+		{
+			layer.ItemType = Aet::ItemType::Composition;
+
+			if (auto existingCompItem = FindExistingCompSourceItem(sourceItem); existingCompItem != nullptr)
+				layer.SetItem(existingCompItem);
+			else
+				ExportNewCompSource(layer, sourceItem);
+		}
+		else if (sourceItemType == AEGP_ItemType_FOOTAGE)
+		{
+			layer.ItemType = Aet::ItemType::Video; // Aet::ItemType::Audio
+
+			if (auto existingVideoItem = FindExistingVideoSourceItem(sourceItem); existingVideoItem != nullptr)
+				layer.SetItem(existingVideoItem);
+			else
+				ExportNewVideoSource(layer, sourceItem);
+		}
+	}
+
+	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
+	{
+		auto& newCompItem = workingScene.Scene->Compositions.emplace_back(MakeRef<Aet::Composition>());
+		newCompItem->GuiData.AE_CompItem = sourceItem;
+		suites.CompSuite7->AEGP_GetCompFromItem(newCompItem->GuiData.AE_CompItem, &newCompItem->GuiData.AE_Comp);
+
+		layer.SetItem(newCompItem);
+		ExportComp(*newCompItem);
+	}
+
+	void AetExporter::ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
+	{
+		auto& newVideoItem = workingScene.Scene->Videos.emplace_back(MakeRef<Aet::Video>());
+		newVideoItem->GuiData.AE_FootageItem = sourceItem;
+		suites.FootageSuite5->AEGP_GetMainFootageFromItem(newVideoItem->GuiData.AE_FootageItem, &newVideoItem->GuiData.AE_Footage);
+
+		layer.SetItem(newVideoItem);
+		ExportVideo(*newVideoItem);
+	}
+
+	void AetExporter::ExportVideo(Aet::Video& video)
+	{
+		auto foundItem = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](const auto& item) { return item.ItemHandle == video.GuiData.AE_FootageItem; });
+		if (foundItem == workingProject.Items.end())
+			return;
+
+		auto& item = *foundItem;
+		const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix));
+
+		suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &video.GuiData.AE_Footage);
+
+		AEGP_FootageSignature signature;
+		suites.FootageSuite5->AEGP_GetFootageSignature(video.GuiData.AE_Footage, &signature);
+		video.Size = { item.Dimensions.first, item.Dimensions.second };
+
+		if (signature == AEGP_FootageSignature_SOLID)
+		{
+			AEGP_ColorVal footageColor;
+			suites.FootageSuite5->AEGP_GetSolidFootageColor(item.ItemHandle, false, &footageColor);
+			video.Color = AEUtil::ColorRGB8(footageColor);
+		}
+		else
+		{
+			video.Color = 0xFFFFFF00;
+
+			auto& source = video.Sources.emplace_back();
+			source.Name = workingSet.SprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
+			source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
+		}
+
+		video.Frames = static_cast<float>(video.Sources.size());
+	}
+
+	RefPtr<Aet::Composition> AetExporter::FindExistingCompSourceItem(AEGP_ItemH sourceItem)
+	{
+		// NOTE: No point in searching the root comp since it should never be referenced by any other child comp (?)
+		for (const auto& comp : workingScene.Scene->Compositions)
+		{
+			if (comp->GuiData.AE_CompItem == sourceItem)
+				return workingScene.Scene->RootComposition;
+		}
+		return nullptr;
+	}
+
+	RefPtr<Aet::Video> AetExporter::FindExistingVideoSourceItem(AEGP_ItemH sourceItem)
+	{
+		for (const auto& video : workingScene.Scene->Videos)
+		{
+			if (video->GuiData.AE_FootageItem == sourceItem)
+				return video;
+		}
+		return nullptr;
 	}
 }
