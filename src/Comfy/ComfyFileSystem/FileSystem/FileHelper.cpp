@@ -334,12 +334,14 @@ namespace Comfy::FileSystem
 
 	std::string_view GetFileExtension(std::string_view filePath)
 	{
-		return filePath.substr(filePath.find_last_of("."));
+		const auto index = filePath.find_last_of(".");
+		return (index != std::string_view::npos) ? filePath.substr(index) : "";
 	}
 
 	std::wstring_view GetFileExtension(std::wstring_view filePath)
 	{
-		return filePath.substr(filePath.find_last_of(L"."));
+		const auto index = filePath.find_last_of(L".");
+		return (index != std::string_view::npos) ? filePath.substr(index) : L"";
 	}
 
 	std::vector<std::string> GetFiles(std::string_view directory)
