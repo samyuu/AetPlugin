@@ -43,4 +43,18 @@ namespace FormatUtil
 		const auto extension = Comfy::FileSystem::GetFileExtension(stringInput);
 		return StripSuffixIfExists(stringInput, extension);
 	}
+
+	inline std::string ToSnakeCaseLower(std::string_view stringInput)
+	{
+		auto result = FormatUtil::ToLower(stringInput);
+		std::replace(result.begin(), result.end(), ' ', '_');
+		return result;
+	}
+
+	inline std::string ToSnakeCaseUpper(std::string_view stringInput)
+	{
+		auto result = FormatUtil::ToUpper(stringInput);
+		std::replace(result.begin(), result.end(), ' ', '_');
+		return result;
+	}
 }
