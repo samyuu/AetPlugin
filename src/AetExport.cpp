@@ -26,9 +26,9 @@ namespace AetPlugin
 		SetupWorkingProjectData();
 		SetupWorkingSetData(*set);
 
-		for (auto sceneToAdd : workingSet.SceneComps)
+		for (auto sceneComp : workingSet.SceneComps)
 		{
-			SetupWorkingSceneData(sceneToAdd);
+			SetupWorkingSceneData(sceneComp);
 			ExportScene();
 		}
 
@@ -62,32 +62,35 @@ namespace AetPlugin
 			previousItem = currentItem;
 
 			auto& item = workingProject.Items.emplace_back();
-			item.Handle = currentItem;
+			item.ItemHandle = currentItem;
 
 			A_char nameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
-			suites.ItemSuite1->AEGP_GetItemName(item.Handle, nameBuffer);
+			suites.ItemSuite1->AEGP_GetItemName(item.ItemHandle, nameBuffer);
 			item.Name = nameBuffer;
 
 			A_u_long commentSize;
-			suites.ItemSuite8->AEGP_GetItemCommentLength(item.Handle, &commentSize);
+			suites.ItemSuite8->AEGP_GetItemCommentLength(item.ItemHandle, &commentSize);
 			if (commentSize > 0)
 			{
 				item.Comment.resize(commentSize);
-				suites.ItemSuite8->AEGP_GetItemComment(item.Handle, commentSize + 1, item.Comment.data());
+				suites.ItemSuite8->AEGP_GetItemComment(item.ItemHandle, commentSize + 1, item.Comment.data());
 				item.CommentProperty = CommentUtil::Detail::Parse(item.Comment);
 			}
 
-			suites.ItemSuite8->AEGP_GetItemFlags(item.Handle, &item.Flags);
-			suites.ItemSuite8->AEGP_GetItemType(item.Handle, &item.Type);
-			suites.ItemSuite8->AEGP_GetItemDimensions(item.Handle, &item.Dimensions.first, &item.Dimensions.second);
+			suites.ItemSuite8->AEGP_GetItemFlags(item.ItemHandle, &item.Flags);
+			suites.ItemSuite8->AEGP_GetItemType(item.ItemHandle, &item.Type);
+			suites.ItemSuite8->AEGP_GetItemDimensions(item.ItemHandle, &item.Dimensions.first, &item.Dimensions.second);
+
+			if (item.Type == AEGP_ItemType_COMP)
+				suites.CompSuite7->AEGP_GetCompFromItem(item.ItemHandle, &item.CompHandle);
 		}
 
 		for (auto& item : workingProject.Items)
 		{
 			AEGP_ItemH parentHandle;
-			suites.ItemSuite8->AEGP_GetItemParentFolder(item.Handle, &parentHandle);
+			suites.ItemSuite8->AEGP_GetItemParentFolder(item.ItemHandle, &parentHandle);
 
-			auto foundParent = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](auto& i) { return i.Handle == parentHandle; });
+			auto foundParent = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](auto& i) { return i.ItemHandle == parentHandle; });
 			item.Parent = (foundParent != workingProject.Items.end()) ? &(*foundParent) : nullptr;
 		}
 	}
@@ -117,7 +120,7 @@ namespace AetPlugin
 		workingSet.SceneComps.reserve(2);
 		for (auto& item : workingProject.Items)
 		{
-			if (item.CommentProperty.Key == CommentUtil::Keys::Scene)
+			if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::Scene)
 				workingSet.SceneComps.push_back(&item);
 		}
 
@@ -136,13 +139,27 @@ namespace AetPlugin
 	void AetExporter::ExportScene()
 	{
 		auto& scene = *workingScene.Scene;
-		scene.Name = workingScene.AESceneComp->CommentProperty.Value;
-		scene.StartFrame;
-		scene.EndFrame;
-		scene.FrameRate;
+		auto& aeSceneComp = *workingScene.AESceneComp;
 
-		scene.BackgroundColor;
-		scene.Resolution;
+		scene.Name = aeSceneComp.CommentProperty.Value;
+
+		A_FpLong compFPS;
+		suites.CompSuite7->AEGP_GetCompFramerate(aeSceneComp.CompHandle, &compFPS);
+		scene.FrameRate = static_cast<frame_t>(compFPS);
+
+		A_Time compWorkAreaStart, compWorkAreaDuration;
+		suites.CompSuite7->AEGP_GetCompWorkAreaStart(aeSceneComp.CompHandle, &compWorkAreaStart);
+		suites.CompSuite7->AEGP_GetCompWorkAreaDuration(aeSceneComp.CompHandle, &compWorkAreaDuration);
+		scene.StartFrame = AEUtil::AETimeToFrame(compWorkAreaStart, scene.FrameRate);
+		scene.EndFrame = scene.StartFrame + AEUtil::AETimeToFrame(compWorkAreaDuration, scene.FrameRate);
+		
+		AEGP_ColorVal compBGColor;
+		suites.CompSuite7->AEGP_GetCompBGColor(aeSceneComp.CompHandle, &compBGColor);
+		scene.BackgroundColor = AEUtil::ColorRGB8(compBGColor);
+
+		A_long compWidth, compHeight;
+		suites.ItemSuite8->AEGP_GetItemDimensions(aeSceneComp.ItemHandle, &compWidth, &compHeight);
+		scene.Resolution = { compWidth, compHeight };
 
 		scene.Compositions;
 		scene.RootComposition = MakeRef<Aet::Composition>();
@@ -170,7 +187,7 @@ namespace AetPlugin
 				const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix));
 				auto& video = workingScene.Scene->Videos.emplace_back(MakeRef<Aet::Video>());
 
-				suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.Handle, &video->GuiData.AE_Footage);
+				suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &video->GuiData.AE_Footage);
 
 				AEGP_FootageSignature signature;
 				suites.FootageSuite5->AEGP_GetFootageSignature(video->GuiData.AE_Footage, &signature);
@@ -180,7 +197,7 @@ namespace AetPlugin
 				if (signature == AEGP_FootageSignature_SOLID)
 				{
 					AEGP_ColorVal footageColor;
-					suites.FootageSuite5->AEGP_GetSolidFootageColor(item.Handle, false, &footageColor);
+					suites.FootageSuite5->AEGP_GetSolidFootageColor(item.ItemHandle, false, &footageColor);
 
 					video->Color = AEUtil::ColorRGB8(footageColor);
 				}
@@ -189,8 +206,8 @@ namespace AetPlugin
 					video->Color = 0xFFFFFF00;
 
 					auto& source = video->Sources.emplace_back();
-					source.Name = sprPrefix + cleanItemName; // NOTE: {AET_PREFIX}_{SPRITE_NAME}
-					source.ID = HashIDString<SprID>(sprHashPrefix + cleanItemName); // NOTE: SPR_{AET_PREFIX}_{SPRITE_NAME}
+					source.Name = sprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
+					source.ID = HashIDString<SprID>(sprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
 				}
 
 				video->Frames = static_cast<float>(video->Sources.size());

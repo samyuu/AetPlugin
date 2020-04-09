@@ -25,7 +25,9 @@ namespace AetPlugin
 			std::string Comment;
 			CommentUtil::Property CommentProperty;
 
-			AEGP_ItemH Handle;
+			AEGP_ItemH ItemHandle;
+			AEGP_CompH CompHandle;
+
 			AEGP_ItemFlags Flags;
 			AEGP_ItemType Type;
 			std::pair<A_long, A_long> Dimensions;
