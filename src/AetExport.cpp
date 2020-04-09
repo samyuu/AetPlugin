@@ -298,7 +298,7 @@ namespace AetPlugin
 		for (const auto& comp : workingScene.Scene->Compositions)
 		{
 			if (comp->GuiData.AE_CompItem == sourceItem)
-				return workingScene.Scene->RootComposition;
+				return comp;
 		}
 		return nullptr;
 	}
