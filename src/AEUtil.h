@@ -45,6 +45,16 @@ namespace AEUtil
 		return result;
 	}
 
+	inline A_Time FrameToAETime(frame_t frame, frame_t frameRate)
+	{
+		return { static_cast<A_long>(frame * FixedPoint), static_cast<A_u_long>(frameRate * FixedPoint) };
+	}
+
+	inline frame_t AETimeToFrame(A_Time time, frame_t frameRate)
+	{
+		return static_cast<frame_t>((static_cast<double>(time.value) / static_cast<double>(time.scale)) * static_cast<double>(frameRate));
+	}
+
 	inline AEGP_ColorVal ColorRGB8(uint32_t inputColor)
 	{
 		const RGB8 colorRGB8 = *reinterpret_cast<const RGB8*>(&inputColor);

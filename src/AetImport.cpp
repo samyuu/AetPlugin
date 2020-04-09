@@ -237,12 +237,7 @@ namespace AetPlugin
 
 	A_Time AetImporter::FrameToAETime(frame_t frame) const
 	{
-		return { static_cast<A_long>(frame * AEUtil::FixedPoint), static_cast<A_u_long>(workingScene.Scene->FrameRate * AEUtil::FixedPoint) };
-	}
-
-	frame_t AetImporter::AETimeToFrame(A_Time time) const
-	{
-		return static_cast<frame_t>(time.value / time.scale);
+		return AEUtil::FrameToAETime(frame, workingScene.Scene->FrameRate);
 	}
 
 	void AetImporter::GetProjectHandles()

@@ -71,7 +71,6 @@ namespace AetPlugin
 
 	protected:
 		A_Time FrameToAETime(frame_t frame) const;
-		frame_t AETimeToFrame(A_Time time) const;
 
 	protected:
 		struct ProjectData
