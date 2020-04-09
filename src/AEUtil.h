@@ -55,6 +55,16 @@ namespace AEUtil
 		return static_cast<frame_t>((static_cast<double>(time.value) / static_cast<double>(time.scale)) * static_cast<double>(frameRate));
 	}
 
+	inline A_Ratio Ratio(float ratio)
+	{
+		return { static_cast<A_long>(ratio * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
+	}
+
+	inline float Ratio(A_Ratio ratio)
+	{
+		return static_cast<float>(static_cast<double>(ratio.num) / static_cast<double>(ratio.den));
+	}
+
 	inline AEGP_ColorVal ColorRGB8(uint32_t inputColor)
 	{
 		const RGB8 colorRGB8 = *reinterpret_cast<const RGB8*>(&inputColor);

@@ -689,7 +689,7 @@ namespace AetPlugin
 			FrameToAETime(layer.StartFrame);
 		suites.LayerSuite3->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
 
-		const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
+		const A_Ratio stretch = AEUtil::Ratio(1.0f / layer.TimeScale);
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 	}
 
