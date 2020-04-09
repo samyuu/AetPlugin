@@ -656,7 +656,7 @@ namespace AetPlugin
 		{
 			if (layer.GetVideoItem()->Sources.size() == 1)
 				return layer.GetVideoItem()->Sources.front().Name;
-			else if (auto layerUsage = workingScene.SourcelessVideoLayerUsages	.find(layer.GetVideoItem()); layerUsage != workingScene.SourcelessVideoLayerUsages.end())
+			else if (auto layerUsage = workingScene.SourcelessVideoLayerUsages.find(layer.GetVideoItem()); layerUsage != workingScene.SourcelessVideoLayerUsages.end())
 				return layerUsage->second->GetName();
 			else
 				return "";
@@ -706,7 +706,7 @@ namespace AetPlugin
 		for (size_t flagsBitIndex = 0; flagsBitIndex < sizeof(layerFlags) * CHAR_BIT; flagsBitIndex++)
 		{
 			const uint16_t flagsBitMask = (1 << flagsBitIndex);
-			suites.LayerSuite1->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags& flagsBitMask));
+			suites.LayerSuite1->AEGP_SetLayerFlag(layer.GuiData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags & flagsBitMask));
 		}
 
 		// NOTE: Makes sure underlying transfer modes etc are being preserved as well as the underlying layers aren't being cut off outside the comp region
