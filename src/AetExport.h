@@ -80,8 +80,18 @@ namespace AetPlugin
 		void ExportAllCompositions();
 
 		void ExportComp(Aet::Composition& comp);
+
 		void ExportLayer(Aet::Layer& layer);
-		
+		void ExportLayerName(Aet::Layer& layer);
+		void ExportLayerTime(Aet::Layer& layer);
+		void ExportLayerQuality(Aet::Layer& layer);
+		void ExportLayerFlags(Aet::Layer& layer);
+		void ExportLayerSourceItem(Aet::Layer& layer);
+
+		void ExportLayerVideo(Aet::Layer& layer);
+		void ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode);
+		void ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo);
+
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportVideo(Aet::Video& video);

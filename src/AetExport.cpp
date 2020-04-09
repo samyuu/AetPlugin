@@ -201,6 +201,18 @@ namespace AetPlugin
 
 	void AetExporter::ExportLayer(Aet::Layer& layer)
 	{
+		ExportLayerName(layer);
+		ExportLayerTime(layer);
+		ExportLayerQuality(layer);
+		ExportLayerFlags(layer);
+		ExportLayerSourceItem(layer);
+
+		if (layer.ItemType == Aet::ItemType::Video || layer.ItemType == Aet::ItemType::Composition)
+			ExportLayerVideo(layer);
+	}
+
+	void AetExporter::ExportLayerName(Aet::Layer& layer)
+	{
 		A_char layerName[AEGP_MAX_LAYER_NAME_SIZE], layerSourceName[AEGP_MAX_LAYER_NAME_SIZE];
 		suites.LayerSuite3->AEGP_GetLayerName(layer.GuiData.AE_Layer, layerName, layerSourceName);
 
@@ -208,11 +220,48 @@ namespace AetPlugin
 			layer.SetName(layerName);
 		else
 			layer.SetName(layerSourceName);
+	}
 
+	void AetExporter::ExportLayerTime(Aet::Layer& layer)
+	{
+		A_Time offset, inPoint, duration;
+		A_Ratio stretch;
+		suites.LayerSuite3->AEGP_GetLayerOffset(layer.GuiData.AE_Layer, &offset);
+		suites.LayerSuite3->AEGP_GetLayerInPoint(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &inPoint);
+		suites.LayerSuite3->AEGP_GetLayerDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &duration);
+		suites.LayerSuite3->AEGP_GetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+
+		const frame_t frameOffset = AEUtil::AETimeToFrame(offset, workingScene.Scene->FrameRate);
+		const frame_t frameInPoint = AEUtil::AETimeToFrame(inPoint, workingScene.Scene->FrameRate);
+		const frame_t frameDuration = AEUtil::AETimeToFrame(duration, workingScene.Scene->FrameRate);
+		const float floatStretch = AEUtil::Ratio(stretch);
+
+		layer.StartFrame = (frameOffset + frameInPoint);
+		layer.EndFrame = (layer.StartFrame + frameDuration);
+		layer.StartOffset = (frameInPoint);
+		layer.TimeScale = (1.0f / floatStretch);
+	}
+
+	void AetExporter::ExportLayerQuality(Aet::Layer& layer)
+	{
 		AEGP_LayerQuality layerQuality;
 		suites.LayerSuite3->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
 		layer.Quality = (static_cast<Aet::LayerQuality>(layerQuality + 1));
+	}
 
+	void AetExporter::ExportLayerFlags(Aet::Layer& layer)
+	{
+		AEGP_LayerFlags layerFlags;
+		suites.LayerSuite3->AEGP_GetLayerFlags(layer.GuiData.AE_Layer, &layerFlags);
+
+		if (layerFlags & AEGP_LayerFlag_VIDEO_ACTIVE) layer.Flags.VideoActive = true;
+		if (layerFlags & AEGP_LayerFlag_AUDIO_ACTIVE) layer.Flags.AudioActive = true;
+		if (layerFlags & AEGP_LayerFlag_LOCKED) layer.Flags.Locked = true;
+		if (layerFlags & AEGP_LayerFlag_SHY) layer.Flags.Shy = true;
+	}
+
+	void AetExporter::ExportLayerSourceItem(Aet::Layer& layer)
+	{
 		AEGP_ItemH sourceItem;
 		suites.LayerSuite3->AEGP_GetLayerSourceItem(layer.GuiData.AE_Layer, &sourceItem);
 
@@ -237,6 +286,35 @@ namespace AetPlugin
 			else
 				ExportNewVideoSource(layer, sourceItem);
 		}
+	}
+
+	void AetExporter::ExportLayerVideo(Aet::Layer& layer)
+	{
+		layer.LayerVideo = MakeRef<Aet::LayerVideo>();
+		ExportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
+		ExportLayerVideoStream(layer, *layer.LayerVideo);
+	}
+
+	void AetExporter::ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode)
+	{
+		AEGP_LayerTransferMode layerTransferMode;
+		suites.LayerSuite3->AEGP_GetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+
+		transferMode.BlendMode = static_cast<AetBlendMode>(layerTransferMode.mode + 1);
+		transferMode.TrackMatte = static_cast<Aet::TrackMatte>(layerTransferMode.track_matte);
+
+		if (layerTransferMode.flags & AEGP_TransferFlag_PRESERVE_ALPHA)
+			transferMode.Flags.PreserveAlpha = true;
+		if (layerTransferMode.flags & AEGP_TransferFlag_RANDOMIZE_DISSOLVE)
+			transferMode.Flags.RandomizeDissolve = true;
+	}
+
+	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo)
+	{
+		// TODO:
+		layerVideo.Transform;
+
+		// suites.StreamSuite4->AEGP_GetStreamProperties();
 	}
 
 	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
