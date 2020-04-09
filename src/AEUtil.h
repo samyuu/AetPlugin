@@ -61,9 +61,9 @@ namespace AEUtil
 	{
 		const RGB8 colorRGB8 =
 		{
-			static_cast<uint8_t>(inputColor.redF / RGB8ToFloat),
-			static_cast<uint8_t>(inputColor.greenF / RGB8ToFloat),
-			static_cast<uint8_t>(inputColor.blueF / RGB8ToFloat),
+			static_cast<uint8_t>(inputColor.redF * RGB8ToFloat),
+			static_cast<uint8_t>(inputColor.greenF * RGB8ToFloat),
+			static_cast<uint8_t>(inputColor.blueF * RGB8ToFloat),
 			static_cast<uint8_t>(0x00),
 		};
 		return *reinterpret_cast<const uint32_t*>(&colorRGB8);
