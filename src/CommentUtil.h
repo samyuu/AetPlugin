@@ -48,8 +48,7 @@ namespace AetPlugin::CommentUtil
 			return commentBuffer;
 		}
 
-
-		inline Property Parse(const std::string_view buffer)
+		inline Property Parse(std::string_view buffer)
 		{
 			Property result = {};
 
@@ -81,6 +80,7 @@ namespace AetPlugin::CommentUtil
 				postKeyBuffer = postKeyBuffer.substr(indexBuffer.size() + std::strlen("[]"));
 			}
 
+			// TODO: strip whitespace
 			constexpr std::string_view bracketsStart = ": { ", bracketsEnd = " }";
 			if (!Comfy::Utilities::StartsWith(postKeyBuffer, bracketsStart) || !Comfy::Utilities::EndsWith(postKeyBuffer, bracketsEnd))
 				return result;
