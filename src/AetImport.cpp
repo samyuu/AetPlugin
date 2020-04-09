@@ -211,6 +211,17 @@ namespace AetPlugin
 		workingScene.Scene = &scene;
 		workingScene.SceneIndex = sceneIndex;
 		workingScene.AE_FrameRate = { static_cast<A_long>(scene.FrameRate * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
+
+		workingScene.SourcelessVideoLayerUsages.clear();
+		auto setCompUsages = [&](const Aet::Composition& comp)
+		{
+			for (const auto& layer : comp.GetLayers())
+				if (layer->GetVideoItem() != nullptr && layer->GetVideoItem()->Sources.empty())
+					workingScene.SourcelessVideoLayerUsages[layer->GetVideoItem().get()] = layer.get();
+		};
+		setCompUsages(*scene.RootComposition);
+		for (const auto& comp : scene.Compositions)
+			setCompUsages(*comp);
 	}
 
 	void AetImporter::CheckWorkingDirectorySpriteFiles()
@@ -336,10 +347,17 @@ namespace AetPlugin
 	{
 		const AEGP_ColorVal videoColor = AEUtil::ColorRGB8(video.Color);
 
-		char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
-		sprintf(placeholderNameBuffer, "Placeholder (%dx%d)", video.Size.x, video.Size.y);
+		if (auto layerUsage = workingScene.SourcelessVideoLayerUsages.find(&video); layerUsage != workingScene.SourcelessVideoLayerUsages.end())
+		{
+			suites.FootageSuite5->AEGP_NewSolidFootage(layerUsage->second->GetName().c_str(), video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
+		}
+		else
+		{
+			char placeholderNameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
+			sprintf(placeholderNameBuffer, "Placeholder (%dx%d)", video.Size.x, video.Size.y);
 
-		suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
+			suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
+		}
 	}
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
@@ -632,6 +650,25 @@ namespace AetPlugin
 		std::sort(outCombinedKeyFrames.begin(), outCombinedKeyFrames.end(), [](const auto& a, const auto& b) { return a.Frame < b.Frame; });
 	}
 
+	std::string_view AetImporter::GetLayerItemName(const Aet::Layer& layer) const
+	{
+		if (layer.GetVideoItem() != nullptr)
+		{
+			if (layer.GetVideoItem()->Sources.size() == 1)
+				layer.GetVideoItem()->Sources.front().Name;
+			else if (auto layerUsage = workingScene.SourcelessVideoLayerUsages	.find(layer.GetVideoItem()); layerUsage != workingScene.SourcelessVideoLayerUsages.end())
+				return layerUsage->second->GetName();
+			else
+				return "";
+		}
+		else if (layer.GetAudioItem() != nullptr)
+			return "";
+		else if (layer.GetCompItem() != nullptr)
+			return layer.GetCompItem()->GetName();
+		else
+			return "";
+	}
+
 	void AetImporter::ImportLayerAudio(const Aet::Layer& layer)
 	{
 		// NOTE: This is unused by the game so this can be ignored for now
@@ -654,20 +691,6 @@ namespace AetPlugin
 
 		const A_Ratio stretch = { static_cast<A_long>(1.0f / layer.TimeScale * AEUtil::FixedPoint), static_cast<A_u_long>(AEUtil::FixedPoint) };
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
-	}
-
-	namespace
-	{
-		std::string_view GetLayerItemName(const Aet::Layer& layer)
-		{
-			if (layer.GetVideoItem() != nullptr)
-				return (layer.GetVideoItem()->Sources.size() == 1) ? layer.GetVideoItem()->Sources.front().Name : "";
-			else if (layer.GetAudioItem() != nullptr)
-				return "";
-			else if (layer.GetCompItem() != nullptr)
-				return layer.GetCompItem()->GetName();
-			return "";
-		}
 	}
 
 	void AetImporter::ImportLayerName(const Aet::Layer& layer)

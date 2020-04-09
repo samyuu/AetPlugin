@@ -1,6 +1,7 @@
 #pragma once
 #include "AetPlugin.h"
 #include "Graphics/Auth2D/Aet/AetSet.h"
+#include <unordered_map>
 
 namespace AetPlugin
 {
@@ -63,6 +64,9 @@ namespace AetPlugin
 			const Aet::Scene* Scene = nullptr;
 			size_t SceneIndex = 0;
 			A_Ratio AE_FrameRate;
+
+			// NOTE: Videos without sources don't have a name, so they will be named after their layer usage instead
+			std::unordered_map<const Aet::Video*, const Aet::Layer*> SourcelessVideoLayerUsages;
 		} workingScene = {};
 
 		void SetupWorkingSetData(const Aet::AetSet& set);
@@ -128,6 +132,8 @@ namespace AetPlugin
 		std::vector<KeyFrameVec2> combinedVec2KeyFramesCache;
 
 		void CombineXYPropertiesToKeyFrameVec2s(const Aet::Property1D& propertyX, const Aet::Property1D& propertyY, std::vector<KeyFrameVec2>& outCombinedKeyFrames) const;
+
+		std::string_view GetLayerItemName(const Aet::Layer& layer) const;
 
 		void ImportLayerAudio(const Aet::Layer& layer);
 		void ImportLayerTiming(const Aet::Layer& layer);
