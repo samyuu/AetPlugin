@@ -23,12 +23,15 @@ namespace AetPlugin
 		{
 			std::string Name;
 			std::string Comment;
+			CommentUtil::Property CommentProperty;
 
 			AEGP_ItemH Handle;
 			AEGP_ItemFlags Flags;
 			AEGP_ItemType Type;
 			std::pair<A_long, A_long> Dimensions;
 			AEItemData* Parent;
+
+			bool IsParentOf(const AEItemData& parent) const;
 		};
 
 		struct WorkingProjectData
@@ -54,6 +57,8 @@ namespace AetPlugin
 		struct WorkingAetData
 		{
 			Aet::AetSet* Set = nullptr;
+			AEItemData* Folder;
+			std::vector<AEItemData*> SceneComps;
 		} workingSet;
 
 		void SetupWorkingSetData(Aet::AetSet& set);
@@ -62,9 +67,14 @@ namespace AetPlugin
 		struct WorkingSceneData
 		{
 			Aet::Scene* Scene;
-			// TODO:
+			AEItemData* AESceneComp;
 		} workingScene = {};
 
-		void SetupWorkingSceneData();
+		void SetupWorkingSceneData(AEItemData* sceneComp);
+
+	protected:
+		void ExportScene();
+		void ExportAllCompositions();
+		void ExportAllFootage();
 	};
 }
