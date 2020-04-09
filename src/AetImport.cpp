@@ -655,7 +655,7 @@ namespace AetPlugin
 		if (layer.GetVideoItem() != nullptr)
 		{
 			if (layer.GetVideoItem()->Sources.size() == 1)
-				layer.GetVideoItem()->Sources.front().Name;
+				return layer.GetVideoItem()->Sources.front().Name;
 			else if (auto layerUsage = workingScene.SourcelessVideoLayerUsages	.find(layer.GetVideoItem()); layerUsage != workingScene.SourcelessVideoLayerUsages.end())
 				return layerUsage->second->GetName();
 			else
