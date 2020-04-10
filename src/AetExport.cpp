@@ -365,6 +365,16 @@ namespace AetPlugin
 			auto& source = video.Sources.emplace_back();
 			source.Name = workingSet.SprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
 			source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
+
+			if (item.CommentProperty.Key == CommentUtil::Keys::SprID)
+			{
+				std::string_view sprIDComment = FormatUtil::StripPrefixIfExists(item.CommentProperty.Value, "0x");
+
+				uint32_t sprID;
+				auto result = std::from_chars(sprIDComment.data(), sprIDComment.data() + sprIDComment.size(), sprID, 0x10);
+				if (result.ec != std::errc::invalid_argument)
+					source.ID = static_cast<SprID>(sprID);
+			}
 		}
 
 		video.Frames = static_cast<float>(video.Sources.size());
