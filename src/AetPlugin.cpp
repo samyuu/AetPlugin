@@ -128,6 +128,8 @@ namespace AetPlugin
 			// TODO: On export optionally (?) write log file and or show message of all the aep unsupported data that could not be exported (effects, text, etc.) (?)
 			// TODO: Menu item for checking supported features instead of doing so on export (?)
 			// TODO: Menu item for collpasing all compositions as required by the format (?)
+			// TODO: Menu item to export spr (RGBA8 at first)
+			// TODO: Menu item to create an AetSet skeleton (+ add scenes)
 
 			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&ExportAetSetCommand));
 			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet...", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
