@@ -1,5 +1,6 @@
 #include "AetExport.h"
 #include "FormatUtil.h"
+#include "StreamUtil.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "Resource/IDHash.h"
@@ -311,10 +312,43 @@ namespace AetPlugin
 
 	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo)
 	{
-		// TODO:
-		layerVideo.Transform;
+		const auto zeroTime = AEUtil::FrameToAETime(0.0f, workingScene.Scene->FrameRate);
 
-		// suites.StreamSuite4->AEGP_GetStreamProperties();
+		for (const auto& aeToAetStream : StreamUtil::Transform2DRemapData)
+		{
+			AEGP_StreamRefH streamRef;
+			suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, aeToAetStream.StreamType, &streamRef);
+
+			A_long keyFrameCount;
+			suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
+
+			if (keyFrameCount < 1)
+			{
+				AEGP_StreamVal2 streamVal2;
+				AEGP_StreamType streamType;
+				suites.StreamSuite4->AEGP_GetLayerStreamValue(layer.GuiData.AE_Layer, aeToAetStream.StreamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &streamType);
+
+				layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(static_cast<float>(streamVal2.one_d / aeToAetStream.ScaleFactor));
+				if (aeToAetStream.FieldX != aeToAetStream.FieldY)
+					layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(static_cast<float>(streamVal2.two_d.y / aeToAetStream.ScaleFactor));
+			}
+			else
+			{
+				for (AEGP_KeyframeIndex i = 0; i < keyFrameCount; i++)
+				{
+					A_Time time;
+					suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_LayerTime, &time);
+					AEGP_StreamValue streamVal;
+					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
+
+					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
+
+					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor));
+					if (aeToAetStream.FieldX != aeToAetStream.FieldY)
+						layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, static_cast<float>(streamVal.val.two_d.y / aeToAetStream.ScaleFactor));
+				}
+			}
+		}
 	}
 
 	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)

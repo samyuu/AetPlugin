@@ -61,7 +61,7 @@ namespace AetPlugin
 			std::vector<AEItemData*> SceneComps;
 
 			std::string SprPrefix, SprHashPrefix;
-			
+
 		} workingSet;
 
 		void SetupWorkingSetData(Aet::AetSet& set);
