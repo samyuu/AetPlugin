@@ -1,5 +1,6 @@
 #include "AetImport.h"
 #include "FormatUtil.h"
+#include "StreamUtil.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/Stream/FileStream.h"
@@ -507,39 +508,20 @@ namespace AetPlugin
 		suites.LayerSuite3->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 	}
 
-	namespace
-	{
-		struct AetTransformToAEStreamData
-		{
-			AEGP_LayerStream Stream;
-			Transform2DField_Enum FieldX, FieldY;
-			float ScaleFactor;
-		};
-
-		constexpr std::array AetToAEStreamRemapData =
-		{
-			AetTransformToAEStreamData { AEGP_LayerStream_ANCHORPOINT,	Transform2DField_OriginX,	Transform2DField_OriginY,	1.0f },
-			AetTransformToAEStreamData { AEGP_LayerStream_POSITION,		Transform2DField_PositionX,	Transform2DField_PositionY,	1.0f },
-			AetTransformToAEStreamData { AEGP_LayerStream_ROTATION,		Transform2DField_Rotation,	Transform2DField_Rotation,	1.0f },
-			AetTransformToAEStreamData { AEGP_LayerStream_SCALE,		Transform2DField_ScaleX,	Transform2DField_ScaleY,	100.0f },
-			AetTransformToAEStreamData { AEGP_LayerStream_OPACITY,		Transform2DField_Opacity,	Transform2DField_Opacity,	100.0f },
-		};
-	}
-
 	void AetImporter::ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
 	{
-		for (const AetTransformToAEStreamData& aetToAEStreamData : AetToAEStreamRemapData)
+		for (const auto& aetToAEStream : StreamUtil::Transform2DRemapData)
 		{
 			AEGP_StreamValue2 streamValue2 = {};
-			suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, aetToAEStreamData.Stream, &streamValue2.streamH);
+			suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, aetToAEStream.StreamType, &streamValue2.streamH);
 
-			const bool singleProperty = (aetToAEStreamData.FieldX == aetToAEStreamData.FieldY);
-			const Aet::Property1D& xKeyFrames = layerVideo.Transform[aetToAEStreamData.FieldX];
-			const Aet::Property1D& yKeyFrames = layerVideo.Transform[aetToAEStreamData.FieldY];
+			const bool singleProperty = (aetToAEStream.FieldX == aetToAEStream.FieldY);
+			const Aet::Property1D& xKeyFrames = layerVideo.Transform[aetToAEStream.FieldX];
+			const Aet::Property1D& yKeyFrames = layerVideo.Transform[aetToAEStream.FieldY];
 
 			// NOTE: Set initial stream value
-			streamValue2.val.two_d.x = !xKeyFrames->empty() ? (xKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
-			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStreamData.ScaleFactor) : 0.0f;
+			streamValue2.val.two_d.x = !xKeyFrames->empty() ? (xKeyFrames->front().Value * aetToAEStream.ScaleFactor) : 0.0f;
+			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStream.ScaleFactor) : 0.0f;
 			suites.StreamSuite4->AEGP_SetStreamValue(PluginID, streamValue2.streamH, &streamValue2);
 
 			if (xKeyFrames.Keys.size() <= 1 && yKeyFrames.Keys.size() <= 1)
@@ -590,8 +572,8 @@ namespace AetPlugin
 
 				AEGP_StreamValue streamValue = {};
 				streamValue.streamH = streamValue2.streamH;
-				streamValue.val.two_d.x = xValue * aetToAEStreamData.ScaleFactor;
-				streamValue.val.two_d.y = yValue * aetToAEStreamData.ScaleFactor;
+				streamValue.val.two_d.x = xValue * aetToAEStream.ScaleFactor;
+				streamValue.val.two_d.y = yValue * aetToAEStream.ScaleFactor;
 				suites.KeyframeSuite3->AEGP_SetAddKeyframe(addKeyFrameInfo, index, &streamValue);
 			};
 

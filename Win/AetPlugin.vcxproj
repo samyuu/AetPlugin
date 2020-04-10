@@ -429,6 +429,7 @@
     <ClInclude Include="..\src\Comfy\lib\zlib\src\zutil.h" />
     <ClInclude Include="..\src\CommentUtil.h" />
     <ClInclude Include="..\src\FormatUtil.h" />
+    <ClInclude Include="..\src\StreamUtil.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
