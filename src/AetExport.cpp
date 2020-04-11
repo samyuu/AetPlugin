@@ -181,6 +181,9 @@ namespace AetPlugin
 		// NOTE: Reverse once at the end because pushing to the end of the vector while creating the comps is a lot more efficient
 		std::reverse(workingScene.Scene->Compositions.begin(), workingScene.Scene->Compositions.end());
 		// std::reverse(workingScene.Scene->Videos.begin(), workingScene.Scene->Videos.end());
+
+		for (auto& layer : workingScene.Scene->RootComposition->GetLayers())
+			ScanCheckSetLayerRefParents(*layer);
 	}
 
 	void AetExporter::ExportComp(Aet::Composition& comp)
@@ -366,6 +369,8 @@ namespace AetPlugin
 					AEGP_StreamValue streamVal;
 					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
 
+					// TODO: Interpolation (includes hold frames)
+
 					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
 
 					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor));
@@ -457,6 +462,35 @@ namespace AetPlugin
 			if (video->GuiData.AE_FootageItem == sourceItem)
 				return video;
 		}
+		return nullptr;
+	}
+
+	void AetExporter::ScanCheckSetLayerRefParents(Aet::Layer& layer)
+	{
+		if (layer.ItemType == Aet::ItemType::Composition && layer.GetCompItem() != nullptr)
+		{
+			for (auto& layer : layer.GetCompItem()->GetLayers())
+				ScanCheckSetLayerRefParents(*layer);
+		}
+
+		AEGP_LayerH parentHandle;
+		suites.LayerSuite3->AEGP_GetLayerParent(layer.GuiData.AE_Layer, &parentHandle);
+
+		if (parentHandle != nullptr)
+			layer.SetRefParentLayer(FindLayerRefParent(layer, parentHandle));
+	}
+
+	RefPtr<Aet::Layer> AetExporter::FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle)
+	{
+		for (auto& comp : workingScene.Scene->Compositions)
+		{
+			for (auto& layer : comp->GetLayers())
+			{
+				if (layer->GuiData.AE_Layer == parentHandle)
+					return layer;
+			}
+		}
+
 		return nullptr;
 	}
 }

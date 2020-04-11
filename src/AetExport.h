@@ -108,5 +108,8 @@ namespace AetPlugin
 
 		RefPtr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
 		RefPtr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);
+
+		void ScanCheckSetLayerRefParents(Aet::Layer& layer);
+		RefPtr<Aet::Layer> FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle);
 	};
 }
