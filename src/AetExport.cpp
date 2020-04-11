@@ -378,7 +378,7 @@ namespace AetPlugin
 			return;
 
 		auto& item = *foundItem;
-		const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix));
+		const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix), workingSet.SprPrefix));
 
 		suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &video.GuiData.AE_Footage);
 
