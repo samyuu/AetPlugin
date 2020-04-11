@@ -180,11 +180,6 @@ namespace AetPlugin
 			ImportAllCompositions();
 		}
 
-		// suites.Handler.AdvAppSuite2()->PF_SaveProject();
-		// const std::wstring projectPath = workingDirectory.ImportDirectory + L"/" + Utf8ToUtf16(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix)) + L".aep";
-		// const std::wstring projectPath = Utf8ToUtf16(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
-		// suites.ProjSuite5->AEGP_SaveProjectToPath(project.ProjectHandle, AEUtil::UTF16Cast(projectPath.c_str()));
-
 		// suites.UtilitySuite3->AEGP_ReportInfo(GlobalPluginID, "Let's hope for the best...");
 		return A_Err_NONE;
 	}
@@ -311,37 +306,6 @@ namespace AetPlugin
 			ImportPlaceholderVideo(video);
 		else
 			ImportSpriteVideo(video);
-
-		if (video.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Scene.Video, &video.GuiData.AE_FootageItem);
-
-#if 1 // DEBUG:
-		if (!video.Sources.empty())
-		{
-			char commentBuffer[AEGP_MAX_RQITEM_COMMENT_SIZE] = {};
-
-			for (auto& source : video.Sources)
-			{
-				char appendBuffer[32];
-				sprintf(appendBuffer, "0x%02X", source.ID);
-				std::strcat(commentBuffer, appendBuffer);
-
-				if (&source != &video.Sources.back())
-					std::strcat(commentBuffer, ", ");
-			}
-
-			CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer });
-		}
-
-		if (video.Sources.size() > 1)
-		{
-			AEGP_FootageInterp interpretation;
-			suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
-			interpretation.native_fpsF = workingScene.Scene->FrameRate;
-			interpretation.conform_fpsF = workingScene.Scene->FrameRate;
-			suites.FootageSuite5->AEGP_SetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
-		}
-#endif
 	}
 
 	void AetImporter::ImportPlaceholderVideo(const Aet::Video& video)
@@ -359,6 +323,8 @@ namespace AetPlugin
 
 			suites.FootageSuite5->AEGP_NewSolidFootage(placeholderNameBuffer, video.Size.x, video.Size.y, &videoColor, &video.GuiData.AE_Footage);
 		}
+
+		ImportVideoAddItemToProject(video);
 	}
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
@@ -392,6 +358,63 @@ namespace AetPlugin
 			const A_Time duration = FrameToAETime(placeholderDuration);
 			suites.FootageSuite5->AEGP_NewPlaceholderFootage(PluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 		}
+
+		ImportVideoAddItemToProject(video);
+		ImportVideoSetSprIDComment(video);
+		ImportVideoSetSequenceInterpretation(video);
+		ImportVideoSetItemName(video);
+	}
+
+	void AetImporter::ImportVideoAddItemToProject(const Aet::Video& video)
+	{
+		if (video.GuiData.AE_Footage != nullptr)
+			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Scene.Video, &video.GuiData.AE_FootageItem);
+	}
+
+	void AetImporter::ImportVideoSetSprIDComment(const Aet::Video& video)
+	{
+		if (video.Sources.empty())
+			return;
+
+		char commentBuffer[AEGP_MAX_RQITEM_COMMENT_SIZE] = {};
+		for (auto& source : video.Sources)
+		{
+			char appendBuffer[32];
+			sprintf(appendBuffer, "0x%02X", source.ID);
+			std::strcat(commentBuffer, appendBuffer);
+
+			if (&source != &video.Sources.back())
+				std::strcat(commentBuffer, ", ");
+		}
+
+		CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer });
+	}
+
+	void AetImporter::ImportVideoSetSequenceInterpretation(const Aet::Video& video)
+	{
+		if (video.Sources.size() <= 1)
+			return;
+
+		AEGP_FootageInterp interpretation;
+		suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+		interpretation.native_fpsF = workingScene.Scene->FrameRate;
+		interpretation.conform_fpsF = workingScene.Scene->FrameRate;
+		suites.FootageSuite5->AEGP_SetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+	}
+
+	void AetImporter::ImportVideoSetItemName(const Aet::Video& video)
+	{
+		if (video.Sources.empty())
+			return;
+
+		AEGP_MemHandle nameHandle;
+		suites.ItemSuite8->AEGP_GetItemName(PluginID, video.GuiData.AE_FootageItem, &nameHandle);
+		const auto itemName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
+
+		const auto cleanName = FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(itemName, SprPrefix), workingSet.NamePrefixUnderscore);
+		const auto setCleanName = workingSet.NamePrefixUnderscore + FormatUtil::ToLower(cleanName);
+
+		suites.ItemSuite8->AEGP_SetItemName(video.GuiData.AE_FootageItem, AEUtil::UTF16Cast(Utf8ToUtf16(setCleanName).c_str()));
 	}
 
 	void AetImporter::ImportAudio(const Aet::Audio& audio)
@@ -421,9 +444,7 @@ namespace AetPlugin
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 
-#if 1 // DEBUG:
 		CommentUtil::Set(suites.ItemSuite8, scene.RootComposition->GuiData.AE_CompItem, { CommentUtil::Keys::Scene, scene.Name, workingScene.SceneIndex });
-#endif
 	}
 
 	void AetImporter::ImportLayersInComp(const Aet::Composition& comp)
@@ -541,34 +562,18 @@ namespace AetPlugin
 				}
 			}
 #endif
+
 			AEGP_AddKeyframesInfoH addKeyFrameInfo;
 			suites.KeyframeSuite3->AEGP_StartAddKeyframes(streamValue2.streamH, &addKeyFrameInfo);
 
 			auto insertStreamKeyFrame = [&](frame_t frame, float xValue, float yValue)
 			{
 				// TODO: Is this correct (?)
-
-				// BUG: Broken key frames for gam_eff000 (eff_petal using start frame)
-				// const A_Time time = FrameToAETime(frame); 
-
-				// BUG: Broken key frames for gam_loadsc (chara03_appear using start offset)
-				// const A_Time time = FrameToAETime(frame - layer.StartFrame);
-
-				// BUG: Problem with start offsets for static videos
-				// const A_Time time = FrameToAETime(frame - layer.StartFrame + layer.StartOffset);
-
-#if 1 // NOTE: Manual remapping
-				// NOTE: Hopefully correct for everything
 				const frame_t startOffset = LayerUsesStartOffset(layer) ? layer.StartOffset : 0.0f;
 				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
 
 				AEGP_KeyframeIndex index;
 				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_LayerTime, &time, &index);
-#else
-				const A_Time time = FrameToAETime(frame);
-				AEGP_KeyframeIndex index;
-				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_CompTime, &time, &index);
-#endif
 
 				AEGP_StreamValue streamValue = {};
 				streamValue.streamH = streamValue2.streamH;

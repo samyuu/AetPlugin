@@ -113,6 +113,10 @@ namespace AetPlugin
 
 		void ImportPlaceholderVideo(const Aet::Video& video);
 		void ImportSpriteVideo(const Aet::Video& video);
+		void ImportVideoAddItemToProject(const Aet::Video& video);
+		void ImportVideoSetSprIDComment(const Aet::Video& video);
+		void ImportVideoSetSequenceInterpretation(const Aet::Video& video);
+		void ImportVideoSetItemName(const Aet::Video& video);
 
 		void ImportAudio(const Aet::Audio& audio);
 
