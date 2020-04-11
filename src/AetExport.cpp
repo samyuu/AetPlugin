@@ -65,9 +65,9 @@ namespace AetPlugin
 			auto& item = workingProject.Items.emplace_back();
 			item.ItemHandle = currentItem;
 
-			A_char nameBuffer[AEGP_MAX_ITEM_NAME_SIZE];
-			suites.ItemSuite1->AEGP_GetItemName(item.ItemHandle, nameBuffer);
-			item.Name = nameBuffer;
+			AEGP_MemHandle nameHandle;
+			suites.ItemSuite8->AEGP_GetItemName(PluginID, item.ItemHandle, &nameHandle);
+			item.Name = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
 
 			A_u_long commentSize;
 			suites.ItemSuite8->AEGP_GetItemCommentLength(item.ItemHandle, &commentSize);
