@@ -376,18 +376,18 @@ namespace AetPlugin
 		if (video.Sources.empty())
 			return;
 
-		char commentBuffer[AEGP_MAX_RQITEM_COMMENT_SIZE] = {};
+		CommentUtil::Buffer commentBuffer = {};
 		for (auto& source : video.Sources)
 		{
 			char appendBuffer[32];
 			sprintf(appendBuffer, "0x%02X", source.ID);
-			std::strcat(commentBuffer, appendBuffer);
+			std::strcat(commentBuffer.data(), appendBuffer);
 
 			if (&source != &video.Sources.back())
-				std::strcat(commentBuffer, ", ");
+				std::strcat(commentBuffer.data(), ", ");
 		}
 
-		CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer });
+		CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer.data() });
 	}
 
 	void AetImporter::ImportVideoSetSequenceInterpretation(const Aet::Video& video)

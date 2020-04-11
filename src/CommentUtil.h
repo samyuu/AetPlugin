@@ -15,7 +15,8 @@ namespace AetPlugin::CommentUtil
 		static constexpr std::string_view SprID = "SprID";
 	}
 
-	using Buffer = std::array<char, AEGP_MAX_RQITEM_COMMENT_SIZE>;
+	// NOTE: Enough space to store "#AetSet::SprID: { 0x00000000, ... }"
+	using Buffer = std::array<char, 8192>;
 
 	struct Property
 	{
