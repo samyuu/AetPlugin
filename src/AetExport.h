@@ -85,6 +85,7 @@ namespace AetPlugin
 		void ExportLayerName(Aet::Layer& layer);
 		void ExportLayerTime(Aet::Layer& layer);
 		void ExportLayerQuality(Aet::Layer& layer);
+		void ExportLayerMarkers(Aet::Layer& layer);
 		void ExportLayerFlags(Aet::Layer& layer);
 		void ExportLayerSourceItem(Aet::Layer& layer);
 

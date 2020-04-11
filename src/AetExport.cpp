@@ -205,6 +205,7 @@ namespace AetPlugin
 		ExportLayerName(layer);
 		ExportLayerTime(layer);
 		ExportLayerQuality(layer);
+		ExportLayerMarkers(layer);
 		ExportLayerFlags(layer);
 		ExportLayerSourceItem(layer);
 
@@ -248,6 +249,30 @@ namespace AetPlugin
 		AEGP_LayerQuality layerQuality;
 		suites.LayerSuite3->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
 		layer.Quality = (static_cast<Aet::LayerQuality>(layerQuality + 1));
+	}
+
+	void AetExporter::ExportLayerMarkers(Aet::Layer& layer)
+	{
+		AEGP_StreamRefH streamRef;
+		suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamRef);
+
+		A_long keyFrameCount;
+		suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
+
+		if (keyFrameCount < 1)
+			return;
+
+		layer.Markers.reserve(keyFrameCount);
+		for (AEGP_KeyframeIndex i = 0; i < keyFrameCount; i++)
+		{
+			A_Time time;
+			suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_CompTime, &time);
+			AEGP_StreamValue streamVal;
+			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
+
+			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate);
+			layer.Markers.push_back(MakeRef<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
+		}
 	}
 
 	void AetExporter::ExportLayerFlags(Aet::Layer& layer)
