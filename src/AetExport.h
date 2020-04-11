@@ -32,6 +32,15 @@ namespace AetPlugin
 			AEGP_ItemType Type;
 			std::pair<A_long, A_long> Dimensions;
 			AEItemData* Parent;
+
+			inline bool IsParentOf(const AEItemData& parent) const
+			{
+				if (Parent == nullptr)
+					return false;
+				else if (Parent == &parent)
+					return true;
+				return Parent->IsParentOf(parent);
+			}
 		};
 
 		struct WorkingProjectData

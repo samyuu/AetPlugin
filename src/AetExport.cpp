@@ -116,19 +116,19 @@ namespace AetPlugin
 		{
 			set.Name = foundSetFolder->CommentProperty.Value;
 			workingSet.Folder = &(*foundSetFolder);
-		}
 
-		workingSet.SceneComps.reserve(2);
-		for (auto& item : workingProject.Items)
-		{
-			if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::Scene)
-				workingSet.SceneComps.push_back(&item);
-		}
+			workingSet.SceneComps.reserve(2);
+			for (auto& item : workingProject.Items)
+			{
+				if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::Scene && item.IsParentOf(*foundSetFolder))
+					workingSet.SceneComps.push_back(&item);
+			}
 
-		std::sort(workingSet.SceneComps.begin(), workingSet.SceneComps.end(), [&](const auto& sceneA, const auto& sceneB)
-		{
-			return sceneA->CommentProperty.KeyIndex.value_or(0) < sceneB->CommentProperty.KeyIndex.value_or(0);
-		});
+			std::sort(workingSet.SceneComps.begin(), workingSet.SceneComps.end(), [&](const auto& sceneA, const auto& sceneB)
+			{
+				return sceneA->CommentProperty.KeyIndex.value_or(0) < sceneB->CommentProperty.KeyIndex.value_or(0);
+			});
+		}
 
 		workingSet.SprPrefix = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(workingSet.Set->Name, AetPrefix)) + "_";
 		workingSet.SprHashPrefix = FormatUtil::ToUpper(SprPrefix) + workingSet.SprPrefix;
