@@ -1,16 +1,13 @@
 #include "AetPlugin.h"
 #include "AetImport.h"
 #include "AetExport.h"
+#include "FileDialogUtil.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
 
 namespace AetPlugin
 {
 	PluginStateData EvilGlobalState = {};
-
-#if 1 // TEMP:
-	constexpr std::wstring_view DEBUG_AETSET_EXPORT_PATH = L"Y:/Dev/AfterEffectsSDK/Projects/AetPlugin/test/export/aet_test.bin";
-#endif /* 1 */
 
 	namespace
 	{
@@ -94,6 +91,34 @@ namespace AetPlugin
 			return err;
 		}
 
+		std::wstring OpenExportAetSetFileDialog(std::string_view fileName)
+		{
+			FileDialogUtil::SaveFileDialogInput dialog = {};
+			dialog.FileName = fileName;
+			dialog.DefaultExtension = "bin";
+			dialog.Filters = { { "Project DIVA AetSet (*.bin)", "*.bin" }, };
+			dialog.ParentWindowHandle = EvilGlobalState.MainWindowHandle;
+			dialog.CustomizeItems =
+			{
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite DB", true },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite Set", false },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export TEST 0", false },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export TEST 1", false },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Test" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 0", false },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 1", false },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 2", false },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 3", false },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+			};
+
+			const auto result = FileDialogUtil::OpenDialog(dialog);
+			return dialog.OutFilePath;
+		}
+
 		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
 		{
 			*handledPB = false;
@@ -101,18 +126,21 @@ namespace AetPlugin
 				return A_Err_NONE;
 
 			*handledPB = true;
-			const SuitesData suites;
 
-			const auto outputFilePath = std::wstring(DEBUG_AETSET_EXPORT_PATH);
+			auto exporter = AetExporter();
 
-			auto exporter = AetExporter(FileSystem::GetDirectory(outputFilePath));
-			auto aetSet = exporter.ExportAetSet();
+			const auto setName = exporter.GetAetSetNameFromProjectName();
+			const auto outputFilePath = OpenExportAetSetFileDialog(setName);
+			const auto outputDirectory = FileSystem::GetDirectory(outputFilePath);
 
+			if (outputFilePath.empty())
+				return A_Err_NONE;
+
+			auto aetSet = exporter.ExportAetSet(outputDirectory);
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
 			aetSet->Save(outputFilePath);
-
 			return A_Err_NONE;
 		}
 
@@ -196,6 +224,7 @@ namespace AetPlugin
 
 		A_Err DebugOnStartup(const SuitesData& suites)
 		{
+			OpenExportAetSetFileDialog("aet_startup_test");
 			return A_Err_NONE;
 		}
 	}
