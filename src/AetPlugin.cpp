@@ -193,6 +193,11 @@ namespace AetPlugin
 #endif /* _DEBUG */
 			return err;
 		}
+
+		A_Err DebugOnStartup(const SuitesData& suites)
+		{
+			return A_Err_NONE;
+		}
 	}
 }
 
@@ -208,5 +213,6 @@ A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long mi
 	ERR(AetPlugin::RegisterDebugDeathHook(suites));
 	ERR(AetPlugin::RegisterAetSetFileType(suites));
 	ERR(AetPlugin::SetDebugMemoryReporting(suites));
+	ERR(AetPlugin::DebugOnStartup(suites));
 	return err;
 }
