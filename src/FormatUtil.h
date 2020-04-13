@@ -6,6 +6,8 @@
 
 namespace FormatUtil
 {
+	constexpr std::string_view WhiteSpaceCharacters = " \t\r\n";
+
 	inline std::string ToLower(std::string_view value)
 	{
 		auto lowerCaseString = std::string(value);
@@ -20,6 +22,23 @@ namespace FormatUtil
 		for (char& character : lowerCaseString)
 			character = static_cast<char>(toupper(character));
 		return lowerCaseString;
+	}
+
+	inline std::string_view TrimStart(std::string_view value)
+	{
+		value.remove_prefix(std::min(value.find_first_not_of(WhiteSpaceCharacters), value.size()));
+		return value;
+	}
+
+	inline std::string_view TrimEnd(std::string_view value)
+	{
+		value.remove_suffix(std::min(value.size() - value.find_last_not_of(WhiteSpaceCharacters) - 1, value.size()));
+		return value;
+	}
+
+	inline std::string_view Trim(std::string_view value)
+	{
+		return TrimStart(TrimEnd(value));
 	}
 
 	inline std::string_view StripPrefixIfExists(std::string_view stringInput, std::string_view prefix)
