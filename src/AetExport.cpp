@@ -370,8 +370,7 @@ namespace AetPlugin
 					AEGP_StreamValue streamVal;
 					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
 
-					// TODO: Interpolation (includes hold frames)
-
+					// TODO: Interpolation (including hold frames)
 					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
 
 					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor));
@@ -379,6 +378,27 @@ namespace AetPlugin
 						layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, static_cast<float>(streamVal.val.two_d.y / aeToAetStream.ScaleFactor));
 				}
 			}
+		}
+
+		for (Transform2DField i = 0; i < Transform2DField_Count; i++)
+			SetLayerVideoPropertyLinear(layerVideo.Transform[i]);
+	}
+
+	void AetExporter::SetLayerVideoPropertyLinear(Aet::Property1D& property)
+	{
+		if (property->size() < 2)
+			return;
+
+		for (size_t i = 0; i < property->size() - 1; i++)
+		{
+			auto& startKeyFrame = property.Keys[i];
+			auto& endKeyFrame = property.Keys[i + 1];
+
+			// HACK: Yeah this definitely needs a lot more work
+			const float linearTangent = (endKeyFrame.Value - startKeyFrame.Value) / (endKeyFrame.Frame - startKeyFrame.Frame);
+
+			startKeyFrame.Curve = linearTangent;
+			endKeyFrame.Curve = linearTangent;
 		}
 	}
 
@@ -531,4 +551,5 @@ namespace AetPlugin
 
 		const frame_t adjustedEndFrame = std::min(layer.EndFrame, trackMatteLayer.EndFrame);
 		layer.EndFrame = trackMatteLayer.EndFrame = adjustedEndFrame;
+	}
 }
