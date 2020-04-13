@@ -20,6 +20,7 @@ namespace AetPlugin
 	struct PluginStateData
 	{
 		AEGP_PluginID PluginID = -1;
+		void* MainWindowHandle = nullptr;
 
 		SPBasicSuite* BasicPicaSuite = nullptr;
 		AEGP_Command ExportAetSetCommand = -1;

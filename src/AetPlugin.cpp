@@ -176,16 +176,16 @@ namespace AetPlugin
 			}
 		}
 
-		A_Err RegisterDeathHook(const SuitesData& suites)
+		A_Err RegisterDebugDeathHook(const SuitesData& suites)
 		{
 			A_Err err = A_Err_NONE;
 #if _DEBUG
-			ERR(suites.RegisterSuite5->AEGP_RegisterDeathHook(PluginID, AEGP_DeathHook, nullptr));
+			ERR(suites.RegisterSuite5->AEGP_RegisterDeathHook(EvilGlobalState.PluginID, AEGP_DeathHook, nullptr));
 #endif /* _DEBUG */
 			return err;
 		}
 
-		A_Err SetMemoryReporting(const SuitesData& suites)
+		A_Err SetDebugMemoryReporting(const SuitesData& suites)
 		{
 			A_Err err = A_Err_NONE;
 #if _DEBUG
@@ -204,9 +204,9 @@ A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long mi
 	const AetPlugin::SuitesData suites;
 
 	A_Err err = A_Err_NONE;
-	ERR(AetPlugin::RegisterDeathHook(suites));
-	ERR(AetPlugin::RegisterDeathHook(suites));
+	ERR(suites.UtilitySuite3->AEGP_GetMainHWND(&AetPlugin::EvilGlobalState.MainWindowHandle));
+	ERR(AetPlugin::RegisterDebugDeathHook(suites));
 	ERR(AetPlugin::RegisterAetSetFileType(suites));
-	ERR(AetPlugin::SetMemoryReporting(suites));
+	ERR(AetPlugin::SetDebugMemoryReporting(suites));
 	return err;
 }
