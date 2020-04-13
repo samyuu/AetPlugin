@@ -287,6 +287,9 @@
     <ClInclude Include="..\src\StreamUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\FileDialogUtil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -419,6 +422,9 @@
     </ClCompile>
     <ClCompile Include="..\src\AfterEffectsSDK\Util\MissingSuiteError.cpp">
       <Filter>Source\AE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FileDialogUtil.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
