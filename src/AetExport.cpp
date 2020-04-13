@@ -169,6 +169,7 @@ namespace AetPlugin
 		scene.Audios;
 
 		ExportAllCompositions();
+		FixInvalidSceneData();
 	}
 
 	void AetExporter::ExportAllCompositions()
@@ -493,4 +494,41 @@ namespace AetPlugin
 
 		return nullptr;
 	}
+
+	void AetExporter::FixInvalidSceneData()
+	{
+		FixInvalidCompositionData(*workingScene.Scene->RootComposition);
+		for (auto& comp : workingScene.Scene->Compositions)
+			FixInvalidCompositionData(*comp);
+	}
+
+	void AetExporter::FixInvalidCompositionData(Aet::Composition& comp)
+	{
+		// TODO: Eventually automatically expand composition track mattes into video layers (?)
+		FixInvalidCompositionTrackMatteDurations(comp);
+	}
+
+	void AetExporter::FixInvalidCompositionTrackMatteDurations(Aet::Composition& comp)
+	{
+		if (comp.GetLayers().size() < 2)
+			return;
+
+		for (size_t i = 0; i < comp.GetLayers().size() - 1; i++)
+		{
+			auto& layer = comp.GetLayers()[i + 0];
+			auto& trackMatteLayer = comp.GetLayers()[i + 1];
+
+			if (trackMatteLayer->LayerVideo != nullptr && trackMatteLayer->LayerVideo->TransferMode.TrackMatte != Aet::TrackMatte::NoTrackMatte)
+				FixInvalidLayerTrackMatteDurations(*layer, *trackMatteLayer);
+		}
+	}
+
+	void AetExporter::FixInvalidLayerTrackMatteDurations(Aet::Layer& layer, Aet::Layer& trackMatteLayer)
+	{
+		// TODO: What about start frame / start offset mismatches (?)
+		if (layer.EndFrame == trackMatteLayer.EndFrame)
+			return;
+
+		const frame_t adjustedEndFrame = std::min(layer.EndFrame, trackMatteLayer.EndFrame);
+		layer.EndFrame = trackMatteLayer.EndFrame = adjustedEndFrame;
 }

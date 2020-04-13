@@ -111,5 +111,10 @@ namespace AetPlugin
 
 		void ScanCheckSetLayerRefParents(Aet::Layer& layer);
 		RefPtr<Aet::Layer> FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle);
+
+		void FixInvalidSceneData();
+		void FixInvalidCompositionData(Aet::Composition& comp);
+		void FixInvalidCompositionTrackMatteDurations(Aet::Composition& comp);
+		void FixInvalidLayerTrackMatteDurations(Aet::Layer& layer, Aet::Layer& trackMatteLayer);
 	};
 }
