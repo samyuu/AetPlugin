@@ -17,13 +17,19 @@ namespace AetPlugin
 	constexpr std::string_view SprPrefix = "spr_";
 	constexpr std::wstring_view SprPrefixW = L"spr_";
 
-	extern AEGP_PluginID PluginID;
-	extern SPBasicSuite* BasicPicaSuite;
-	extern AEGP_Command ExportAetSetCommand;
+	struct PluginStateData
+	{
+		AEGP_PluginID PluginID = -1;
+
+		SPBasicSuite* BasicPicaSuite = nullptr;
+		AEGP_Command ExportAetSetCommand = -1;
+	};
+
+	extern PluginStateData EvilGlobalState;
 
 	struct SuitesData
 	{
-		AEGP_SuiteHandler Handler = { BasicPicaSuite };
+		AEGP_SuiteHandler Handler = { EvilGlobalState.BasicPicaSuite };
 
 #define DeclareSuiteMember(suiteName) ConCat(AEGP_, suiteName)* suiteName = Handler.suiteName()
 

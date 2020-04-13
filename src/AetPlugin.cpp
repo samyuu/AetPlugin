@@ -6,10 +6,7 @@
 
 namespace AetPlugin
 {
-	AEGP_PluginID PluginID = -1;
-	SPBasicSuite* BasicPicaSuite = nullptr;
-
-	AEGP_Command ExportAetSetCommand = -1;
+	PluginStateData EvilGlobalState = {};
 
 #if 1 // TEMP:
 	constexpr std::wstring_view DEBUG_AETSET_EXPORT_PATH = L"Y:/Dev/AfterEffectsSDK/Projects/AetPlugin/test/export/aet_test.bin";
@@ -87,20 +84,20 @@ namespace AetPlugin
 
 		A_Err AEGP_UpdateMenuHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_UpdateMenuRefcon refconPV, AEGP_WindowType active_window)
 		{
-			if (!ExportAetSetCommand)
+			if (!EvilGlobalState.ExportAetSetCommand)
 				return A_Err_NONE;
 
 			const SuitesData suites;
 
 			A_Err err = A_Err_NONE;
-			ERR(suites.CommandSuite1->AEGP_EnableCommand(ExportAetSetCommand));
+			ERR(suites.CommandSuite1->AEGP_EnableCommand(EvilGlobalState.ExportAetSetCommand));
 			return err;
 		}
 
 		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
 		{
 			*handledPB = false;
-			if (command != ExportAetSetCommand)
+			if (command != EvilGlobalState.ExportAetSetCommand)
 				return A_Err_NONE;
 
 			*handledPB = true;
@@ -131,11 +128,11 @@ namespace AetPlugin
 			// TODO: Menu item to export spr (RGBA8 at first)
 			// TODO: Menu item to create an AetSet skeleton (+ add scenes)
 
-			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&ExportAetSetCommand));
-			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(ExportAetSetCommand, "Export Project DIVA AetSet...", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
+			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&EvilGlobalState.ExportAetSetCommand));
+			ERR(suites.CommandSuite1->AEGP_InsertMenuCommand(EvilGlobalState.ExportAetSetCommand, "Export Project DIVA AetSet...", AEGP_Menu_EXPORT, AEGP_MENU_INSERT_SORTED));
 
-			ERR(suites.RegisterSuite5->AEGP_RegisterCommandHook(PluginID, AEGP_HP_BeforeAE, AEGP_Command_ALL, AEGP_CommandHook, nullptr));
-			ERR(suites.RegisterSuite5->AEGP_RegisterUpdateMenuHook(PluginID, AEGP_UpdateMenuHook, nullptr));
+			ERR(suites.RegisterSuite5->AEGP_RegisterCommandHook(EvilGlobalState.PluginID, AEGP_HP_BeforeAE, AEGP_Command_ALL, AEGP_CommandHook, nullptr));
+			ERR(suites.RegisterSuite5->AEGP_RegisterUpdateMenuHook(EvilGlobalState.PluginID, AEGP_UpdateMenuHook, nullptr));
 
 			return err;
 		}
@@ -161,14 +158,14 @@ namespace AetPlugin
 					A_long Size;
 				} memStats = {};
 
-				ERR(suites.MemorySuite1->AEGP_GetMemStats(PluginID, &memStats.Count, &memStats.Size));
+				ERR(suites.MemorySuite1->AEGP_GetMemStats(EvilGlobalState.PluginID, &memStats.Count, &memStats.Size));
 
 				if (memStats.Count > 0 || memStats.Size > 0)
 				{
 					char infoBuffer[AEGP_MAX_ABOUT_STRING_SIZE];
 					sprintf_s(infoBuffer, __FUNCTION__"(): Leaked %d allocations, for a total of %d kbytes", memStats.Count, memStats.Size);
 
-					ERR(suites.UtilitySuite3->AEGP_ReportInfo(PluginID, infoBuffer));
+					ERR(suites.UtilitySuite3->AEGP_ReportInfo(EvilGlobalState.PluginID, infoBuffer));
 				}
 
 				return err;
@@ -201,12 +198,13 @@ namespace AetPlugin
 
 A_Err EntryPointFunc(SPBasicSuite* pica_basicP, A_long major_versionL, A_long minor_versionL, AEGP_PluginID aegp_plugin_id, AEGP_GlobalRefcon* global_refconP)
 {
-	AetPlugin::BasicPicaSuite = pica_basicP;
-	AetPlugin::PluginID = aegp_plugin_id;
+	AetPlugin::EvilGlobalState.BasicPicaSuite = pica_basicP;
+	AetPlugin::EvilGlobalState.PluginID = aegp_plugin_id;
 
 	const AetPlugin::SuitesData suites;
 
 	A_Err err = A_Err_NONE;
+	ERR(AetPlugin::RegisterDeathHook(suites));
 	ERR(AetPlugin::RegisterDeathHook(suites));
 	ERR(AetPlugin::RegisterAetSetFileType(suites));
 	ERR(AetPlugin::SetMemoryReporting(suites));

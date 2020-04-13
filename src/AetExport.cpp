@@ -66,7 +66,7 @@ namespace AetPlugin
 			item.ItemHandle = currentItem;
 
 			AEGP_MemHandle nameHandle;
-			suites.ItemSuite8->AEGP_GetItemName(PluginID, item.ItemHandle, &nameHandle);
+			suites.ItemSuite8->AEGP_GetItemName(EvilGlobalState.PluginID, item.ItemHandle, &nameHandle);
 			item.Name = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
 
 			A_u_long commentSize;
@@ -258,7 +258,7 @@ namespace AetPlugin
 	void AetExporter::ExportLayerMarkers(Aet::Layer& layer)
 	{
 		AEGP_StreamRefH streamRef;
-		suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamRef);
+		suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamRef);
 
 		A_long keyFrameCount;
 		suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
@@ -272,7 +272,7 @@ namespace AetPlugin
 			A_Time time;
 			suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_CompTime, &time);
 			AEGP_StreamValue streamVal;
-			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
+			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate);
 			layer.Markers.push_back(MakeRef<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
@@ -346,7 +346,7 @@ namespace AetPlugin
 		for (const auto& aeToAetStream : StreamUtil::Transform2DRemapData)
 		{
 			AEGP_StreamRefH streamRef;
-			suites.StreamSuite4->AEGP_GetNewLayerStream(PluginID, layer.GuiData.AE_Layer, aeToAetStream.StreamType, &streamRef);
+			suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, aeToAetStream.StreamType, &streamRef);
 
 			A_long keyFrameCount;
 			suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
@@ -368,7 +368,7 @@ namespace AetPlugin
 					A_Time time;
 					suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_LayerTime, &time);
 					AEGP_StreamValue streamVal;
-					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(PluginID, streamRef, i, &streamVal);
+					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
 					// TODO: Interpolation (including hold frames)
 					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
