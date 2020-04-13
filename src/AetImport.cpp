@@ -289,17 +289,6 @@ namespace AetPlugin
 			ImportLayersInComp(*workingScene.Scene->Compositions[i]);
 	}
 
-	frame_t AetImporter::GetCompDuration(const Aet::Composition& comp) const
-	{
-		frame_t latestFrame = 1.0f;
-		for (const auto& layer : comp.GetLayers())
-		{
-			if (layer->EndFrame > latestFrame)
-				latestFrame = layer->EndFrame;
-		}
-		return latestFrame;
-	}
-
 	void AetImporter::ImportVideo(const Aet::Video& video)
 	{
 		if (video.Sources.empty())
@@ -437,9 +426,12 @@ namespace AetPlugin
 		const auto backgroundColor = AEUtil::ColorRGB8(scene.BackgroundColor);
 		suites.CompSuite7->AEGP_SetCompBGColor(scene.RootComposition->GuiData.AE_Comp, &backgroundColor);
 
+		auto givenCompDurations = CreateGivenCompDurationsMap(scene);
 		for (const auto& comp : scene.Compositions)
 		{
-			const A_Time duration = FrameToAETime(GetCompDuration(*comp));
+			const frame_t frameDuration = givenCompDurations[comp.get()];
+			const A_Time duration = FrameToAETime(frameDuration);
+
 			suites.CompSuite7->AEGP_CreateComp(project.Folders.Scene.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
@@ -496,6 +488,34 @@ namespace AetPlugin
 			tryAddAEFootageLayerToComp(layer.GetAudioItem());
 		else if (layer.ItemType == Aet::ItemType::Composition)
 			tryAddAECompLayerToComp(layer.GetCompItem());
+	}
+
+
+	std::unordered_map<const Aet::Composition*, frame_t> AetImporter::CreateGivenCompDurationsMap(const Aet::Scene& scene)
+	{
+		std::unordered_map<const Aet::Composition*, frame_t> givenCompDurations;
+
+		auto registerGivenCompDurations = [&givenCompDurations](const Aet::Composition& compToRegister)
+		{
+			for (const auto& layer : compToRegister.GetLayers())
+			{
+				if (layer->ItemType != Aet::ItemType::Composition || layer->GetCompItem() == nullptr)
+					continue;
+
+				frame_t& mapDuration = givenCompDurations[layer->GetCompItem().get()];
+				mapDuration = std::max(layer->EndFrame, mapDuration);
+			}
+		};
+
+		givenCompDurations.reserve(scene.Compositions.size() + 1);
+		givenCompDurations[scene.RootComposition.get()] = scene.EndFrame;
+
+		registerGivenCompDurations(*scene.RootComposition);
+
+		for (const auto& comp : scene.Compositions)
+			registerGivenCompDurations(*comp);
+
+		return givenCompDurations;
 	}
 
 	bool AetImporter::LayerUsesStartOffset(const Aet::Layer& layer)

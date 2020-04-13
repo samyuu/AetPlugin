@@ -106,8 +106,6 @@ namespace AetPlugin
 		void ImportAllFootage();
 		void ImportAllCompositions();
 
-		frame_t GetCompDuration(const Aet::Composition& comp) const;
-
 	protected:
 		void ImportVideo(const Aet::Video& video);
 
@@ -126,6 +124,7 @@ namespace AetPlugin
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
+		static std::unordered_map<const Aet::Composition*, frame_t> CreateGivenCompDurationsMap(const Aet::Scene& scene);
 		static bool LayerUsesStartOffset(const Aet::Layer& layer);
 
 		void ImportLayerVideo(const Aet::Layer& layer);
