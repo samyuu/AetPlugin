@@ -8,17 +8,23 @@
 
 namespace AetPlugin
 {
-	AetExporter::AetExporter(std::wstring_view workingDirectory)
+	std::string AetExporter::GetAetSetNameFromProjectName() const
+	{
+		AEGP_ProjectH projectHandle;
+		suites.ProjSuite5->AEGP_GetProjectByIndex(0, &projectHandle);
+		A_char projectName[AEGP_MAX_PROJ_NAME_SIZE];
+		suites.ProjSuite5->AEGP_GetProjectName(projectHandle, projectName);
+
+		std::string setName;
+		setName = AetPrefix;
+		setName += FormatUtil::ToSnakeCaseLower(FormatUtil::StripFileExtension(projectName));
+		return setName;
+	}
+
+	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
 	{
 		this->workingDirectory.ImportDirectory = workingDirectory;
-	}
 
-	AetExporter::~AetExporter()
-	{
-	}
-
-	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet()
-	{
 		auto set = MakeUnique<Aet::AetSet>();
 
 		if (set == nullptr)
@@ -108,8 +114,6 @@ namespace AetPlugin
 		if (foundSetFolder == workingProject.Items.end())
 		{
 			// TODO: Do some error handling
-			set.Name = AetPrefix;
-			set.Name += FormatUtil::ToSnakeCaseLower(FormatUtil::StripFileExtension(workingProject.Name));
 			workingSet.Folder = nullptr;
 		}
 		else

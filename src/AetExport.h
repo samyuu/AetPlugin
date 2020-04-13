@@ -10,10 +10,11 @@ namespace AetPlugin
 	class AetExporter : NonCopyable
 	{
 	public:
-		AetExporter(std::wstring_view workingDirectory);
-		~AetExporter();
+		AetExporter() = default;
+		~AetExporter() = default;
 
-		UniquePtr<Aet::AetSet> ExportAetSet();
+		std::string GetAetSetNameFromProjectName() const;
+		UniquePtr<Aet::AetSet> ExportAetSet(std::wstring_view workingDirectory);
 
 	protected:
 		SuitesData suites;
