@@ -1,5 +1,6 @@
 #pragma once
 #include "AEUtil.h"
+#include "FormatUtil.h"
 #include "Misc/StringHelper.h"
 #include <optional>
 #include <charconv>
@@ -53,7 +54,7 @@ namespace AetPlugin::CommentUtil
 		{
 			Property result = {};
 
-			if (!Comfy::Utilities::StartsWith(buffer, AetSetID) || (buffer.size() < (AetSetID.size() + std::strlen("::x: { }"))))
+			if (!Comfy::Utilities::StartsWith(buffer, AetSetID) || (buffer.size() < (AetSetID.size() + std::strlen("::x: {}"))))
 				return result;
 
 			const std::string_view postIDBuffer = buffer.substr(AetSetID.size() + std::strlen("::"));
@@ -81,12 +82,11 @@ namespace AetPlugin::CommentUtil
 				postKeyBuffer = postKeyBuffer.substr(indexBuffer.size() + std::strlen("[]"));
 			}
 
-			// TODO: strip whitespace
-			constexpr std::string_view bracketsStart = ": { ", bracketsEnd = " }";
+			constexpr std::string_view bracketsStart = ": {", bracketsEnd = "}";
 			if (!Comfy::Utilities::StartsWith(postKeyBuffer, bracketsStart) || !Comfy::Utilities::EndsWith(postKeyBuffer, bracketsEnd))
 				return result;
 
-			const std::string_view valueBuffer = postKeyBuffer.substr(bracketsStart.size(), postKeyBuffer.size() - bracketsStart.size() - bracketsEnd.size());
+			const std::string_view valueBuffer = FormatUtil::Trim(postKeyBuffer.substr(bracketsStart.size(), postKeyBuffer.size() - bracketsStart.size() - bracketsEnd.size()));
 
 			result.Key = keyBuffer;
 			result.Value = valueBuffer;
