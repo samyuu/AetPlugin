@@ -161,11 +161,11 @@ namespace AetPlugin
 			LogLevel logLevel = LogLevel_None;
 
 			if (options.Log.WriteInfoLog)
-				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Info);
+				logLevel |= LogLevel_Info;
 			if (options.Log.WriteWarningLog)
-				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Warning);
+				logLevel |= LogLevel_Warning;
 			if (options.Log.WriteErrorLog)
-				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Error);
+				logLevel |= LogLevel_Error;
 
 			if (logLevel != LogLevel_None)
 			{

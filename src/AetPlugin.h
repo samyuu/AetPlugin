@@ -11,12 +11,20 @@
 
 namespace AetPlugin
 {
-	enum LogLevel
+	using LogLevel = uint32_t;
+	enum LogLevelEnum : LogLevel
 	{
 		LogLevel_None = 0,
 		LogLevel_Info = (1 << 0),
 		LogLevel_Warning = (1 << 1),
 		LogLevel_Error = (1 << 2),
+	};
+
+	constexpr std::array LogLevelsToCheck =
+	{
+		std::make_pair(LogLevel_Info, "Info"),
+		std::make_pair(LogLevel_Warning, "Warning"),
+		std::make_pair(LogLevel_Error, "Error"),
 	};
 
 	constexpr std::string_view AetPrefix = "aet_";

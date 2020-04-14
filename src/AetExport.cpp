@@ -6,7 +6,7 @@
 #include "Resource/IDHash.h"
 #include <filesystem>
 
-#define LogLine(format, ...)		do { if (logStream != nullptr)			{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+#define LogLine(format, ...)		do { if (logLevel != LogLevel_None)		{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogInfoLine(format, ...)	do { if (logLevel & LogLevel_Info)		{ fprintf(logStream, "[INFO] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogWarningLine(format, ...) do { if (logLevel & LogLevel_Warning)	{ fprintf(logStream, "[WARNING] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogErrorLine(format, ...)	do { if (logLevel & LogLevel_Error)		{ fprintf(logStream, "[ERROR] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
@@ -29,6 +29,7 @@ namespace AetPlugin
 	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
 	{
 		LogLine("--- Log Start ---");
+		LogLine("Log Level: '%s'", FormatUtil::FormatFlags(logLevel, LogLevelsToCheck).c_str());
 
 		LogInfoLine("Working Directory: '%s'", Utf16ToUtf8(workingDirectory).c_str());
 		this->workingDirectory.ImportDirectory = workingDirectory;
