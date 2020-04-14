@@ -16,7 +16,12 @@ namespace AetPlugin
 		std::string GetAetSetNameFromProjectName() const;
 		UniquePtr<Aet::AetSet> ExportAetSet(std::wstring_view workingDirectory);
 
+		void SetLog(FILE* log, LogLevel logLevel);
+
 	protected:
+		LogLevel logLevel = LogLevel_None;
+		FILE* logStream = nullptr;
+
 		SuitesData suites;
 
 	protected:
@@ -67,7 +72,7 @@ namespace AetPlugin
 		struct WorkingAetData
 		{
 			Aet::AetSet* Set = nullptr;
-			AEItemData* Folder;
+			AEItemData* Folder = nullptr;
 			std::vector<AEItemData*> SceneComps;
 
 			std::string SprPrefix, SprHashPrefix;

@@ -11,6 +11,14 @@
 
 namespace AetPlugin
 {
+	enum LogLevel
+	{
+		LogLevel_None = 0,
+		LogLevel_Info = (1 << 0),
+		LogLevel_Warning = (1 << 1),
+		LogLevel_Error = (1 << 2),
+	};
+
 	constexpr std::string_view AetPrefix = "aet_";
 	constexpr std::wstring_view AetPrefixW = L"aet_";
 

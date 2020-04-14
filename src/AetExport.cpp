@@ -6,6 +6,11 @@
 #include "Resource/IDHash.h"
 #include <filesystem>
 
+#define LogLine(format, ...)		do { if (logStream != nullptr)			{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+#define LogInfoLine(format, ...)	do { if (logLevel & LogLevel_Info)		{ fprintf(logStream, "[INFO] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+#define LogWarningLine(format, ...) do { if (logLevel & LogLevel_Warning)	{ fprintf(logStream, "[WARNING] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+#define LogErrorLine(format, ...)	do { if (logLevel & LogLevel_Error)		{ fprintf(logStream, "[ERROR] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+
 namespace AetPlugin
 {
 	std::string AetExporter::GetAetSetNameFromProjectName() const
@@ -23,10 +28,12 @@ namespace AetPlugin
 
 	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
 	{
+		LogLine("--- Log Start ---");
+
+		LogInfoLine("Working Directory: '%s'", Utf16ToUtf8(workingDirectory).c_str());
 		this->workingDirectory.ImportDirectory = workingDirectory;
 
 		auto set = MakeUnique<Aet::AetSet>();
-
 		if (set == nullptr)
 			return nullptr;
 
@@ -39,7 +46,14 @@ namespace AetPlugin
 			ExportScene();
 		}
 
+		LogLine("--- Log End ---");
 		return set;
+	}
+
+	void AetExporter::SetLog(FILE* logStream, LogLevel logLevel)
+	{
+		this->logStream = logStream;
+		this->logLevel = (logStream != nullptr) ? logLevel : LogLevel_None;
 	}
 
 	void AetExporter::SetupWorkingProjectData()
@@ -49,11 +63,14 @@ namespace AetPlugin
 
 		workingProject.Index = 0;
 		suites.ProjSuite5->AEGP_GetProjectByIndex(workingProject.Index, &workingProject.Handle);
+
 		suites.ProjSuite5->AEGP_GetProjectName(workingProject.Handle, workingProject.Name);
+		LogInfoLine("Project Name: '%s'", workingProject.Name);
 
 		AEGP_MemHandle pathHandle;
 		suites.ProjSuite5->AEGP_GetProjectPath(workingProject.Handle, &pathHandle);
 		workingProject.Path = AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle);
+		LogInfoLine("Project Path: '%s'", Utf16ToUtf8(workingProject.Path).c_str());
 
 		suites.ProjSuite5->AEGP_GetProjectRootFolder(workingProject.Handle, &workingProject.RootFolder);
 
@@ -113,11 +130,11 @@ namespace AetPlugin
 
 		if (foundSetFolder == workingProject.Items.end())
 		{
-			// TODO: Do some error handling
-			workingSet.Folder = nullptr;
+			LogErrorLine("No suitable AetSet folder found");
 		}
 		else
 		{
+			LogErrorLine("Suitable AetSet folder found: '%s'", foundSetFolder->Name.c_str());
 			set.Name = foundSetFolder->CommentProperty.Value;
 			workingSet.Folder = &(*foundSetFolder);
 
@@ -125,7 +142,10 @@ namespace AetPlugin
 			for (auto& item : workingProject.Items)
 			{
 				if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::Scene && item.IsParentOf(*foundSetFolder))
+				{
 					workingSet.SceneComps.push_back(&item);
+					LogInfoLine("Suitable scene composition found: '%s'", item.Name.c_str());
+				}
 			}
 
 			std::sort(workingSet.SceneComps.begin(), workingSet.SceneComps.end(), [&](const auto& sceneA, const auto& sceneB)
@@ -246,6 +266,7 @@ namespace AetPlugin
 		const frame_t frameDuration = AEUtil::AETimeToFrame(duration, workingScene.Scene->FrameRate);
 		const float floatStretch = AEUtil::Ratio(stretch);
 
+		// TODO: Should these be directly affected by the stretch or is it already accounted for (?)
 		layer.StartFrame = (frameOffset + frameInPoint);
 		layer.EndFrame = (layer.StartFrame + frameDuration);
 		layer.StartOffset = (frameInPoint);
@@ -278,6 +299,7 @@ namespace AetPlugin
 			AEGP_StreamValue streamVal;
 			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
+			// TODO: Add the layer start frame (?)
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate);
 			layer.Markers.push_back(MakeRef<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
 		}
@@ -337,10 +359,19 @@ namespace AetPlugin
 		transferMode.BlendMode = static_cast<AetBlendMode>(layerTransferMode.mode + 1);
 		transferMode.TrackMatte = static_cast<Aet::TrackMatte>(layerTransferMode.track_matte);
 
+		if (transferMode.BlendMode != AetBlendMode::Normal && transferMode.BlendMode != AetBlendMode::Add && transferMode.BlendMode != AetBlendMode::Multiply && transferMode.BlendMode != AetBlendMode::Screen)
+			LogWarningLine("Unsupported blend mode used by layer '%s'. Only 'Normal', 'Add', 'Multiplty' and 'Sceen' are supported", layer.GetName().c_str());
+
+		if (transferMode.TrackMatte != Aet::TrackMatte::NoTrackMatte && transferMode.TrackMatte != Aet::TrackMatte::Alpha)
+			LogWarningLine("Unsupported track matte used by layer '%s'. Only 'Track Matte Alpha' is supported", layer.GetName().c_str());
+
 		if (layerTransferMode.flags & AEGP_TransferFlag_PRESERVE_ALPHA)
 			transferMode.Flags.PreserveAlpha = true;
 		if (layerTransferMode.flags & AEGP_TransferFlag_RANDOMIZE_DISSOLVE)
 			transferMode.Flags.RandomizeDissolve = true;
+
+		if (transferMode.Flags.PreserveAlpha || transferMode.Flags.RandomizeDissolve)
+			LogWarningLine("Unsupported transfer mode flags used by layer '%s'. 'Preserve Alpha' nor 'Randomize Dissolve' are supported", layer.GetName().c_str());
 	}
 
 	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo)
@@ -552,6 +583,8 @@ namespace AetPlugin
 		// TODO: What about start frame / start offset mismatches (?)
 		if (layer.EndFrame == trackMatteLayer.EndFrame)
 			return;
+
+		LogWarningLine("Fixing: '%s'", layer.GetName().c_str());
 
 		const frame_t adjustedEndFrame = std::min(layer.EndFrame, trackMatteLayer.EndFrame);
 		layer.EndFrame = trackMatteLayer.EndFrame = adjustedEndFrame;

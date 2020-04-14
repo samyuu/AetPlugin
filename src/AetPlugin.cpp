@@ -4,6 +4,7 @@
 #include "FileDialogUtil.h"
 #include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
+#include <ctime>
 
 namespace AetPlugin
 {
@@ -104,10 +105,15 @@ namespace AetPlugin
 				bool HashSprIDs = false;
 				bool IncludeAll = false;
 			} Sprite;
+			struct LogData
+			{
+				bool WriteInfoLog = true;
+				bool WriteWarningLog = true;
+				bool WriteErrorLog = true;
+			} Log;
 			struct MiscData
 			{
 				bool ExportAetSet = true;
-				bool WriteLogFile = true;
 			} Misc;
 		};
 
@@ -122,25 +128,68 @@ namespace AetPlugin
 			dialog.ParentWindowHandle = EvilGlobalState.MainWindowHandle;
 			dialog.CustomizeItems =
 			{
+				// TODO: Display mode combo box (?)
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Database" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite DB", &options.Database.ExportSprDB },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
-				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
-
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite Set", &options.Sprite.ExportSprSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Hash Sprite IDs", &options.Sprite.HashSprIDs },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Include All Sprites (?)", &options.Sprite.IncludeAll },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Misc" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export AetSet", &options.Misc.ExportAetSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Log File", &options.Misc.WriteLogFile },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Hash Spr IDs", &options.Sprite.HashSprIDs },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Include All Footage", &options.Sprite.IncludeAll },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Log" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Info Log", &options.Log.WriteInfoLog },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Warning Log", &options.Log.WriteWarningLog },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Error Log", &options.Log.WriteErrorLog },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 			};
 
 			const auto result = FileDialogUtil::OpenDialog(dialog);
 			return std::make_pair(dialog.OutFilePath, options);
+		}
+
+		std::pair<FILE*, LogLevel> OpenAetSetExportLogFile(std::wstring_view directory, std::wstring_view setName, const ExportOptions& options)
+		{
+			FILE* logStream = nullptr;
+			LogLevel logLevel = LogLevel_None;
+
+			if (options.Log.WriteInfoLog)
+				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Info);
+			if (options.Log.WriteWarningLog)
+				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Warning);
+			if (options.Log.WriteErrorLog)
+				logLevel = static_cast<LogLevel>(logLevel | LogLevel_Error);
+
+			if (logLevel != LogLevel_None)
+			{
+				__time64_t currentTime = {};
+				_time64(&currentTime);
+
+				wchar_t logFilePath[AEGP_MAX_PATH_SIZE] = {};
+				_swprintf(logFilePath, L"%.*s\\%.*s_%I64d.log",
+					static_cast<int>(directory.size()),
+					directory.data(),
+					static_cast<int>(setName.size()),
+					setName.data(),
+					static_cast<int64_t>(currentTime));
+
+				const errno_t result = _wfopen_s(&logStream, logFilePath, L"w");
+			}
+
+			return std::make_pair(logStream, logLevel);
+		}
+
+		void CloseAetSetExportLogFile(FILE* logFile)
+		{
+			if (logFile != nullptr)
+				fclose(logFile);
 		}
 
 		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
@@ -160,7 +209,12 @@ namespace AetPlugin
 			if (outputFilePath.empty())
 				return A_Err_NONE;
 
+			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Utf8ToUtf16(setName), exportOptions);
+			exporter.SetLog(logFile, logLevel);
+
 			auto aetSet = exporter.ExportAetSet(outputDirectory);
+			CloseAetSetExportLogFile(logFile);
+
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
