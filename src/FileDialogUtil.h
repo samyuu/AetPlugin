@@ -22,7 +22,7 @@ namespace FileDialogUtil
 			std::string_view Label;
 			union DataUnion
 			{
-				bool CheckboxChecked;
+				bool* CheckboxChecked;
 			} Data;
 		};
 	}
