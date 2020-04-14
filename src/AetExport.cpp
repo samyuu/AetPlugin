@@ -21,7 +21,7 @@ namespace AetPlugin
 		suites.ProjSuite5->AEGP_GetProjectName(projectHandle, projectName);
 
 		std::string setName;
-		setName = AetPrefix;
+		setName += AetPrefix;
 		setName += FormatUtil::ToSnakeCaseLower(FormatUtil::StripFileExtension(projectName));
 		return setName;
 	}
@@ -35,13 +35,11 @@ namespace AetPlugin
 		this->workingDirectory.ImportDirectory = workingDirectory;
 
 		auto set = MakeUnique<Aet::AetSet>();
-		if (set == nullptr)
-			return nullptr;
 
 		SetupWorkingProjectData();
 		SetupWorkingSetData(*set);
 
-		for (auto sceneComp : workingSet.SceneComps)
+		for (auto* sceneComp : workingSet.SceneComps)
 		{
 			SetupWorkingSceneData(sceneComp);
 			ExportScene();
