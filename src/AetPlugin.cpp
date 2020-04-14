@@ -91,8 +91,30 @@ namespace AetPlugin
 			return err;
 		}
 
-		std::wstring OpenExportAetSetFileDialog(std::string_view fileName)
+		struct ExportOptions
 		{
+			struct DatabaseData
+			{
+				bool ExportSprDB = true;
+				bool ExportAetDB = true;
+			} Database;
+			struct SpriteData
+			{
+				bool ExportSprSet = true;
+				bool HashSprIDs = false;
+				bool IncludeAll = false;
+			} Sprite;
+			struct MiscData
+			{
+				bool ExportAetSet = true;
+				bool WriteLogFile = true;
+			} Misc;
+		};
+
+		std::pair<std::wstring, ExportOptions> OpenExportAetSetFileDialog(std::string_view fileName)
+		{
+			ExportOptions options = {};
+
 			FileDialogUtil::SaveFileDialogInput dialog = {};
 			dialog.FileName = fileName;
 			dialog.DefaultExtension = "bin";
@@ -100,23 +122,25 @@ namespace AetPlugin
 			dialog.ParentWindowHandle = EvilGlobalState.MainWindowHandle;
 			dialog.CustomizeItems =
 			{
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite DB", true },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite Set", false },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export TEST 0", false },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export TEST 1", false },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Database" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite DB", &options.Database.ExportSprDB },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Test" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 0", false },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 1", false },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 2", false },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Test Checkbox 3", false },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Sprite Set", &options.Sprite.ExportSprSet },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Hash Sprite IDs", &options.Sprite.HashSprIDs },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Include All Sprites (?)", &options.Sprite.IncludeAll },
+				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+
+				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Misc" },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export AetSet", &options.Misc.ExportAetSet },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Log File", &options.Misc.WriteLogFile },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 			};
 
 			const auto result = FileDialogUtil::OpenDialog(dialog);
-			return dialog.OutFilePath;
+			return std::make_pair(dialog.OutFilePath, options);
 		}
 
 		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
@@ -130,7 +154,7 @@ namespace AetPlugin
 			auto exporter = AetExporter();
 
 			const auto setName = exporter.GetAetSetNameFromProjectName();
-			const auto outputFilePath = OpenExportAetSetFileDialog(setName);
+			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(setName);
 			const auto outputDirectory = FileSystem::GetDirectory(outputFilePath);
 
 			if (outputFilePath.empty())
@@ -140,7 +164,13 @@ namespace AetPlugin
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
-			aetSet->Save(outputFilePath);
+			if (exportOptions.Misc.ExportAetSet)
+				aetSet->Save(outputFilePath);
+
+			// TODO: ...
+			if (exportOptions.Database.ExportSprDB) {}
+			if (exportOptions.Database.ExportAetDB) {}
+
 			return A_Err_NONE;
 		}
 
@@ -224,7 +254,7 @@ namespace AetPlugin
 
 		A_Err DebugOnStartup(const SuitesData& suites)
 		{
-			OpenExportAetSetFileDialog("aet_startup_test");
+			// OpenExportAetSetFileDialog("aet_startup_test");
 			return A_Err_NONE;
 		}
 	}
