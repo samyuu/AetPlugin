@@ -400,8 +400,9 @@ namespace AetPlugin
 		suites.ItemSuite8->AEGP_GetItemName(EvilGlobalState.PluginID, video.GuiData.AE_FootageItem, &nameHandle);
 		const auto itemName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
 
+		// TODO: Should the set name be appended (?)
 		const auto cleanName = FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(itemName, SprPrefix), workingSet.NamePrefixUnderscore);
-		const auto setCleanName = workingSet.NamePrefixUnderscore + FormatUtil::ToLower(cleanName);
+		const auto setCleanName = /*workingSet.NamePrefixUnderscore +*/ FormatUtil::ToLower(cleanName);
 
 		suites.ItemSuite8->AEGP_SetItemName(video.GuiData.AE_FootageItem, AEUtil::UTF16Cast(Utf8ToUtf16(setCleanName).c_str()));
 	}
