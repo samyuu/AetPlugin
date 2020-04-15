@@ -403,6 +403,10 @@
     <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\FileStream.h" />
     <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\MemoryStream.h" />
     <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\Stream.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\AetDB.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\Database.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\SprDB.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TxpDB.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.h" />
@@ -487,6 +491,9 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\FileStream.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\MemoryStream.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\Stream.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\SprDB.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TxpDB.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSetFile.cpp" />

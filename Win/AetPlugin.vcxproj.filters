@@ -290,6 +290,18 @@
     <ClInclude Include="..\src\FileDialogUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\SprDB.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TxpDB.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\AetDB.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\Database.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -425,6 +437,15 @@
     </ClCompile>
     <ClCompile Include="..\src\FileDialogUtil.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\SprDB.cpp">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TxpDB.cpp">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp">
+      <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
