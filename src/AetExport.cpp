@@ -4,15 +4,20 @@
 #include "Graphics/Auth2D/Aet/AetMgr.h"
 #include "Misc/StringHelper.h"
 #include "Resource/IDHash.h"
-#include <filesystem>
 
 #define LogLine(format, ...)		do { if (logLevel != LogLevel_None)		{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogInfoLine(format, ...)	do { if (logLevel & LogLevel_Info)		{ fprintf(logStream, "[INFO] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
-#define LogWarningLine(format, ...) do { if (logLevel & LogLevel_Warning)	{ fprintf(logStream, "[WARNING] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
+#define LogWarningLine(format, ...)	do { if (logLevel & LogLevel_Warning)	{ fprintf(logStream, "[WARNING] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogErrorLine(format, ...)	do { if (logLevel & LogLevel_Error)		{ fprintf(logStream, "[ERROR] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 
 namespace AetPlugin
 {
+	void AetExporter::SetLog(FILE* logStream, LogLevel logLevel)
+	{
+		this->logStream = logStream;
+		this->logLevel = (logStream != nullptr) ? logLevel : LogLevel_None;
+	}
+
 	std::string AetExporter::GetAetSetNameFromProjectName() const
 	{
 		AEGP_ProjectH projectHandle;
@@ -47,12 +52,6 @@ namespace AetPlugin
 
 		LogLine("--- Log End ---");
 		return set;
-	}
-
-	void AetExporter::SetLog(FILE* logStream, LogLevel logLevel)
-	{
-		this->logStream = logStream;
-		this->logLevel = (logStream != nullptr) ? logLevel : LogLevel_None;
 	}
 
 	void AetExporter::SetupWorkingProjectData()

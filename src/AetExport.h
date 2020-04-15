@@ -13,10 +13,10 @@ namespace AetPlugin
 		AetExporter() = default;
 		~AetExporter() = default;
 
+		void SetLog(FILE* log, LogLevel logLevel);
+
 		std::string GetAetSetNameFromProjectName() const;
 		UniquePtr<Aet::AetSet> ExportAetSet(std::wstring_view workingDirectory);
-
-		void SetLog(FILE* log, LogLevel logLevel);
 
 	protected:
 		LogLevel logLevel = LogLevel_None;
