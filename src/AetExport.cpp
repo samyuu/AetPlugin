@@ -97,7 +97,7 @@ namespace AetPlugin
 					auto& sprEntry = setEntry.SprEntries.emplace_back();
 
 					sprEntry.Name = FormatUtil::ToUpper(SprPrefix) + source.Name;
-					sprEntry.ID = HashIDString<SprID>(sprEntry.Name);
+					sprEntry.ID = source.ID;
 					sprEntry.Index = sprIndex++;
 				}
 			}

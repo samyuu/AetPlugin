@@ -226,17 +226,17 @@ namespace AetPlugin
 				return A_Err_GENERIC;
 
 			const auto dbBasePathU8 = outputDirectoryU8 + "\\" + std::string(FormatUtil::StripPrefixIfExists(setNameU8, AetPrefix)) + "_";
-			
+
 			if (exportOptions.Misc.ExportAetSet)
 			{
 				aetSet->Save(outputFilePathU16);
 			}
-			if (exportOptions.Database.ExportSprDB) 
+			if (exportOptions.Database.ExportSprDB)
 			{
 				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8);
 				sprDB.Save(dbBasePathU8 + "spr_db.bin");
 			}
-			if (exportOptions.Database.ExportAetDB) 
+			if (exportOptions.Database.ExportAetDB)
 			{
 				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileNameU8);
 				aetDB.Save(dbBasePathU8 + "aet_db.bin");
