@@ -49,7 +49,23 @@ namespace FormatUtil
 		return stringInput;
 	}
 
+	inline std::wstring_view StripPrefixIfExists(std::wstring_view stringInput, std::wstring_view prefix)
+	{
+		if (Comfy::Utilities::StartsWithInsensitive(stringInput, prefix))
+			return stringInput.substr(prefix.size(), stringInput.size() - prefix.size());
+
+		return stringInput;
+	}
+
 	inline std::string_view StripSuffixIfExists(std::string_view stringInput, std::string_view suffix)
+	{
+		if (Comfy::Utilities::EndsWithInsensitive(stringInput, suffix))
+			return stringInput.substr(0, stringInput.size() - suffix.size());
+
+		return stringInput;
+	}
+
+	inline std::wstring_view StripSuffixIfExists(std::wstring_view stringInput, std::wstring_view suffix)
 	{
 		if (Comfy::Utilities::EndsWithInsensitive(stringInput, suffix))
 			return stringInput.substr(0, stringInput.size() - suffix.size());
