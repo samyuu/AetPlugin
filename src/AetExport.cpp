@@ -54,6 +54,61 @@ namespace AetPlugin
 		return set;
 	}
 
+	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
+	{
+		Database::AetDB aetDB;
+
+		auto& setEntry = aetDB.Entries.emplace_back();
+		setEntry.FileName = FormatUtil::ToSnakeCaseLower(setFileName);
+		setEntry.Name = FormatUtil::ToUpper(set.Name);
+		setEntry.ID = HashIDString<AetSetID>(setEntry.Name);
+
+		const auto sprSetName = FormatUtil::ToUpper(SprPrefix) + std::string(FormatUtil::StripPrefixIfExists(setEntry.Name, AetPrefix));
+		setEntry.SprSetID = HashIDString<SprSetID>(sprSetName);
+
+		setEntry.SceneEntries.reserve(set.GetScenes().size());
+		for (auto& scene : set.GetScenes())
+		{
+			auto& sceneEntry = setEntry.SceneEntries.emplace_back();
+			sceneEntry.Name = setEntry.Name + "_" + FormatUtil::ToUpper(scene->Name);
+			sceneEntry.ID = HashIDString<AetSceneID>(sceneEntry.Name);
+		}
+
+		return aetDB;
+	}
+
+	Database::SprDB AetExporter::CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
+	{
+		Database::SprDB sprDB;
+
+		auto& setEntry = sprDB.Entries.emplace_back();
+		setEntry.FileName = FormatUtil::ToLower(SprPrefix) + FormatUtil::ToSnakeCaseLower(FormatUtil::StripPrefixIfExists(setFileName, AetPrefix));
+		setEntry.Name = FormatUtil::ToUpper(SprPrefix) + FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
+		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
+
+		int16_t sprIndex = 0;
+		for (const auto& scene : set.GetScenes())
+		{
+			setEntry.SprEntries.reserve(setEntry.SprEntries.size() + scene->Videos.size());
+			for (const auto& video : scene->Videos)
+			{
+				for (const auto& source : video->Sources)
+				{
+					auto& sprEntry = setEntry.SprEntries.emplace_back();
+
+					sprEntry.Name = FormatUtil::ToUpper(SprPrefix) + source.Name;
+					sprEntry.ID = HashIDString<SprID>(sprEntry.Name);
+					sprEntry.Index = sprIndex++;
+				}
+			}
+			
+			// TODO:
+			setEntry.SprTexEntries.reserve(0);
+		}
+
+		return sprDB;
+	}
+
 	void AetExporter::SetupWorkingProjectData()
 	{
 		A_long projectCount;

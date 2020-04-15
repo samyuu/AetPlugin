@@ -1,6 +1,8 @@
 #pragma once
 #include "AetPlugin.h"
 #include "Graphics/Auth2D/Aet/AetSet.h"
+#include "Database/AetDB.h"
+#include "Database/SprDB.h"
 
 namespace AetPlugin
 {
@@ -17,6 +19,9 @@ namespace AetPlugin
 
 		std::string GetAetSetNameFromProjectName() const;
 		UniquePtr<Aet::AetSet> ExportAetSet(std::wstring_view workingDirectory);
+
+		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
+		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
 
 	protected:
 		LogLevel logLevel = LogLevel_None;

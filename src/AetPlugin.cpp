@@ -202,28 +202,45 @@ namespace AetPlugin
 
 			auto exporter = AetExporter();
 
-			const auto setName = exporter.GetAetSetNameFromProjectName();
-			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(setName);
-			const auto outputDirectory = FileSystem::GetDirectory(outputFilePath);
+			const auto setNameU8 = exporter.GetAetSetNameFromProjectName();
+			const auto setNameU16 = Utf8ToUtf16(setNameU8);
 
-			if (outputFilePath.empty())
+			const auto[outputFilePathU16, exportOptions] = OpenExportAetSetFileDialog(setNameU8);
+			const auto outputFilePathU8 = Utf16ToUtf8(outputFilePathU16);
+
+			const auto outputDirectoryU16 = FileSystem::GetDirectory(outputFilePathU16);
+			const auto outputDirectoryU8 = Utf16ToUtf8(outputDirectoryU16);
+
+			const auto setFileNameU8 = FileSystem::GetFileName(outputFilePathU8, true);
+
+			if (outputFilePathU16.empty())
 				return A_Err_NONE;
 
-			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Utf8ToUtf16(setName), exportOptions);
+			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectoryU16, FormatUtil::StripPrefixIfExists(setNameU16, AetPrefixW), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto aetSet = exporter.ExportAetSet(outputDirectory);
+			auto aetSet = exporter.ExportAetSet(outputDirectoryU16);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
+			const auto dbBasePathU8 = outputDirectoryU8 + "\\" + std::string(FormatUtil::StripPrefixIfExists(setNameU8, AetPrefix)) + "_";
+			
 			if (exportOptions.Misc.ExportAetSet)
-				aetSet->Save(outputFilePath);
-
-			// TODO: ...
-			if (exportOptions.Database.ExportSprDB) {}
-			if (exportOptions.Database.ExportAetDB) {}
+			{
+				aetSet->Save(outputFilePathU16);
+			}
+			if (exportOptions.Database.ExportSprDB) 
+			{
+				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8);
+				sprDB.Save(dbBasePathU8 + "spr_db.bin");
+			}
+			if (exportOptions.Database.ExportAetDB) 
+			{
+				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileNameU8);
+				aetDB.Save(dbBasePathU8 + "aet_db.bin");
+			}
 
 			return A_Err_NONE;
 		}
