@@ -434,6 +434,7 @@
     <ClInclude Include="..\src\Comfy\lib\zlib\src\trees.h" />
     <ClInclude Include="..\src\Comfy\lib\zlib\src\zutil.h" />
     <ClInclude Include="..\src\CommentUtil.h" />
+    <ClInclude Include="..\src\FarcUtil.h" />
     <ClInclude Include="..\src\FileDialogUtil.h" />
     <ClInclude Include="..\src\FormatUtil.h" />
     <ClInclude Include="..\src\StreamUtil.h" />
@@ -518,6 +519,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\Comfy\lib\zlib\src\trees.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\uncompr.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\zutil.c" />
+    <ClCompile Include="..\src\FarcUtil.cpp" />
     <ClCompile Include="..\src\FileDialogUtil.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

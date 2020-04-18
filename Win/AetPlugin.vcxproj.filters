@@ -308,6 +308,9 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\FarcUtil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -458,6 +461,9 @@
     </ClCompile>
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FarcUtil.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
