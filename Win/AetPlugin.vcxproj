@@ -417,6 +417,7 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypes.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypesNames.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\Detail\IDTypeDeclarations.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDHash.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDTypes.h" />
@@ -501,6 +502,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSetFile.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.cpp" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\adler32.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\compress.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\crc32.c" />

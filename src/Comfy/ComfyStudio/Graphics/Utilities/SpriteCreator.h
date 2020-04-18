@@ -75,7 +75,7 @@ namespace Comfy::Graphics::Utilities
 			// NOTE: Numbers of pixels at each side
 			int SpritePadding = 2;
 
-			bool EnsurePowerTwo = true;
+			bool EnsurePowerTwo = false;
 			bool SetDummyColor = true;
 			bool FlipY = true;
 		} settings;
