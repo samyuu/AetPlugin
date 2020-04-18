@@ -35,7 +35,7 @@ namespace AetPlugin
 
 		std::string GetAetSetNameFromProjectName() const;
 
-		std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> ExportAetSet(std::wstring_view workingDirectory);
+		std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> ExportAetSet(std::wstring_view workingDirectory, bool parseSprIDComments);
 		UniquePtr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet);
 
 		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
@@ -48,6 +48,11 @@ namespace AetPlugin
 		FILE* logStream = nullptr;
 
 		SuitesData suites;
+
+		struct SettingsData
+		{
+			bool ParseSprIDComments;
+		} settings = {};
 
 	protected:
 		struct AEItemData

@@ -74,10 +74,12 @@ namespace AetPlugin
 		return setName;
 	}
 
-	std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
+	std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> AetExporter::ExportAetSet(std::wstring_view workingDirectory, bool parseSprIDComments)
 	{
 		LogLine("--- Log Start ---");
 		LogLine("Log Level: '%s'", FormatUtil::FormatFlags(logLevel, LogLevelsToCheck).c_str());
+
+		settings.ParseSprIDComments = parseSprIDComments;
 
 		LogInfoLine("Working Directory: '%s'", Utf16ToUtf8(workingDirectory).c_str());
 		this->workingDirectory.ImportDirectory = workingDirectory;
@@ -109,8 +111,10 @@ namespace AetPlugin
 		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
 		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
 
+		// TODO: Handle ScreenMode::Custom (?)
 		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
 
+		// TODO: Reading, parsing and decoding the sprite images could be done multithreaded
 		for (const auto&[sprName, srcSpr] : sprSetSrcInfo.SprFileSources)
 		{
 			auto& owningPixels = owningImagePixels.emplace_back();
@@ -682,7 +686,7 @@ namespace AetPlugin
 			source.Name = workingSet.SprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
 			source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
 
-			if (item.CommentProperty.Key == CommentUtil::Keys::SprID)
+			if (item.CommentProperty.Key == CommentUtil::Keys::SprID && settings.ParseSprIDComments)
 			{
 				std::string_view sprIDComment = FormatUtil::StripPrefixIfExists(item.CommentProperty.Value, "0x");
 
