@@ -172,6 +172,45 @@ namespace AetPlugin
 		return sprDB;
 	}
 
+	bool AetExporter::IsProjectExportable(const SuitesData& suites)
+	{
+		AEGP_ProjectH projectHandle;
+		if (suites.ProjSuite5->AEGP_GetProjectByIndex(0, &projectHandle) != A_Err_NONE)
+			return false;
+
+		AEGP_ItemH rootFolder;
+		if (suites.ProjSuite5->AEGP_GetProjectRootFolder(projectHandle, &rootFolder) != A_Err_NONE)
+			return false;
+
+		AEGP_ItemH firstItemHandle;
+		if (suites.ItemSuite8->AEGP_GetFirstProjItem(projectHandle, &firstItemHandle) != A_Err_NONE)
+			return false;
+
+		size_t aetSetCommentItemCount = 0;
+
+		AEGP_ItemH currentItemHandle, previousItemHandle = firstItemHandle;
+		while (true)
+		{
+			if (suites.ItemSuite8->AEGP_GetNextProjItem(projectHandle, previousItemHandle, &currentItemHandle); currentItemHandle == nullptr)
+				break;
+
+			previousItemHandle = currentItemHandle;
+
+			A_u_long commentSize;
+			if (suites.ItemSuite8->AEGP_GetItemCommentLength(currentItemHandle, &commentSize) != A_Err_NONE || commentSize <= 0)
+				continue;
+
+			CommentUtil::Buffer commentBuffer;
+			const auto comment = CommentUtil::Get(suites.ItemSuite8, currentItemHandle, commentBuffer);
+
+			if (comment.Key == CommentUtil::Keys::AetSet)
+				aetSetCommentItemCount++;
+		}
+
+		// NOTE: Only allow a single set comment so there won't be any accidental exports due to ambiguity
+		return (aetSetCommentItemCount == 1);
+	}
+
 	void AetExporter::SetupWorkingProjectData()
 	{
 		A_long projectCount;

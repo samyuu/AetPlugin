@@ -41,6 +41,8 @@ namespace AetPlugin
 		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
 		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
 
+		static bool IsProjectExportable(const SuitesData& suites);
+
 	protected:
 		LogLevel logLevel = LogLevel_None;
 		FILE* logStream = nullptr;
