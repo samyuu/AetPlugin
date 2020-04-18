@@ -88,7 +88,10 @@ namespace AetPlugin
 			const SuitesData suites;
 
 			A_Err err = A_Err_NONE;
-			ERR(suites.CommandSuite1->AEGP_EnableCommand(EvilGlobalState.ExportAetSetCommand));
+			if (AetExporter::IsProjectExportable(suites))
+				ERR(suites.CommandSuite1->AEGP_EnableCommand(EvilGlobalState.ExportAetSetCommand));
+			else
+				ERR(suites.CommandSuite1->AEGP_DisableCommand(EvilGlobalState.ExportAetSetCommand));
 			return err;
 		}
 
