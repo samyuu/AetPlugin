@@ -109,7 +109,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -171,7 +171,7 @@
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -236,7 +236,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -298,7 +298,7 @@
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <PrecompiledHeader>
       </PrecompiledHeader>
