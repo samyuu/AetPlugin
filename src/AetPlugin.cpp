@@ -106,14 +106,14 @@ namespace AetPlugin
 			struct SpriteData
 			{
 				bool ExportSprSet = true;
-				bool HashSprIDs = false;
-				bool IncludeAll = false;
+				bool ParseSprIDComments = true;
+				// bool IncludeAll = false;
 			} Sprite;
 			struct LogData
 			{
-				bool WriteInfoLog = true;
-				bool WriteWarningLog = true;
-				bool WriteErrorLog = true;
+				bool WriteInfoLog = false;
+				bool WriteWarningLog = false;
+				bool WriteErrorLog = false;
 			} Log;
 			struct MiscData
 			{
@@ -143,8 +143,8 @@ namespace AetPlugin
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Hash Spr IDs", &options.Sprite.HashSprIDs },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Include All Footage", &options.Sprite.IncludeAll },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Parse Spr IDs", &options.Sprite.ParseSprIDComments },
+				// { FileDialogUtil::Customize::ItemType::Checkbox, "Include All Footage", &options.Sprite.IncludeAll },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Log" },
@@ -222,7 +222,7 @@ namespace AetPlugin
 			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectoryU16, FormatUtil::StripPrefixIfExists(setNameU16, AetPrefixW), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16);
+			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16, exportOptions.Sprite.ParseSprIDComments);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
