@@ -333,7 +333,7 @@ namespace AetPlugin
 		}
 		else
 		{
-			LogErrorLine("Suitable AetSet folder found: '%s'", foundSetFolder->Name.c_str());
+			LogInfoLine("Suitable AetSet folder found: '%s'", foundSetFolder->Name.c_str());
 			set.Name = foundSetFolder->CommentProperty.Value;
 			workingSet.Folder = &(*foundSetFolder);
 
