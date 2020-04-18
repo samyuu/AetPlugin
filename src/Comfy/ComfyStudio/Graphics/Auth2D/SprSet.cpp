@@ -1,5 +1,6 @@
 #include "SprSet.h"
 #include "FileSystem/BinaryReader.h"
+#include "FileSystem/BinaryWriter.h"
 
 using namespace Comfy::FileSystem;
 
@@ -10,12 +11,83 @@ namespace Comfy::Graphics
 		return vec2(PixelRegion.z, PixelRegion.w);
 	}
 
+	void SprSet::Write(BinaryWriter& writer)
+	{
+		writer.WriteU32(Flags);
+
+		const FileAddr texSetPtrAddress = writer.GetPosition();
+		writer.WriteU32(0x00000000);
+		writer.WriteU32((TexSet != nullptr) ? static_cast<uint32_t>(TexSet->Textures.size()) : 0);
+
+		writer.WriteU32(static_cast<uint32_t>(Sprites.size()));
+		writer.WritePtr([&](BinaryWriter& writer)
+		{
+			for (const auto& sprite : Sprites)
+			{
+				writer.WriteI32(sprite.TextureIndex);
+				writer.WriteI32(sprite.Rotate);
+				writer.WriteF32(sprite.TexelRegion.x);
+				writer.WriteF32(sprite.TexelRegion.y);
+				writer.WriteF32(sprite.TexelRegion.z);
+				writer.WriteF32(sprite.TexelRegion.w);
+				writer.WriteF32(sprite.PixelRegion.x);
+				writer.WriteF32(sprite.PixelRegion.y);
+				writer.WriteF32(sprite.PixelRegion.z);
+				writer.WriteF32(sprite.PixelRegion.w);
+			}
+		});
+
+		writer.WritePtr([&](BinaryWriter& writer)
+		{
+			if (this->TexSet == nullptr)
+				return;
+
+			for (const auto& texture : this->TexSet->Textures)
+			{
+				if (texture->Name.has_value())
+					writer.WriteStrPtr(texture->Name.value());
+				else
+					writer.WritePtr(FileAddr::NullPtr);
+			}
+		});
+
+		writer.WritePtr([&](BinaryWriter& writer)
+		{
+			for (const auto& sprite : Sprites)
+				writer.WriteStrPtr(sprite.Name);
+		});
+
+		writer.WritePtr([&](BinaryWriter& writer)
+		{
+			for (const auto& sprite : Sprites)
+			{
+				writer.WriteU32(sprite.Extra.Flags);
+				writer.WriteU32(static_cast<uint32_t>(sprite.Extra.ScreenMode));
+			}
+		});
+
+		writer.FlushPointerPool();
+		writer.WriteAlignmentPadding(16);
+
+		writer.FlushStringPointerPool();
+		writer.WriteAlignmentPadding(16);
+
+		if (TexSet != nullptr)
+		{
+			const FileAddr texSetPtr = writer.GetPosition();
+			TexSet->Write(writer);
+
+			writer.SetPosition(texSetPtrAddress);
+			writer.WritePtr(texSetPtr);
+		}
+	}
+
 	void SprSet::Parse(const uint8_t* buffer, size_t bufferSize)
 	{
 		SprSet* sprSet = this;
 
-		sprSet->Signature = *(uint32_t*)(buffer + 0);
-		uint32_t txpSetOffset = *(uint32_t*)(buffer + 4);
+		sprSet->Flags = *(uint32_t*)(buffer + 0);
+		uint32_t texSetOffset = *(uint32_t*)(buffer + 4);
 		uint32_t textureCount = *(uint32_t*)(buffer + 8);
 		uint32_t spritesCount = *(uint32_t*)(buffer + 12);
 		uint32_t spritesOffset = *(uint32_t*)(buffer + 16);
@@ -23,10 +95,10 @@ namespace Comfy::Graphics
 		uint32_t spriteNamesOffset = *(uint32_t*)(buffer + 24);
 		uint32_t spriteExtraDataOffset = *(uint32_t*)(buffer + 28);
 
-		if (txpSetOffset != 0)
+		if (texSetOffset != 0)
 		{
-			sprSet->TxpSet = MakeUnique<Graphics::TxpSet>();
-			sprSet->TxpSet->Parse(buffer + txpSetOffset, bufferSize - txpSetOffset);
+			sprSet->TexSet = MakeUnique<Graphics::TexSet>();
+			sprSet->TexSet->Parse(buffer + texSetOffset, bufferSize - texSetOffset);
 		}
 
 		if (spritesOffset != 0)
@@ -38,8 +110,8 @@ namespace Comfy::Graphics
 			{
 				Spr* sprite = &sprSet->Sprites[i];
 
-				sprite->TextureIndex = *(uint32_t*)(spritesBuffer + 0);
-				sprite->Unknown = *(float*)(spritesBuffer + 4);
+				sprite->TextureIndex = *(int32_t*)(spritesBuffer + 0);
+				sprite->Rotate = *(int32_t*)(spritesBuffer + 4);
 				sprite->TexelRegion = *(vec4*)(spritesBuffer + 8);
 				sprite->PixelRegion = *(vec4*)(spritesBuffer + 24);
 				spritesBuffer += 40;
@@ -53,8 +125,7 @@ namespace Comfy::Graphics
 			for (uint32_t i = 0; i < textureCount; i++)
 			{
 				uint32_t nameOffset = ((uint32_t*)textureNamesOffsetBuffer)[i];
-				char* name = (char*)(buffer + nameOffset);
-				sprSet->TxpSet->Txps[i]->Name = std::string(name);
+				sprSet->TexSet->Textures[i]->Name = (const char*)(buffer + nameOffset);
 			}
 		}
 
@@ -65,8 +136,7 @@ namespace Comfy::Graphics
 			for (uint32_t i = 0; i < spritesCount; i++)
 			{
 				uint32_t nameOffset = ((uint32_t*)spriteNamesOffsetBuffer)[i];
-				char* name = (char*)(buffer + nameOffset);
-				sprSet->Sprites[i].Name = std::string(name);
+				sprSet->Sprites[i].Name = (const char*)(buffer + nameOffset);
 			}
 		}
 
@@ -74,10 +144,10 @@ namespace Comfy::Graphics
 		{
 			const uint8_t* extraDataBuffer = buffer + spriteExtraDataOffset;
 
-			for (Spr &sprite : sprSet->Sprites)
+			for (auto& sprite : sprSet->Sprites)
 			{
-				sprite.GraphicsReserved = *((uint32_t*)extraDataBuffer + 0);
-				sprite.DisplayMode = *((DisplayMode*)extraDataBuffer + 4);
+				sprite.Extra.Flags = *((uint32_t*)extraDataBuffer + 0);
+				sprite.Extra.ScreenMode = *((ScreenMode*)extraDataBuffer + 4);
 				extraDataBuffer += 8;
 			}
 		}

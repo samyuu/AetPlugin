@@ -185,9 +185,6 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypesNames.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TxpSet.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Comfy\lib\zlib\src\crc32.h">
       <Filter>Comfy\lib\zlib</Filter>
     </ClInclude>
@@ -293,13 +290,19 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\SprDB.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TxpDB.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\AetDB.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\Database.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.h">
+      <Filter>Comfy\ComfyCore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.h">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TexDB.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
   </ItemGroup>
@@ -381,9 +384,6 @@
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TxpSet.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\Comfy\lib\zlib\src\adler32.c">
       <Filter>Comfy\lib\zlib</Filter>
     </ClCompile>
@@ -441,10 +441,16 @@
     <ClCompile Include="..\src\Comfy\ComfyStudio\Database\SprDB.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TxpDB.cpp">
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp">
+    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.cpp">
+      <Filter>Comfy\ComfyCore</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.cpp">
+      <Filter>Comfy\ComfyStudio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TexDB.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
   </ItemGroup>

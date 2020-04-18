@@ -1,4 +1,4 @@
-#include "TxpDB.h"
+#include "TexDB.h"
 #include "FileSystem/BinaryReader.h"
 #include "FileSystem/BinaryWriter.h"
 
@@ -6,34 +6,34 @@ namespace Comfy::Database
 {
 	using namespace FileSystem;
 
-	void TxpDB::Read(BinaryReader& reader)
+	void TexDB::Read(BinaryReader& reader)
 	{
-		uint32_t txpEntryCount = reader.ReadU32();
-		FileAddr txpOffset = reader.ReadPtr();
+		uint32_t texEntryCount = reader.ReadU32();
+		FileAddr texOffset = reader.ReadPtr();
 
-		if (txpEntryCount > 0 && txpOffset != FileAddr::NullPtr)
+		if (texEntryCount > 0 && texOffset != FileAddr::NullPtr)
 		{
-			Entries.resize(txpEntryCount);
-			reader.ReadAt(txpOffset, [this](BinaryReader& reader)
+			Entries.resize(texEntryCount);
+			reader.ReadAt(texOffset, [this](BinaryReader& reader)
 			{
-				for (auto& txpEntry : Entries)
+				for (auto& texEntry : Entries)
 				{
-					txpEntry.ID = TxpID(reader.ReadU32());
-					txpEntry.Name = reader.ReadStrPtr();
+					texEntry.ID = TexID(reader.ReadU32());
+					texEntry.Name = reader.ReadStrPtr();
 				}
 			});
 		}
 	}
 
-	void TxpDB::Write(BinaryWriter& writer)
+	void TexDB::Write(BinaryWriter& writer)
 	{
 		writer.WriteU32(static_cast<uint32_t>(Entries.size()));
 		writer.WritePtr([this](BinaryWriter& writer)
 		{
-			for (auto& txpEntry : Entries)
+			for (auto& texEntry : Entries)
 			{
-				writer.WriteU32(static_cast<uint32_t>(txpEntry.ID));
-				writer.WriteStrPtr(txpEntry.Name);
+				writer.WriteU32(static_cast<uint32_t>(texEntry.ID));
+				writer.WriteStrPtr(texEntry.Name);
 			}
 
 			writer.WriteAlignmentPadding(16);
@@ -47,13 +47,13 @@ namespace Comfy::Database
 		writer.WriteAlignmentPadding(16);
 	}
 	
-	const TxpEntry* TxpDB::GetTxpEntry(TxpID id) const
+	const TexEntry* TexDB::GetTexEntry(TexID id) const
 	{
 		auto found = std::find_if(Entries.begin(), Entries.end(), [id](auto& e) { return e.ID == id; });
 		return (found == Entries.end()) ? nullptr : &(*found);
 	}
 
-	const TxpEntry* TxpDB::GetTxpEntry(std::string_view name) const
+	const TexEntry* TexDB::GetTexEntry(std::string_view name) const
 	{
 		auto found = std::find_if(Entries.begin(), Entries.end(), [name](auto& e) { return e.Name == name; });
 		return (found == Entries.end()) ? nullptr : &(*found);

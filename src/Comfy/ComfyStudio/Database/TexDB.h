@@ -3,22 +3,22 @@
 
 namespace Comfy::Database
 {
-	struct TxpEntry : BinaryDatabase::Entry
+	struct TexEntry : BinaryDatabase::Entry
 	{
-		TxpID ID;
+		TexID ID;
 		std::string Name;
 	};
 
-	class TxpDB final : public BinaryDatabase
+	class TexDB final : public BinaryDatabase
 	{
 	public:
-		std::vector<TxpEntry> Entries;
+		std::vector<TexEntry> Entries;
 
 		void Read(FileSystem::BinaryReader& reader) override;
 		void Write(FileSystem::BinaryWriter& writer) override;
 
-		const TxpEntry* GetTxpEntry(TxpID id) const;
-		const TxpEntry* GetTxpEntry(std::string_view name) const;
+		const TexEntry* GetTexEntry(TexID id) const;
+		const TexEntry* GetTexEntry(std::string_view name) const;
 
 	private:
 	};

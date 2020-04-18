@@ -58,7 +58,7 @@ namespace Comfy::FileSystem
 
 		inline size_t WriteBuffer(const void* buffer, size_t size) { return underlyingStream->WriteBuffer(buffer, size); }
 
-		template <typename T> 
+		template <typename T>
 		void WriteType(T value) { WriteBuffer(&value, sizeof(T)); }
 
 		void WriteStr(std::string_view value);
@@ -67,7 +67,7 @@ namespace Comfy::FileSystem
 		inline void WritePtr(FileAddr value) { writePtrFunc(*this, value); };
 		inline void WritePtr(nullptr_t) = delete;
 
-		void WritePtr(const std::function<void(BinaryWriter&)>& func);
+		void WritePtr(const std::function<void(BinaryWriter&)>& func, FileAddr baseAddress = FileAddr::NullPtr);
 		void WriteDelayedPtr(const std::function<void(BinaryWriter&)>& func);
 
 		void WritePadding(size_t size, uint32_t paddingValue = PaddingValue);
@@ -109,6 +109,7 @@ namespace Comfy::FileSystem
 		struct FunctionPointerEntry
 		{
 			FileAddr ReturnAddress;
+			FileAddr BaseAddress;
 			const std::function<void(BinaryWriter&)> Function;
 		};
 

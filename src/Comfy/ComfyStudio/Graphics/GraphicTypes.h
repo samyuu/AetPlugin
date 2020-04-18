@@ -219,7 +219,7 @@ namespace Comfy::Graphics
 		Count
 	};
 
-	enum class DisplayMode : uint32_t
+	enum class ScreenMode : uint32_t
 	{
 		// NOTE:  320 x  240
 		QVGA = 0,

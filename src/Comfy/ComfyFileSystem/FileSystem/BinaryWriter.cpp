@@ -36,9 +36,9 @@ namespace Comfy::FileSystem
 		WritePtr(FileAddr::NullPtr);
 	}
 
-	void BinaryWriter::WritePtr(const std::function<void(BinaryWriter&)>& func)
+	void BinaryWriter::WritePtr(const std::function<void(BinaryWriter&)>& func, FileAddr baseAddress)
 	{
-		pointerPool.push_back({ GetPosition(), func });
+		pointerPool.push_back({ GetPosition(), baseAddress, func });
 		WritePtr(FileAddr::NullPtr);
 	}
 
@@ -84,7 +84,7 @@ namespace Comfy::FileSystem
 
 	void BinaryWriter::FlushStringPointerPool()
 	{
-		for (auto& value : stringPointerPool)
+		for (const auto& value : stringPointerPool)
 		{
 			const auto originalStringOffset = GetPosition();
 			auto stringOffset = originalStringOffset;
@@ -127,12 +127,12 @@ namespace Comfy::FileSystem
 
 	void BinaryWriter::FlushPointerPool()
 	{
-		for (auto& value : pointerPool)
+		for (const auto& value : pointerPool)
 		{
 			const auto offset = GetPosition();
 
 			SetPosition(value.ReturnAddress);
-			WritePtr(offset);
+			WritePtr(offset - value.BaseAddress);
 
 			SetPosition(offset);
 			value.Function(*this);
@@ -143,7 +143,7 @@ namespace Comfy::FileSystem
 
 	void BinaryWriter::FlushDelayedWritePool()
 	{
-		for (auto& value : delayedWritePool)
+		for (const auto& value : delayedWritePool)
 		{
 			const auto offset = GetPosition();
 

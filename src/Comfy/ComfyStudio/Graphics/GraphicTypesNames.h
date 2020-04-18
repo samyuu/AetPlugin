@@ -80,7 +80,7 @@ namespace Comfy::Graphics
 		"L8A8",
 	};
 
-	constexpr std::array<const char*, static_cast<size_t>(DisplayMode::Custom)> DisplayModeNames =
+	constexpr std::array<const char*, static_cast<size_t>(ScreenMode::Custom)> ScreenModeNames =
 	{
 		"VGA",
 		"SVGA",

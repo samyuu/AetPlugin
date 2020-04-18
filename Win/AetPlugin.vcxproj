@@ -107,7 +107,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -169,7 +169,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -234,7 +234,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -296,7 +296,7 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
@@ -384,6 +384,7 @@
     <ClInclude Include="..\src\Comfy\ComfyCore\IntegralTypes.h" />
     <ClInclude Include="..\src\Comfy\ComfyCore\Misc\EndianHelper.h" />
     <ClInclude Include="..\src\Comfy\ComfyCore\Misc\FileExtensionHelper.h" />
+    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.h" />
     <ClInclude Include="..\src\Comfy\ComfyCore\Misc\StringHelper.h" />
     <ClInclude Include="..\src\Comfy\ComfyCore\Misc\StringParseHelper.h" />
     <ClInclude Include="..\src\Comfy\ComfyCore\Misc\TextDatabaseParser.h" />
@@ -406,7 +407,7 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\AetDB.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\Database.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\SprDB.h" />
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TxpDB.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TexDB.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.h" />
@@ -415,7 +416,7 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GPU\GPUResources.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypes.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypesNames.h" />
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TxpSet.h" />
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\Detail\IDTypeDeclarations.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDHash.h" />
     <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDTypes.h" />
@@ -476,6 +477,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\AetPlugin.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyCore\Core\Logger.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyCore\Misc\FileExtensionHelper.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyCore\Misc\StringHelper.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyCore\Misc\StringParseHelper.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\ComfyArchive.cpp" />
@@ -493,12 +495,12 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\Stream.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Database\SprDB.cpp" />
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TxpDB.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TexDB.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSetFile.cpp" />
     <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.cpp" />
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TxpSet.cpp" />
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.cpp" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\adler32.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\compress.c" />
     <ClCompile Include="..\src\Comfy\lib\zlib\src\crc32.c" />
