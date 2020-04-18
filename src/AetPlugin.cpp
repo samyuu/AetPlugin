@@ -2,6 +2,7 @@
 #include "AetImport.h"
 #include "AetExport.h"
 #include "FileDialogUtil.h"
+#include "FarcUtil.h"
 #include "FileSystem/FileHelper.h"
 #include "Misc/StringHelper.h"
 #include <ctime>
@@ -237,9 +238,9 @@ namespace AetPlugin
 			UniquePtr<SprSet> sprSet = nullptr;
 			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
 			{
-				// TODO: Pack into farc
 				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet);
-				sprSet->Save(outputDirectoryU8 + "\\spr_farc\\spr_" + std::string(FormatUtil::StripPrefixIfExists(setFileNameU8, AetPrefix)));
+				const auto sprName = "spr_" + std::string(FormatUtil::StripFileExtension(FormatUtil::StripPrefixIfExists(setFileNameU8, AetPrefix)));
+				FarcUtil::WriteUncompressedFarc((outputDirectoryU8 + "\\" + sprName + ".farc"), *sprSet, (sprName + ".bin"));
 			}
 
 			if (exportOptions.Database.ExportSprDB)
