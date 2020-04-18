@@ -1,13 +1,29 @@
 #pragma once
 #include "AetPlugin.h"
 #include "Graphics/Auth2D/Aet/AetSet.h"
+#include "Graphics/Auth2D/SprSet.h"
 #include "Database/AetDB.h"
 #include "Database/SprDB.h"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace AetPlugin
 {
 	using namespace Comfy;
 	using namespace Comfy::Graphics;
+
+	struct SprSetSrcInfo
+	{
+		struct SprSrcInfo
+		{
+			std::string FilePath;
+			const Aet::Video* Video = nullptr;
+			bool UsesTrackMatte = false;
+		};
+
+		// NOTE: Key = Aet::VideoSource::Name
+		std::unordered_map<std::string, SprSrcInfo> SprFileSources;
+	};
 
 	class AetExporter : NonCopyable
 	{
@@ -18,10 +34,12 @@ namespace AetPlugin
 		void SetLog(FILE* log, LogLevel logLevel);
 
 		std::string GetAetSetNameFromProjectName() const;
-		UniquePtr<Aet::AetSet> ExportAetSet(std::wstring_view workingDirectory);
+
+		std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> ExportAetSet(std::wstring_view workingDirectory);
+		UniquePtr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet);
 
 		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
-		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
+		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
 
 	protected:
 		LogLevel logLevel = LogLevel_None;
@@ -74,13 +92,16 @@ namespace AetPlugin
 			std::wstring ImportDirectory;
 		} workingDirectory;
 
-		struct WorkingAetData
+		struct WorkingSetData
 		{
 			Aet::AetSet* Set = nullptr;
 			AEItemData* Folder = nullptr;
 			std::vector<AEItemData*> SceneComps;
 
 			std::string SprPrefix, SprHashPrefix;
+
+			UniquePtr<SprSetSrcInfo> SprSetSrcInfo = nullptr;
+			std::unordered_set<const Aet::Video*> TrackMatteUsingVideos;
 
 		} workingSet;
 
@@ -128,5 +149,8 @@ namespace AetPlugin
 		void FixInvalidCompositionData(Aet::Composition& comp);
 		void FixInvalidCompositionTrackMatteDurations(Aet::Composition& comp);
 		void FixInvalidLayerTrackMatteDurations(Aet::Layer& layer, Aet::Layer& trackMatteLayer);
+
+		void UpdateSceneTrackMatteUsingVideos();
+		void UpdateSetTrackMatteUsingVideos();
 	};
 }

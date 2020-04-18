@@ -2,7 +2,9 @@
 #include "FormatUtil.h"
 #include "StreamUtil.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
+#include "Graphics/Utilities/SpriteCreator.h"
 #include "Misc/StringHelper.h"
+#include "Misc/ImageHelper.h"
 #include "Resource/IDHash.h"
 
 #define LogLine(format, ...)		do { if (logLevel != LogLevel_None)		{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
@@ -31,7 +33,7 @@ namespace AetPlugin
 		return setName;
 	}
 
-	UniquePtr<Aet::AetSet> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
+	std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> AetExporter::ExportAetSet(std::wstring_view workingDirectory)
 	{
 		LogLine("--- Log Start ---");
 		LogLine("Log Level: '%s'", FormatUtil::FormatFlags(logLevel, LogLevelsToCheck).c_str());
@@ -39,19 +41,55 @@ namespace AetPlugin
 		LogInfoLine("Working Directory: '%s'", Utf16ToUtf8(workingDirectory).c_str());
 		this->workingDirectory.ImportDirectory = workingDirectory;
 
-		auto set = MakeUnique<Aet::AetSet>();
+		auto aetSet = MakeUnique<Aet::AetSet>();
 
 		SetupWorkingProjectData();
-		SetupWorkingSetData(*set);
+		SetupWorkingSetData(*aetSet);
 
 		for (auto* sceneComp : workingSet.SceneComps)
 		{
 			SetupWorkingSceneData(sceneComp);
 			ExportScene();
+			UpdateSceneTrackMatteUsingVideos();
 		}
 
+		UpdateSetTrackMatteUsingVideos();
+
 		LogLine("--- Log End ---");
-		return set;
+		return std::make_pair(std::move(aetSet), std::move(workingSet.SprSetSrcInfo));
+	}
+
+	UniquePtr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet)
+	{
+		// TODO: Callback and stuff
+		auto spriteCreator = Graphics::Utilities::SpriteCreator();
+		std::vector<Graphics::Utilities::SprMarkup> sprMarkups;
+
+		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
+		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
+
+		// TODO:
+		const auto aetSetScreenMode = ScreenMode::HDTV720;
+
+		for (const auto&[sprName, srcSpr] : sprSetSrcInfo.SprFileSources)
+		{
+			auto& owningPixels = owningImagePixels.emplace_back();
+
+			ivec2 imageSize = {};
+			ReadImage(srcSpr.FilePath, imageSize, owningPixels);
+
+			if (owningPixels == nullptr)
+				continue;
+
+			auto& sprMarkup = sprMarkups.emplace_back();
+			sprMarkup.Name = sprName;
+			sprMarkup.Size = imageSize;
+			sprMarkup.RGBAPixels = owningPixels.get();
+			sprMarkup.ScreenMode = aetSetScreenMode;
+			sprMarkup.Flags = srcSpr.UsesTrackMatte ? Graphics::Utilities::SprMarkupFlags_NoMerge : Graphics::Utilities::SprMarkupFlags_None;
+		}
+
+		return spriteCreator.Create(sprMarkups);
 	}
 
 	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
@@ -77,7 +115,7 @@ namespace AetPlugin
 		return aetDB;
 	}
 
-	Database::SprDB AetExporter::CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
+	Database::SprDB AetExporter::CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const
 	{
 		Database::SprDB sprDB;
 
@@ -85,6 +123,8 @@ namespace AetPlugin
 		setEntry.FileName = FormatUtil::ToLower(SprPrefix) + FormatUtil::ToSnakeCaseLower(FormatUtil::StripPrefixIfExists(setFileName, AetPrefix));
 		setEntry.Name = FormatUtil::ToUpper(SprPrefix) + FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
 		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
+
+		const auto sprPrefix = std::string(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix)) + "_";
 
 		int16_t sprIndex = 0;
 		for (const auto& scene : set.GetScenes())
@@ -95,15 +135,38 @@ namespace AetPlugin
 				for (const auto& source : video->Sources)
 				{
 					auto& sprEntry = setEntry.SprEntries.emplace_back();
-
 					sprEntry.Name = FormatUtil::ToUpper(SprPrefix) + source.Name;
 					sprEntry.ID = source.ID;
-					sprEntry.Index = sprIndex++;
+					if (sprSet != nullptr)
+					{
+						const auto nameToFind = FormatUtil::StripPrefixIfExists(source.Name, sprPrefix);
+						auto matchingSpr = std::find_if(sprSet->Sprites.begin(), sprSet->Sprites.end(), [&](const Spr& spr) { return spr.Name == nameToFind; });
+
+						if (matchingSpr != sprSet->Sprites.end())
+							sprEntry.Index = static_cast<int16_t>(std::distance(sprSet->Sprites.data(), &(*matchingSpr)));
+						else
+							sprEntry.Index = sprIndex++;
+					}
+					else
+					{
+						sprEntry.Index = sprIndex++;
+					}
 				}
 			}
-			
-			// TODO:
-			setEntry.SprTexEntries.reserve(0);
+		}
+
+		if (sprSet != nullptr && sprSet->TexSet != nullptr)
+		{
+			setEntry.SprTexEntries.reserve(sprSet->TexSet->Textures.size());
+
+			int16_t sprTexIndex = 0;
+			for (const auto& tex : sprSet->TexSet->Textures)
+			{
+				auto& sprTexEntry = setEntry.SprTexEntries.emplace_back();
+				sprTexEntry.Name = FormatUtil::ToUpper(SprTexPrefix) + tex->Name.value_or("UNKNOWN");
+				sprTexEntry.ID = HashIDString<SprID>(sprTexEntry.Name);
+				sprTexEntry.Index = sprTexIndex++;
+			}
 		}
 
 		return sprDB;
@@ -209,6 +272,7 @@ namespace AetPlugin
 
 		workingSet.SprPrefix = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(workingSet.Set->Name, AetPrefix)) + "_";
 		workingSet.SprHashPrefix = FormatUtil::ToUpper(SprPrefix) + workingSet.SprPrefix;
+		workingSet.SprSetSrcInfo = MakeUnique<SprSetSrcInfo>();
 	}
 
 	void AetExporter::SetupWorkingSceneData(AEItemData* sceneComp)
@@ -548,6 +612,25 @@ namespace AetPlugin
 				if (result.ec != std::errc::invalid_argument)
 					source.ID = static_cast<SprID>(sprID);
 			}
+
+			{
+				A_long mainFilesCount, filesPerFrame;
+				suites.FootageSuite5->AEGP_GetFootageNumFiles(video.GuiData.AE_Footage, &mainFilesCount, &filesPerFrame);
+
+				for (A_long i = 0; i < mainFilesCount; i++)
+				{
+					AEGP_MemHandle pathHandle;
+					suites.FootageSuite5->AEGP_GetFootagePath(video.GuiData.AE_Footage, i, AEGP_FOOTAGE_MAIN_FILE_INDEX, &pathHandle);
+					const auto sourcePath = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
+
+					if (i < video.Sources.size() && !sourcePath.empty())
+					{
+						const auto& videoSource = video.Sources[i];
+						const auto videoName = std::string(FormatUtil::StripPrefixIfExists(videoSource.Name, workingSet.SprPrefix));
+						workingSet.SprSetSrcInfo->SprFileSources[videoName] = SprSetSrcInfo::SprSrcInfo { sourcePath, &video };
+					}
+				}
+			}
 		}
 
 		video.Frames = static_cast<float>(video.Sources.size());
@@ -641,5 +724,30 @@ namespace AetPlugin
 
 		const frame_t adjustedEndFrame = std::min(layer.EndFrame, trackMatteLayer.EndFrame);
 		layer.EndFrame = trackMatteLayer.EndFrame = adjustedEndFrame;
+	}
+
+	void AetExporter::UpdateSceneTrackMatteUsingVideos()
+	{
+		auto checkComp = [&](const auto& comp)
+		{
+			for (const auto& layer : comp.GetLayers())
+			{
+				if (layer->ItemType != Aet::ItemType::Video || layer->LayerVideo == nullptr)
+					continue;
+
+				if (layer->GetVideoItem() != nullptr && layer->LayerVideo->TransferMode.TrackMatte != Aet::TrackMatte::NoTrackMatte)
+					workingSet.TrackMatteUsingVideos.insert(layer->GetVideoItem().get());
+			}
+		};
+
+		for (const auto& comp : workingScene.Scene->Compositions)
+			checkComp(*comp);
+		checkComp(*workingScene.Scene->RootComposition);
+	}
+
+	void AetExporter::UpdateSetTrackMatteUsingVideos()
+	{
+		for (auto&[sprName, srcSpr] : workingSet.SprSetSrcInfo->SprFileSources)
+			srcSpr.UsesTrackMatte = (workingSet.TrackMatteUsingVideos.find(srcSpr.Video) != workingSet.TrackMatteUsingVideos.end());
 	}
 }

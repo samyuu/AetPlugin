@@ -2,8 +2,8 @@
 #include "AetImport.h"
 #include "AetExport.h"
 #include "FileDialogUtil.h"
-#include "Misc/StringHelper.h"
 #include "FileSystem/FileHelper.h"
+#include "Misc/StringHelper.h"
 #include <ctime>
 
 namespace AetPlugin
@@ -219,7 +219,7 @@ namespace AetPlugin
 			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectoryU16, FormatUtil::StripPrefixIfExists(setNameU16, AetPrefixW), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto aetSet = exporter.ExportAetSet(outputDirectoryU16);
+			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
@@ -231,9 +231,18 @@ namespace AetPlugin
 			{
 				aetSet->Save(outputFilePathU16);
 			}
+
+			UniquePtr<SprSet> sprSet = nullptr;
+			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
+			{
+				// TODO: Pack into farc
+				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet);
+				sprSet->Save(outputDirectoryU8 + "\\spr_farc\\spr_" + std::string(FormatUtil::StripPrefixIfExists(setFileNameU8, AetPrefix)));
+			}
+
 			if (exportOptions.Database.ExportSprDB)
 			{
-				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8);
+				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8, sprSet.get());
 				sprDB.Save(dbBasePathU8 + "spr_db.bin");
 			}
 			if (exportOptions.Database.ExportAetDB)

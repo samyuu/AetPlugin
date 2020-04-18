@@ -33,6 +33,9 @@ namespace AetPlugin
 	constexpr std::string_view SprPrefix = "spr_";
 	constexpr std::wstring_view SprPrefixW = L"spr_";
 
+	constexpr std::string_view SprTexPrefix = "sprtex_";
+	constexpr std::wstring_view SprTexPrefixW = L"sprtex_";
+
 	struct PluginStateData
 	{
 		AEGP_PluginID PluginID = -1;
