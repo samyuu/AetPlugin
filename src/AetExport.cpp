@@ -14,6 +14,47 @@
 
 namespace AetPlugin
 {
+	namespace
+	{
+		constexpr std::array ScreenModeResolutions
+		{
+			std::make_pair(ScreenMode::QVGA, ivec2(320, 240)),
+			std::make_pair(ScreenMode::VGA, ivec2(640, 480)),
+			std::make_pair(ScreenMode::SVGA, ivec2(800, 600)),
+			std::make_pair(ScreenMode::XGA, ivec2(1024, 768)),
+			std::make_pair(ScreenMode::SXGA, ivec2(1280, 1024)),
+			std::make_pair(ScreenMode::SXGA_PLUS, ivec2(1400, 1050)),
+			std::make_pair(ScreenMode::UXGA, ivec2(1600, 1200)),
+			std::make_pair(ScreenMode::WVGA, ivec2(800, 480)),
+			std::make_pair(ScreenMode::WSVGA, ivec2(1024, 600)),
+			std::make_pair(ScreenMode::WXGA, ivec2(1280, 768)),
+			std::make_pair(ScreenMode::WXGA_, ivec2(1360, 768)),
+			std::make_pair(ScreenMode::WUXGA, ivec2(1920, 1200)),
+			std::make_pair(ScreenMode::WQXGA, ivec2(2560, 1536)),
+			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 720)),
+			std::make_pair(ScreenMode::HDTV1080, ivec2(1920, 1080)),
+			std::make_pair(ScreenMode::WQHD, ivec2(2560, 1440)),
+			std::make_pair(ScreenMode::HVGA, ivec2(480, 272)),
+			std::make_pair(ScreenMode::qHD, ivec2(960, 544)),
+		};
+
+		constexpr ScreenMode GetScreenModeFromResolution(ivec2 inputResolution)
+		{
+			for (const auto&[mode, resolution] : ScreenModeResolutions)
+			{
+				if (resolution == inputResolution)
+					return mode;
+			}
+
+			return ScreenMode::Custom;
+		}
+
+		ivec2 GetAetSetResolution(const Aet::AetSet& set)
+		{
+			return !set.GetScenes().empty() ? set.GetScenes().front()->Resolution : ivec2(0, 0);
+		}
+	}
+
 	void AetExporter::SetLog(FILE* logStream, LogLevel logLevel)
 	{
 		this->logStream = logStream;
@@ -68,8 +109,7 @@ namespace AetPlugin
 		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
 		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
 
-		// TODO:
-		const auto aetSetScreenMode = ScreenMode::HDTV720;
+		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
 
 		for (const auto&[sprName, srcSpr] : sprSetSrcInfo.SprFileSources)
 		{

@@ -131,7 +131,6 @@ namespace AetPlugin
 			dialog.ParentWindowHandle = EvilGlobalState.MainWindowHandle;
 			dialog.CustomizeItems =
 			{
-				// TODO: Display mode combo box (?)
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Database" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
