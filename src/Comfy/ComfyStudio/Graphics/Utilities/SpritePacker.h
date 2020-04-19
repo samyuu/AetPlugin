@@ -4,6 +4,7 @@
 #include "Graphics/TexSet.h"
 #include "Graphics/Auth2D/SprSet.h"
 #include <functional>
+#include <optional>
 
 namespace Comfy::Graphics::Utilities
 {
@@ -49,7 +50,7 @@ namespace Comfy::Graphics::Utilities
 		int RemainingFreePixels;
 	};
 
-	class SpriteCreator : NonCopyable
+	class SpritePacker : NonCopyable
 	{
 	public:
 		struct ProgressData
@@ -57,28 +58,28 @@ namespace Comfy::Graphics::Utilities
 			uint32_t Sprites, SpritesTotal;
 		};
 
-		using ProgressCallback = std::function<void(SpriteCreator&, ProgressData)>;
+		using ProgressCallback = std::function<void(SpritePacker&, ProgressData)>;
 
 	public:
-		SpriteCreator() = default;
-		SpriteCreator(ProgressCallback callback);
-		~SpriteCreator() = default;
+		SpritePacker() = default;
+		SpritePacker(ProgressCallback callback);
+		~SpritePacker() = default;
 
 	public:
-		UniquePtr<SprSet> Create(const std::vector<SprMarkup>& sprMarkups);
-
-	protected:
 		struct SettingsData
 		{
 			ivec2 MaxTextureSize = ivec2(2048, 1024);
 
-			// NOTE: Numbers of pixels at each side
-			int SpritePadding = 2;
+			std::optional<uint32_t> BackgroundColor = 0x00000000; // 0xFFFF00FF;
 
-			bool EnsurePowerTwo = false;
-			bool SetDummyColor = true;
-			bool FlipY = true;
-		} settings;
+			// NOTE: Number of pixels at each side
+			ivec2 SpritePadding = ivec2(2, 2);
+
+			bool PowerOfTwoTextures = true;
+			bool FlipTexturesY = true;
+		} Settings;
+
+		UniquePtr<SprSet> Create(const std::vector<SprMarkup>& sprMarkups);
 
 	protected:
 		ProgressData currentProgress = {};

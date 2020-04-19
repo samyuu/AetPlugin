@@ -305,11 +305,11 @@
     <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TexDB.h">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\FarcUtil.h">
       <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpritePacker.h">
+      <Filter>Comfy\ComfyStudio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -459,11 +459,11 @@
     <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TexDB.cpp">
       <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpriteCreator.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\FarcUtil.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpritePacker.cpp">
+      <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
