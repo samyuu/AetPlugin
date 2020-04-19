@@ -106,8 +106,8 @@ namespace AetPlugin
 			struct SpriteData
 			{
 				bool ExportSprSet = true;
-				bool ParseSprIDComments = true;
-				// bool IncludeAll = false;
+				bool ParseSprIDComments = false;
+				bool PowerOfTwoTextures = false;
 			} Sprite;
 			struct LogData
 			{
@@ -138,13 +138,13 @@ namespace AetPlugin
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Misc" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export AetSet", &options.Misc.ExportAetSet },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet Set", &options.Misc.ExportAetSet },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Parse Spr IDs", &options.Sprite.ParseSprIDComments },
-				// { FileDialogUtil::Customize::ItemType::Checkbox, "Include All Footage", &options.Sprite.IncludeAll },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Log" },
@@ -238,7 +238,7 @@ namespace AetPlugin
 			UniquePtr<SprSet> sprSet = nullptr;
 			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
 			{
-				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet);
+				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, exportOptions.Sprite.PowerOfTwoTextures);
 				const auto sprName = "spr_" + std::string(FormatUtil::StripFileExtension(FormatUtil::StripPrefixIfExists(setFileNameU8, AetPrefix)));
 				FarcUtil::WriteUncompressedFarc((outputDirectoryU8 + "\\" + sprName + ".farc"), *sprSet, (sprName + ".bin"));
 			}

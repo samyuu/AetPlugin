@@ -2,7 +2,7 @@
 #include "FormatUtil.h"
 #include "StreamUtil.h"
 #include "Graphics/Auth2D/Aet/AetMgr.h"
-#include "Graphics/Utilities/SpriteCreator.h"
+#include "Graphics/Utilities/SpritePacker.h"
 #include "Misc/StringHelper.h"
 #include "Misc/ImageHelper.h"
 #include "Resource/IDHash.h"
@@ -102,10 +102,12 @@ namespace AetPlugin
 		return std::make_pair(std::move(aetSet), std::move(workingSet.SprSetSrcInfo));
 	}
 
-	UniquePtr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet)
+	UniquePtr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo)
 	{
 		// TODO: Callback and stuff
-		auto spriteCreator = Graphics::Utilities::SpriteCreator();
+		auto spritePacker = Graphics::Utilities::SpritePacker();
+		spritePacker.Settings.PowerOfTwoTextures = powerOfTwo;
+
 		std::vector<Graphics::Utilities::SprMarkup> sprMarkups;
 
 		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
@@ -133,7 +135,7 @@ namespace AetPlugin
 			sprMarkup.Flags = srcSpr.UsesTrackMatte ? Graphics::Utilities::SprMarkupFlags_NoMerge : Graphics::Utilities::SprMarkupFlags_None;
 		}
 
-		return spriteCreator.Create(sprMarkups);
+		return spritePacker.Create(sprMarkups);
 	}
 
 	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const

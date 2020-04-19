@@ -36,7 +36,7 @@ namespace AetPlugin
 		std::string GetAetSetNameFromProjectName() const;
 
 		std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> ExportAetSet(std::wstring_view workingDirectory, bool parseSprIDComments);
-		UniquePtr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet);
+		UniquePtr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo);
 
 		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
 		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
