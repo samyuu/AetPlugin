@@ -215,6 +215,7 @@ namespace AetPlugin
 			const auto outputDirectoryU8 = Utf16ToUtf8(outputDirectoryU16);
 
 			const auto setFileNameU8 = FileSystem::GetFileName(outputFilePathU8, true);
+			const auto aetBaseNameU8 = std::string(FormatUtil::StripFileExtension(FormatUtil::StripPrefixIfExists(setNameU8, AetPrefix)));
 
 			if (outputFilePathU16.empty())
 				return A_Err_NONE;
@@ -222,36 +223,31 @@ namespace AetPlugin
 			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectoryU16, FormatUtil::StripPrefixIfExists(setNameU16, AetPrefixW), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16, exportOptions.Sprite.ParseSprIDComments);
+			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16, exportOptions.Database.ParseSprIDComments);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
-			const auto dbBasePathU8 = outputDirectoryU8 + "\\" + std::string(FormatUtil::StripPrefixIfExists(setNameU8, AetPrefix)) + "_";
-
 			if (exportOptions.Misc.ExportAetSet)
-			{
 				aetSet->Save(outputFilePathU16);
-			}
 
 			UniquePtr<SprSet> sprSet = nullptr;
 			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
 			{
 				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, exportOptions.Sprite.PowerOfTwoTextures);
-				const auto sprName = "spr_" + std::string(FormatUtil::StripFileExtension(FormatUtil::StripPrefixIfExists(setFileNameU8, AetPrefix)));
-				FarcUtil::WriteUncompressedFarc((outputDirectoryU8 + "\\" + sprName + ".farc"), *sprSet, (sprName + ".bin"));
+				FarcUtil::WriteUncompressedFarc((outputDirectoryU8 + "\\spr_" + aetBaseNameU8 + ".farc"), *sprSet, ("spr_" + aetBaseNameU8 + ".bin"));
 			}
 
 			if (exportOptions.Database.ExportSprDB)
 			{
 				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8, sprSet.get());
-				sprDB.Save(dbBasePathU8 + "spr_db.bin");
+				sprDB.Save(outputDirectoryU8 + "\\spr_db_" + aetBaseNameU8 + ".bin");
 			}
 			if (exportOptions.Database.ExportAetDB)
 			{
 				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileNameU8);
-				aetDB.Save(dbBasePathU8 + "aet_db.bin");
+				aetDB.Save(outputDirectoryU8 + "\\aet_db_" + aetBaseNameU8 + ".bin");
 			}
 
 			return A_Err_NONE;
