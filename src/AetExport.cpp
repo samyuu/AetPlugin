@@ -416,7 +416,7 @@ namespace AetPlugin
 	void AetExporter::ExportComp(Aet::Composition& comp)
 	{
 		A_long compLayerCount;
-		suites.LayerSuite3->AEGP_GetCompNumLayers(comp.GuiData.AE_Comp, &compLayerCount);
+		suites.LayerSuite7->AEGP_GetCompNumLayers(comp.GuiData.AE_Comp, &compLayerCount);
 
 		auto& compLayers = comp.GetLayers();
 		compLayers.reserve(compLayerCount);
@@ -424,7 +424,7 @@ namespace AetPlugin
 		for (A_long i = 0; i < compLayerCount; i++)
 		{
 			auto& layer = *compLayers.emplace_back(MakeRef<Aet::Layer>());
-			suites.LayerSuite3->AEGP_GetCompLayerByIndex(comp.GuiData.AE_Comp, i, &layer.GuiData.AE_Layer);
+			suites.LayerSuite7->AEGP_GetCompLayerByIndex(comp.GuiData.AE_Comp, i, &layer.GuiData.AE_Layer);
 
 			ExportLayer(layer);
 		}
@@ -445,23 +445,26 @@ namespace AetPlugin
 
 	void AetExporter::ExportLayerName(Aet::Layer& layer)
 	{
-		A_char layerName[AEGP_MAX_LAYER_NAME_SIZE], layerSourceName[AEGP_MAX_LAYER_NAME_SIZE];
-		suites.LayerSuite3->AEGP_GetLayerName(layer.GuiData.AE_Layer, layerName, layerSourceName);
+		AEGP_MemHandle nameHandle, sourceNameHandle;
+		suites.LayerSuite7->AEGP_GetLayerName(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, &nameHandle, &sourceNameHandle);
 
-		if (layerName[0] != '\0')
-			layer.SetName(layerName);
+		const auto name = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
+		const auto sourceName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, sourceNameHandle));
+
+		if (!name.empty() && name.front() != '\0')
+			layer.SetName(name);
 		else
-			layer.SetName(layerSourceName);
+			layer.SetName(sourceName);
 	}
 
 	void AetExporter::ExportLayerTime(Aet::Layer& layer)
 	{
 		A_Time offset, inPoint, duration;
 		A_Ratio stretch;
-		suites.LayerSuite3->AEGP_GetLayerOffset(layer.GuiData.AE_Layer, &offset);
-		suites.LayerSuite3->AEGP_GetLayerInPoint(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &inPoint);
-		suites.LayerSuite3->AEGP_GetLayerDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &duration);
-		suites.LayerSuite3->AEGP_GetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+		suites.LayerSuite7->AEGP_GetLayerOffset(layer.GuiData.AE_Layer, &offset);
+		suites.LayerSuite7->AEGP_GetLayerInPoint(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &inPoint);
+		suites.LayerSuite7->AEGP_GetLayerDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &duration);
+		suites.LayerSuite7->AEGP_GetLayerStretch(layer.GuiData.AE_Layer, &stretch);
 
 		const frame_t frameOffset = AEUtil::AETimeToFrame(offset, workingScene.Scene->FrameRate);
 		const frame_t frameInPoint = AEUtil::AETimeToFrame(inPoint, workingScene.Scene->FrameRate);
@@ -478,7 +481,7 @@ namespace AetPlugin
 	void AetExporter::ExportLayerQuality(Aet::Layer& layer)
 	{
 		AEGP_LayerQuality layerQuality;
-		suites.LayerSuite3->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
+		suites.LayerSuite7->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
 		layer.Quality = (static_cast<Aet::LayerQuality>(layerQuality + 1));
 	}
 
@@ -510,7 +513,7 @@ namespace AetPlugin
 	void AetExporter::ExportLayerFlags(Aet::Layer& layer)
 	{
 		AEGP_LayerFlags layerFlags;
-		suites.LayerSuite3->AEGP_GetLayerFlags(layer.GuiData.AE_Layer, &layerFlags);
+		suites.LayerSuite7->AEGP_GetLayerFlags(layer.GuiData.AE_Layer, &layerFlags);
 
 		if (layerFlags & AEGP_LayerFlag_VIDEO_ACTIVE) layer.Flags.VideoActive = true;
 		if (layerFlags & AEGP_LayerFlag_AUDIO_ACTIVE) layer.Flags.AudioActive = true;
@@ -521,7 +524,7 @@ namespace AetPlugin
 	void AetExporter::ExportLayerSourceItem(Aet::Layer& layer)
 	{
 		AEGP_ItemH sourceItem;
-		suites.LayerSuite3->AEGP_GetLayerSourceItem(layer.GuiData.AE_Layer, &sourceItem);
+		suites.LayerSuite7->AEGP_GetLayerSourceItem(layer.GuiData.AE_Layer, &sourceItem);
 
 		AEGP_ItemType sourceItemType;
 		suites.ItemSuite8->AEGP_GetItemType(sourceItem, &sourceItemType);
@@ -556,7 +559,7 @@ namespace AetPlugin
 	void AetExporter::ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode)
 	{
 		AEGP_LayerTransferMode layerTransferMode;
-		suites.LayerSuite3->AEGP_GetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+		suites.LayerSuite7->AEGP_GetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 
 		transferMode.BlendMode = static_cast<AetBlendMode>(layerTransferMode.mode + 1);
 		transferMode.TrackMatte = static_cast<Aet::TrackMatte>(layerTransferMode.track_matte);
@@ -751,7 +754,7 @@ namespace AetPlugin
 		}
 
 		AEGP_LayerH parentHandle;
-		suites.LayerSuite3->AEGP_GetLayerParent(layer.GuiData.AE_Layer, &parentHandle);
+		suites.LayerSuite7->AEGP_GetLayerParent(layer.GuiData.AE_Layer, &parentHandle);
 
 		if (parentHandle != nullptr)
 			layer.SetRefParentLayer(FindLayerRefParent(layer, parentHandle));

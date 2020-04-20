@@ -474,13 +474,13 @@ namespace AetPlugin
 		auto tryAddAEFootageLayerToComp = [&](const auto* layerItem)
 		{
 			if (layerItem != nullptr && layerItem->GuiData.AE_FootageItem != nullptr)
-				suites.LayerSuite3->AEGP_AddLayer(layerItem->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				suites.LayerSuite7->AEGP_AddLayer(layerItem->GuiData.AE_FootageItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 		};
 
 		auto tryAddAECompLayerToComp = [&](const auto* layerItem)
 		{
 			if (layerItem != nullptr && layerItem->GuiData.AE_CompItem != nullptr)
-				suites.LayerSuite3->AEGP_AddLayer(layerItem->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
+				suites.LayerSuite7->AEGP_AddLayer(layerItem->GuiData.AE_CompItem, parentComp.GuiData.AE_Comp, &layer.GuiData.AE_Layer);
 		};
 
 		if (layer.ItemType == Aet::ItemType::Video)
@@ -547,7 +547,7 @@ namespace AetPlugin
 		layerTransferMode.flags = static_cast<AEGP_TransferFlags>(*reinterpret_cast<const uint8_t*>(&transferMode.Flags));
 		layerTransferMode.track_matte = static_cast<AEGP_TrackMatte>(transferMode.TrackMatte);
 
-		suites.LayerSuite3->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+		suites.LayerSuite7->AEGP_SetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
 	}
 
 	void AetImporter::ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
@@ -690,12 +690,12 @@ namespace AetPlugin
 			FrameToAETime(layer.StartOffset) :
 			FrameToAETime(0.0f);
 		const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
-		suites.LayerSuite3->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
+		suites.LayerSuite7->AEGP_SetLayerInPointAndDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
 
 		const A_Time offset = LayerUsesStartOffset(layer) ?
 			FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame) :
 			FrameToAETime(layer.StartFrame);
-		suites.LayerSuite3->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
+		suites.LayerSuite7->AEGP_SetLayerOffset(layer.GuiData.AE_Layer, &offset);
 
 		const A_Ratio stretch = AEUtil::Ratio(1.0f / layer.TimeScale);
 		suites.LayerSuite1->AEGP_SetLayerStretch(layer.GuiData.AE_Layer, &stretch);
@@ -761,6 +761,6 @@ namespace AetPlugin
 			return;
 
 		if (layer.GuiData.AE_Layer != nullptr && layer.GetRefParentLayer()->GuiData.AE_Layer != nullptr)
-			suites.LayerSuite3->AEGP_SetLayerParent(layer.GuiData.AE_Layer, layer.GetRefParentLayer()->GuiData.AE_Layer);
+			suites.LayerSuite7->AEGP_SetLayerParent(layer.GuiData.AE_Layer, layer.GetRefParentLayer()->GuiData.AE_Layer);
 	}
 }
