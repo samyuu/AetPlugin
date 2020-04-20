@@ -361,7 +361,7 @@ namespace Comfy::Graphics::Aet
 					video->Color = ReadColor(reader);
 					video->Size.x = reader.ReadU16();
 					video->Size.y = reader.ReadU16();
-					video->Frames = reader.ReadF32();
+					video->FilesPerFrame = reader.ReadF32();
 
 					uint32_t spriteCount = reader.ReadU32();
 					FileAddr spritesPointer = reader.ReadPtr();
@@ -568,7 +568,7 @@ namespace Comfy::Graphics::Aet
 						writer.WriteU32(video->Color);
 						writer.WriteI16(static_cast<int16_t>(video->Size.x));
 						writer.WriteI16(static_cast<int16_t>(video->Size.y));
-						writer.WriteF32(video->Frames);
+						writer.WriteF32(video->FilesPerFrame);
 						if (!video->Sources.empty())
 						{
 							writer.WriteU32(static_cast<uint32_t>(video->Sources.size()));
