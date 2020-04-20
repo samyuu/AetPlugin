@@ -318,19 +318,12 @@ namespace AetPlugin
 
 	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
 	{
-		const auto frontSourceNameWithoutAetPrefix = FormatUtil::StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
-		if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutAetPrefix); matchingSpriteFile != nullptr)
+		const auto frontSourceNameWithoutSetName = FormatUtil::StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
+		if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutSetName); matchingSpriteFile != nullptr)
 		{
 			AEGP_FootageLayerKey footageLayerKey = {};
 			footageLayerKey.layer_idL = AEGP_LayerID_UNKNOWN;
 			footageLayerKey.layer_indexL = 0;
-
-			if (video.Sources.size() > 1)
-			{
-				// BUG: The Footage name still isn't correct
-				const auto sequenceBaseName = FormatUtil::StripSuffixIfExists(frontSourceNameWithoutAetPrefix, "_000");
-				std::memcpy(footageLayerKey.nameAC, sequenceBaseName.data(), sequenceBaseName.size());
-			}
 
 			AEGP_FileSequenceImportOptions sequenceImportOptions = {};
 			sequenceImportOptions.all_in_folderB = (video.Sources.size() > 1);
@@ -345,7 +338,7 @@ namespace AetPlugin
 			constexpr frame_t placeholderDuration = 270.0f;
 
 			const A_Time duration = FrameToAETime(placeholderDuration);
-			suites.FootageSuite5->AEGP_NewPlaceholderFootage(EvilGlobalState.PluginID, frontSourceNameWithoutAetPrefix.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
+			suites.FootageSuite5->AEGP_NewPlaceholderFootage(EvilGlobalState.PluginID, frontSourceNameWithoutSetName.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 		}
 
 		ImportVideoAddItemToProject(video);
@@ -398,13 +391,20 @@ namespace AetPlugin
 
 		AEGP_MemHandle nameHandle;
 		suites.ItemSuite8->AEGP_GetItemName(EvilGlobalState.PluginID, video.GuiData.AE_FootageItem, &nameHandle);
-		const auto itemName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
 
-		// TODO: Should the set name be appended (?)
-		const auto cleanName = FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(itemName, SprPrefix), workingSet.NamePrefixUnderscore);
-		const auto setCleanName = /*workingSet.NamePrefixUnderscore +*/ FormatUtil::ToLower(cleanName);
+		const auto itemFileName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
+		auto cleanName = FormatUtil::ToLower(FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(itemFileName, SprPrefix), workingSet.NamePrefixUnderscore));
 
-		suites.ItemSuite8->AEGP_SetItemName(video.GuiData.AE_FootageItem, AEUtil::UTF16Cast(Utf8ToUtf16(setCleanName).c_str()));
+		if (video.Sources.size() > 1)
+		{
+			for (auto it = cleanName.rbegin(); it != cleanName.rend(); it++)
+			{
+				if (*it == '}') { *it = ']'; }
+				if (*it == '{') { *it = '['; break; }
+			}
+		}
+
+		suites.ItemSuite8->AEGP_SetItemName(video.GuiData.AE_FootageItem, AEUtil::UTF16Cast(Utf8ToUtf16(cleanName).c_str()));
 	}
 
 	void AetImporter::ImportAudio(const Aet::Audio& audio)
