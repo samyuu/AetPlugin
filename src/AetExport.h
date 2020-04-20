@@ -145,6 +145,7 @@ namespace AetPlugin
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportVideo(Aet::Video& video);
+		std::string FormatVideoSourceName(Aet::Video& video, std::string_view itemName, int sourceIndex, int sourceCount) const;
 
 		RefPtr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
 		RefPtr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);

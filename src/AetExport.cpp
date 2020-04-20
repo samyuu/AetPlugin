@@ -675,6 +675,10 @@ namespace AetPlugin
 
 		AEGP_FootageSignature signature;
 		suites.FootageSuite5->AEGP_GetFootageSignature(video.GuiData.AE_Footage, &signature);
+
+		AEGP_FootageInterp interpretation;
+		suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+
 		video.Size = { item.Dimensions.first, item.Dimensions.second };
 
 		if (signature == AEGP_FootageSignature_SOLID)
@@ -682,15 +686,39 @@ namespace AetPlugin
 			AEGP_ColorVal footageColor;
 			suites.FootageSuite5->AEGP_GetSolidFootageColor(item.ItemHandle, false, &footageColor);
 			video.Color = AEUtil::ColorRGB8(footageColor);
+			video.FilesPerFrame = 0.0f;
 		}
 		else
 		{
 			video.Color = 0xFFFFFF00;
 
-			auto& source = video.Sources.emplace_back();
-			source.Name = workingSet.SprPrefix + cleanItemName; // NOTE: {SET_NAME}_{SPRITE_NAME}
-			source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + cleanItemName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
+			A_long mainFilesCount, filesPerFrame;
+			suites.FootageSuite5->AEGP_GetFootageNumFiles(video.GuiData.AE_Footage, &mainFilesCount, &filesPerFrame);
 
+			video.Sources.reserve(mainFilesCount);
+			for (A_long i = 0; i < mainFilesCount; i++)
+			{
+				auto& source = video.Sources.emplace_back();
+				const auto sourceName = FormatVideoSourceName(video, cleanItemName, i, mainFilesCount);
+
+				source.Name = workingSet.SprPrefix + sourceName; // NOTE: {SET_NAME}_{SPRITE_NAME}
+				source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + sourceName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
+
+				AEGP_MemHandle pathHandle;
+				suites.FootageSuite5->AEGP_GetFootagePath(video.GuiData.AE_Footage, i, AEGP_FOOTAGE_MAIN_FILE_INDEX, &pathHandle);
+
+				const auto sourcePath = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
+
+				if (!sourcePath.empty())
+					workingSet.SprSetSrcInfo->SprFileSources[sourceName] = SprSetSrcInfo::SprSrcInfo { sourcePath, &video };
+			}
+
+			if (mainFilesCount > 1)
+				video.FilesPerFrame = static_cast<float>(interpretation.native_fpsF) / workingScene.Scene->FrameRate;
+			else
+				video.FilesPerFrame = 1.0f;
+
+#if 0
 			if (item.CommentProperty.Key == CommentUtil::Keys::SprID && settings.ParseSprIDComments)
 			{
 				std::string_view sprIDComment = FormatUtil::StripPrefixIfExists(item.CommentProperty.Value, "0x");
@@ -700,28 +728,20 @@ namespace AetPlugin
 				if (result.ec != std::errc::invalid_argument)
 					source.ID = static_cast<SprID>(sprID);
 			}
-
-			{
-				A_long mainFilesCount, filesPerFrame;
-				suites.FootageSuite5->AEGP_GetFootageNumFiles(video.GuiData.AE_Footage, &mainFilesCount, &filesPerFrame);
-
-				for (A_long i = 0; i < mainFilesCount; i++)
-				{
-					AEGP_MemHandle pathHandle;
-					suites.FootageSuite5->AEGP_GetFootagePath(video.GuiData.AE_Footage, i, AEGP_FOOTAGE_MAIN_FILE_INDEX, &pathHandle);
-					const auto sourcePath = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
-
-					if (i < video.Sources.size() && !sourcePath.empty())
-					{
-						const auto& videoSource = video.Sources[i];
-						const auto videoName = std::string(FormatUtil::StripPrefixIfExists(videoSource.Name, workingSet.SprPrefix));
-						workingSet.SprSetSrcInfo->SprFileSources[videoName] = SprSetSrcInfo::SprSrcInfo { sourcePath, &video };
-					}
-				}
-			}
+#endif
 		}
+	}
 
-		video.Frames = static_cast<float>(video.Sources.size());
+	std::string AetExporter::FormatVideoSourceName(Aet::Video& video, std::string_view itemName, int sourceIndex, int sourceCount) const
+	{
+		if (sourceCount == 1)
+			return std::string(itemName);
+
+		char indexString[16];
+		sprintf_s(indexString, "%03d", sourceIndex);
+
+		const auto preIndexString = itemName.substr(0, itemName.rfind('['));
+		return std::string(preIndexString) + indexString;
 	}
 
 	RefPtr<Aet::Composition> AetExporter::FindExistingCompSourceItem(AEGP_ItemH sourceItem)
