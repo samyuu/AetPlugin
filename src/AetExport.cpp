@@ -471,9 +471,8 @@ namespace AetPlugin
 		const frame_t frameDuration = AEUtil::AETimeToFrame(duration, workingScene.Scene->FrameRate);
 		const float floatStretch = AEUtil::Ratio(stretch);
 
-		// TODO: Should these be directly affected by the stretch or is it already accounted for (?)
 		layer.StartFrame = (frameOffset + frameInPoint);
-		layer.EndFrame = (layer.StartFrame + frameDuration);
+		layer.EndFrame = (layer.StartFrame + (frameDuration * floatStretch));
 		layer.StartOffset = (frameInPoint);
 		layer.TimeScale = (1.0f / floatStretch);
 	}
