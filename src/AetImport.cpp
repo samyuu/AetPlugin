@@ -377,10 +377,12 @@ namespace AetPlugin
 		if (video.Sources.size() <= 1)
 			return;
 
+		const frame_t frameRate = (workingScene.Scene->FrameRate * video.FilesPerFrame);
+
 		AEGP_FootageInterp interpretation;
 		suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
-		interpretation.native_fpsF = workingScene.Scene->FrameRate;
-		interpretation.conform_fpsF = workingScene.Scene->FrameRate;
+		interpretation.native_fpsF = static_cast<A_FpLong>(frameRate);
+		interpretation.conform_fpsF = static_cast<A_FpLong>(frameRate);
 		suites.FootageSuite5->AEGP_SetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
 	}
 
@@ -490,7 +492,6 @@ namespace AetPlugin
 		else if (layer.ItemType == Aet::ItemType::Composition)
 			tryAddAECompLayerToComp(layer.GetCompItem());
 	}
-
 
 	std::unordered_map<const Aet::Composition*, frame_t> AetImporter::CreateGivenCompDurationsMap(const Aet::Scene& scene)
 	{
