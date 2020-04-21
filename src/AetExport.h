@@ -140,7 +140,7 @@ namespace AetPlugin
 		void ExportLayerVideo(Aet::Layer& layer);
 		void ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode);
 		void ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo);
-		void SetLayerVideoPropertyLinear(Aet::Property1D& property);
+		void SetLayerVideoPropertyLinearTangents(Aet::Property1D& property);
 
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);

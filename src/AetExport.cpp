@@ -609,7 +609,7 @@ namespace AetPlugin
 					AEGP_StreamValue streamVal;
 					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
-					// TODO: Interpolation (including hold frames)
+					// TODO: Find a way to approximate the different interpolation types (including hold frames)
 					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
 
 					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor));
@@ -620,24 +620,33 @@ namespace AetPlugin
 		}
 
 		for (Transform2DField i = 0; i < Transform2DField_Count; i++)
-			SetLayerVideoPropertyLinear(layerVideo.Transform[i]);
+			SetLayerVideoPropertyLinearTangents(layerVideo.Transform[i]);
 	}
 
-	void AetExporter::SetLayerVideoPropertyLinear(Aet::Property1D& property)
+	void AetExporter::SetLayerVideoPropertyLinearTangents(Aet::Property1D& property)
 	{
 		if (property->size() < 2)
 			return;
 
-		for (size_t i = 0; i < property->size() - 1; i++)
+		auto getLinearTangent = [](const auto& keyFrameA, const auto& keyFrameB)
 		{
-			auto& startKeyFrame = property.Keys[i];
-			auto& endKeyFrame = property.Keys[i + 1];
+			return static_cast<float>(
+				(static_cast<double>(keyFrameB.Value) - static_cast<double>(keyFrameA.Value)) /
+				(static_cast<double>(keyFrameB.Frame) - static_cast<double>(keyFrameA.Frame)));
+		};
 
-			// HACK: Yeah this definitely needs a lot more work
-			const float linearTangent = (endKeyFrame.Value - startKeyFrame.Value) / (endKeyFrame.Frame - startKeyFrame.Frame);
+		for (size_t i = 0; i < property->size(); i++)
+		{
+			auto* prevKeyFrame = (i - 1 < property->size()) ? &property.Keys[i - 1] : nullptr;
+			auto* currKeyFrame = &property.Keys[i + 0];
+			auto* nextKeyFrame = (i + 1 < property->size()) ? &property.Keys[i + 1] : nullptr;
 
-			startKeyFrame.Curve = linearTangent;
-			endKeyFrame.Curve = linearTangent;
+			if (prevKeyFrame == nullptr)
+				currKeyFrame->Curve = getLinearTangent(*currKeyFrame, *nextKeyFrame);
+			else if (nextKeyFrame == nullptr)
+				currKeyFrame->Curve = getLinearTangent(*prevKeyFrame, *currKeyFrame);
+			else
+				currKeyFrame->Curve = (getLinearTangent(*prevKeyFrame, *currKeyFrame) + getLinearTangent(*currKeyFrame, *nextKeyFrame)) / 2.0f;
 		}
 	}
 
