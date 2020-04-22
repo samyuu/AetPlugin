@@ -113,4 +113,38 @@ namespace AetPlugin::CommentUtil
 		itemSuite8->AEGP_GetItemComment(item, static_cast<A_u_long>(outBuffer.size()), outBuffer.data());
 		return Detail::Parse(outBuffer.data());
 	}
+
+	inline uint32_t ParseID(std::string_view commentValue)
+	{
+		const auto preHexTrimSize = commentValue.size();
+		commentValue = FormatUtil::StripPrefixIfExists(commentValue, FormatUtil::HexPrefix);
+
+		uint32_t resultID = {};
+		const auto result = std::from_chars(commentValue.data(), commentValue.data() + commentValue.size(), resultID, (commentValue.size() == preHexTrimSize) ? 10 : 16);;
+
+		return (result.ec != std::errc::invalid_argument) ? resultID : 0xFFFFFFFF;
+	}
+
+	inline std::vector<uint32_t> ParseIDs(std::string_view commentValue)
+	{
+		std::vector<uint32_t> resultIDs;
+
+		size_t lastStartIndex = 0;
+		for (size_t i = 0; i < commentValue.size(); i++)
+		{
+			if (commentValue[i] == ',')
+			{
+				const auto id = ParseID(FormatUtil::Trim(commentValue.substr(lastStartIndex, i - lastStartIndex)));
+				resultIDs.push_back(id);
+				lastStartIndex = ++i;
+			}
+			else if (i + 1 == commentValue.size())
+			{
+				const auto id = ParseID(FormatUtil::Trim(commentValue.substr(lastStartIndex)));
+				resultIDs.push_back(id);
+			}
+		}
+
+		return resultIDs;
+	}
 }

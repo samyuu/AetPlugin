@@ -6,6 +6,7 @@
 
 namespace FormatUtil
 {
+	constexpr std::string_view HexPrefix = "0x";
 	constexpr std::string_view WhiteSpaceCharacters = " \t\r\n";
 
 	inline std::string ToLower(std::string_view value)
