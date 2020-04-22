@@ -110,9 +110,17 @@ namespace AetPlugin
 			UniquePtr<SprSetSrcInfo> SprSetSrcInfo = nullptr;
 			std::unordered_set<const Aet::Video*> TrackMatteUsingVideos;
 
+			struct IDOverrideData
+			{
+				AetSetID AetSetID = AetSetID::Invalid;
+				SprSetID SprSetID = SprSetID::Invalid;
+				std::vector<AetSceneID> SceneIDs;
+			} IDOverride;
+
 		} workingSet;
 
 		void SetupWorkingSetData(Aet::AetSet& set);
+		void SearchParseSetDataComments();
 
 	protected:
 		struct WorkingSceneData

@@ -13,6 +13,11 @@ namespace AetPlugin::CommentUtil
 	{
 		static constexpr std::string_view AetSet = "Set";
 		static constexpr std::string_view Scene = "Scene";
+
+		static constexpr std::string_view AetSetID = "AetSetID";
+		static constexpr std::string_view SceneID = "SceneID";
+
+		static constexpr std::string_view SprSetID = "SprSetID";
 		static constexpr std::string_view SprID = "SprID";
 	}
 
