@@ -138,6 +138,57 @@ namespace AetPlugin
 		return spritePacker.Create(sprMarkups);
 	}
 
+	namespace IDOverrideTest // DEBUG:
+	{
+		template <typename IDType>
+		struct IDLookup
+		{
+		};
+
+		template<>
+		struct IDLookup<AetSetID>
+		{
+			static constexpr std::array Data =
+			{
+				std::make_pair("AET_SEL_CMN", static_cast<AetSetID>(0x4)),
+			};
+		};
+		template<>
+		struct IDLookup<AetSceneID>
+		{
+			static constexpr std::array Data =
+			{
+				std::make_pair("AET_SEL_CMN_MAIN", static_cast<AetSceneID>(0x4)),
+			};
+		};
+		template<>
+		struct IDLookup<SprSetID>
+		{
+			static constexpr std::array Data =
+			{
+				std::make_pair("SPR_SEL_CMN", static_cast<SprSetID>(0xA)),
+			};
+		};
+		template<>
+		struct IDLookup<SprID>
+		{
+			static constexpr std::array Data =
+			{
+				std::make_pair("SPR_DUMMY", SprID::Invalid),
+			};
+		};
+
+		template <typename IDType>
+		constexpr void CheckOverrideID(const std::string_view nameID, IDType& outID)
+		{
+			for (const auto&[name, id] : IDLookup<IDType>::Data)
+			{
+				if (nameID == name)
+					outID = id;
+			}
+		}
+	}
+
 	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
 	{
 		Database::AetDB aetDB;
@@ -146,9 +197,11 @@ namespace AetPlugin
 		setEntry.FileName = FormatUtil::ToSnakeCaseLower(setFileName);
 		setEntry.Name = FormatUtil::ToUpper(set.Name);
 		setEntry.ID = HashIDString<AetSetID>(setEntry.Name);
+		IDOverrideTest::CheckOverrideID(setEntry.Name, setEntry.ID);
 
 		const auto sprSetName = FormatUtil::ToUpper(SprPrefix) + std::string(FormatUtil::StripPrefixIfExists(setEntry.Name, AetPrefix));
 		setEntry.SprSetID = HashIDString<SprSetID>(sprSetName);
+		IDOverrideTest::CheckOverrideID(sprSetName, setEntry.SprSetID);
 
 		setEntry.SceneEntries.reserve(set.GetScenes().size());
 		for (auto& scene : set.GetScenes())
@@ -156,6 +209,7 @@ namespace AetPlugin
 			auto& sceneEntry = setEntry.SceneEntries.emplace_back();
 			sceneEntry.Name = setEntry.Name + "_" + FormatUtil::ToUpper(scene->Name);
 			sceneEntry.ID = HashIDString<AetSceneID>(sceneEntry.Name);
+			IDOverrideTest::CheckOverrideID(sceneEntry.Name, sceneEntry.ID);
 		}
 
 		return aetDB;
@@ -169,6 +223,7 @@ namespace AetPlugin
 		setEntry.FileName = FormatUtil::ToLower(SprPrefix) + FormatUtil::ToSnakeCaseLower(FormatUtil::StripPrefixIfExists(setFileName, AetPrefix));
 		setEntry.Name = FormatUtil::ToUpper(SprPrefix) + FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
 		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
+		IDOverrideTest::CheckOverrideID(setEntry.Name, setEntry.ID);
 
 		const auto sprPrefix = std::string(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix)) + "_";
 
@@ -183,6 +238,8 @@ namespace AetPlugin
 					auto& sprEntry = setEntry.SprEntries.emplace_back();
 					sprEntry.Name = FormatUtil::ToUpper(SprPrefix) + source.Name;
 					sprEntry.ID = source.ID;
+					IDOverrideTest::CheckOverrideID(sprEntry.Name, sprEntry.ID);
+
 					if (sprSet != nullptr)
 					{
 						const auto nameToFind = FormatUtil::StripPrefixIfExists(source.Name, sprPrefix);
@@ -212,6 +269,7 @@ namespace AetPlugin
 				sprTexEntry.Name = FormatUtil::ToUpper(SprTexPrefix) + tex->Name.value_or("UNKNOWN");
 				sprTexEntry.ID = HashIDString<SprID>(sprTexEntry.Name);
 				sprTexEntry.Index = sprTexIndex++;
+				IDOverrideTest::CheckOverrideID(sprTexEntry.Name, sprTexEntry.ID);
 			}
 		}
 
