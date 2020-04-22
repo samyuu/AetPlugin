@@ -94,6 +94,7 @@ namespace AetPlugin
 		namespace Names
 		{
 			static constexpr const char* SetData = "data";
+			static constexpr const char* SceneRootPrefix = "_scene";
 			static constexpr const char* SceneData = "data";
 			static constexpr const char* SceneVideo = "video";
 			static constexpr const char* SceneAudio = "audio";

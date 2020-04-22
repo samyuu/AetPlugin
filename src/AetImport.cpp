@@ -280,7 +280,7 @@ namespace AetPlugin
 
 	void AetImporter::CreateSceneFolders()
 	{
-		const auto sceneRootName = FormatUtil::ToLower(workingScene.Scene->Name);
+		const auto sceneRootName = FormatUtil::ToSnakeCaseLower(workingScene.Scene->Name) + ProjectStructure::Names::SceneRootPrefix;
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
