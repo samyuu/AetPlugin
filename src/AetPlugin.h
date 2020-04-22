@@ -18,6 +18,7 @@ namespace AetPlugin
 		LogLevel_Info = (1 << 0),
 		LogLevel_Warning = (1 << 1),
 		LogLevel_Error = (1 << 2),
+		LogLevel_All = (LogLevel_Info | LogLevel_Warning | LogLevel_Error),
 	};
 
 	constexpr std::array LogLevelsToCheck =
