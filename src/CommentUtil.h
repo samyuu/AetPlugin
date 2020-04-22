@@ -7,7 +7,7 @@
 
 namespace AetPlugin::CommentUtil
 {
-	static constexpr std::string_view AetSetID = "#AetSet";
+	static constexpr std::string_view AetID = "#Aet";
 
 	namespace Keys
 	{
@@ -16,7 +16,7 @@ namespace AetPlugin::CommentUtil
 		static constexpr std::string_view SprID = "SprID";
 	}
 
-	// NOTE: Enough space to store "#AetSet::SprID: { 0x00000000, ... }"
+	// NOTE: Enough space to store "#Aet::SprID: { 0x00000000, ... }"
 	using Buffer = std::array<char, 8192>;
 
 	struct Property
@@ -40,8 +40,8 @@ namespace AetPlugin::CommentUtil
 
 			Buffer commentBuffer;
 			sprintf(commentBuffer.data(), "%.*s::%.*s%s: { %.*s }",
-				static_cast<int>(AetSetID.size()),
-				AetSetID.data(),
+				static_cast<int>(AetID.size()),
+				AetID.data(),
 				static_cast<int>(property.Key.size()),
 				property.Key.data(),
 				indexBuffer.data(),
@@ -50,14 +50,15 @@ namespace AetPlugin::CommentUtil
 			return commentBuffer;
 		}
 
-		inline Property Parse(std::string_view buffer)
+		inline Property Parse(const std::string_view buffer)
 		{
 			Property result = {};
 
-			if (!Comfy::Utilities::StartsWith(buffer, AetSetID) || (buffer.size() < (AetSetID.size() + std::strlen("::x: {}"))))
+			const auto trimmedBuffer = FormatUtil::Trim(buffer);
+			if (!Comfy::Utilities::StartsWith(trimmedBuffer, AetID) || (trimmedBuffer.size() < (AetID.size() + std::strlen("::x: {}"))))
 				return result;
 
-			const std::string_view postIDBuffer = buffer.substr(AetSetID.size() + std::strlen("::"));
+			const std::string_view postIDBuffer = trimmedBuffer.substr(AetID.size() + std::strlen("::"));
 			const std::string_view keyBuffer = postIDBuffer.substr(0, std::min(postIDBuffer.find(':'), postIDBuffer.find('[')));
 
 			if (keyBuffer.empty())
