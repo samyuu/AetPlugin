@@ -225,7 +225,7 @@ namespace AetPlugin
 		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
 		IDOverrideTest::CheckOverrideID(setEntry.Name, setEntry.ID);
 
-		const auto sprPrefix = std::string(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix)) + "_";
+		const auto sprPrefix = FormatUtil::ToUpper((FormatUtil::StripPrefixIfExists(set.Name, AetPrefix))) + "_";
 
 		int16_t sprIndex = 0;
 		for (const auto& scene : set.GetScenes())
@@ -266,7 +266,7 @@ namespace AetPlugin
 			for (const auto& tex : sprSet->TexSet->Textures)
 			{
 				auto& sprTexEntry = setEntry.SprTexEntries.emplace_back();
-				sprTexEntry.Name = FormatUtil::ToUpper(SprTexPrefix) + tex->Name.value_or("UNKNOWN");
+				sprTexEntry.Name = FormatUtil::ToUpper(SprTexPrefix) + sprPrefix + tex->Name.value_or("UNKNOWN");
 				sprTexEntry.ID = HashIDString<SprID>(sprTexEntry.Name);
 				sprTexEntry.Index = sprTexIndex++;
 				IDOverrideTest::CheckOverrideID(sprTexEntry.Name, sprTexEntry.ID);
