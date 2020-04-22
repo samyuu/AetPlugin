@@ -102,12 +102,15 @@ namespace AetPlugin
 			{
 				bool ExportSprDB = true;
 				bool ExportAetDB = true;
+				bool ParseSprIDComments = false;
 			} Database;
 			struct SpriteData
 			{
 				bool ExportSprSet = true;
-				bool ParseSprIDComments = false;
 				bool PowerOfTwoTextures = false;
+				// TODO: 
+				bool CompressTextures = false;
+				// bool GenerateMipMaps = false;
 			} Sprite;
 			struct LogData
 			{
@@ -133,15 +136,12 @@ namespace AetPlugin
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Database" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
-				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
-
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Misc" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet Set", &options.Misc.ExportAetSet },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Parse Spr IDs", &options.Sprite.ParseSprIDComments },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Compress Textures", &options.Sprite.CompressTextures },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
@@ -249,12 +249,7 @@ namespace AetPlugin
 		{
 			A_Err err = A_Err_NONE;
 
-			// TODO: Menu item for exporting databases (aet_db + spr_db) containing only the info for this AetSet (?)
-			// TODO: Menu item for setting all (or only the missing) SprID comments (to their murmur hash) (?)
-			// TODO: On export optionally (?) write log file and or show message of all the aep unsupported data that could not be exported (effects, text, etc.) (?)
-			// TODO: Menu item for checking supported features instead of doing so on export (?)
 			// TODO: Menu item for collpasing all compositions as required by the format (?)
-			// TODO: Menu item to export spr (RGBA8 at first)
 			// TODO: Menu item to create an AetSet skeleton (+ add scenes)
 
 			ERR(suites.CommandSuite1->AEGP_GetUniqueCommand(&EvilGlobalState.ExportAetSetCommand));
