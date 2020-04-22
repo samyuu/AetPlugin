@@ -111,9 +111,7 @@ namespace AetPlugin
 			} Sprite;
 			struct LogData
 			{
-				bool WriteInfoLog = false;
-				bool WriteWarningLog = false;
-				bool WriteErrorLog = false;
+				bool WriteLog = false;
 			} Log;
 			struct MiscData
 			{
@@ -148,9 +146,7 @@ namespace AetPlugin
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Log" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Info Log", &options.Log.WriteInfoLog },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Warning Log", &options.Log.WriteWarningLog },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Error Log", &options.Log.WriteErrorLog },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Log", &options.Log.WriteLog },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 			};
 
@@ -163,12 +159,8 @@ namespace AetPlugin
 			FILE* logStream = nullptr;
 			LogLevel logLevel = LogLevel_None;
 
-			if (options.Log.WriteInfoLog)
-				logLevel |= LogLevel_Info;
-			if (options.Log.WriteWarningLog)
-				logLevel |= LogLevel_Warning;
-			if (options.Log.WriteErrorLog)
-				logLevel |= LogLevel_Error;
+			if (options.Log.WriteLog)
+				logLevel |= LogLevel_All;
 
 			if (logLevel != LogLevel_None)
 			{
