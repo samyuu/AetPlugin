@@ -654,12 +654,19 @@ namespace AetPlugin
 				AEGP_StreamType streamType;
 				suites.StreamSuite4->AEGP_GetLayerStreamValue(layer.GuiData.AE_Layer, aeToAetStream.StreamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &streamType);
 
-				layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(static_cast<float>(streamVal2.one_d / aeToAetStream.ScaleFactor));
+				const float value1D = static_cast<float>(streamVal2.one_d / aeToAetStream.ScaleFactor);
+				const float value2D = static_cast<float>(streamVal2.two_d.y / aeToAetStream.ScaleFactor);
+
+				layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(value1D);
 				if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-					layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(static_cast<float>(streamVal2.two_d.y / aeToAetStream.ScaleFactor));
+					layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(value2D);
 			}
 			else
 			{
+				layerVideo.Transform[aeToAetStream.FieldX]->reserve(keyFrameCount);
+				if (aeToAetStream.FieldX != aeToAetStream.FieldY)
+					layerVideo.Transform[aeToAetStream.FieldY]->reserve(keyFrameCount);
+
 				for (AEGP_KeyframeIndex i = 0; i < keyFrameCount; i++)
 				{
 					A_Time time;
@@ -670,9 +677,26 @@ namespace AetPlugin
 					// TODO: Find a way to approximate the different interpolation types (including hold frames)
 					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
 
-					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor));
+					const float value1D = static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor);
+					const float value2D = static_cast<float>(streamVal.val.two_d.y / aeToAetStream.ScaleFactor);
+
+#if 0
+					AEGP_KeyframeInterpolationType interpolationTypeIn, interpolationTypeOut;
+					suites.KeyframeSuite3->AEGP_GetKeyframeInterpolation(streamRef, i, &interpolationTypeIn, &interpolationTypeOut);
+
+					// TODO: Insert double keyframes (to emulate in+out tangents) for linear and hold keyframes
+					//		 What about imports? Check if they are linear first, otherwise maybe do some bezier fuckery...
+					if (interpolationTypeIn == AEGP_KeyInterp_LINEAR)
+					{
+						layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, value1D);
+						if (aeToAetStream.FieldX != aeToAetStream.FieldY)
+							layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, value2D);
+					}
+#endif
+
+					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, value1D);
 					if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-						layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, static_cast<float>(streamVal.val.two_d.y / aeToAetStream.ScaleFactor));
+						layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, value2D);
 				}
 			}
 		}
@@ -688,6 +712,9 @@ namespace AetPlugin
 
 		auto getLinearTangent = [](const auto& keyFrameA, const auto& keyFrameB)
 		{
+			if (keyFrameA.Frame == keyFrameB.Frame)
+				return 0.0f;
+
 			return static_cast<float>(
 				(static_cast<double>(keyFrameB.Value) - static_cast<double>(keyFrameA.Value)) /
 				(static_cast<double>(keyFrameB.Frame) - static_cast<double>(keyFrameA.Frame)));
