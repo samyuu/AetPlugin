@@ -811,17 +811,16 @@ namespace AetPlugin
 			else
 				video.FilesPerFrame = 1.0f;
 
-#if 0
 			if (item.CommentProperty.Key == CommentUtil::Keys::SprID && settings.ParseSprIDComments)
 			{
-				std::string_view sprIDComment = FormatUtil::StripPrefixIfExists(item.CommentProperty.Value, "0x");
-
-				uint32_t sprID;
-				auto result = std::from_chars(sprIDComment.data(), sprIDComment.data() + sprIDComment.size(), sprID, 0x10);
-				if (result.ec != std::errc::invalid_argument)
-					source.ID = static_cast<SprID>(sprID);
+				const auto parsedIDs = CommentUtil::ParseIDs(item.CommentProperty.Value);
+				for (size_t i = 0; i < parsedIDs.size(); i++)
+				{
+					const auto sprID = static_cast<SprID>(parsedIDs[i]);
+					if (sprID != SprID::Invalid && i < video.Sources.size())
+						video.Sources[i].ID = sprID;
+				}
 			}
-#endif
 		}
 	}
 
