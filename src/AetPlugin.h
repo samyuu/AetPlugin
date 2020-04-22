@@ -93,10 +93,11 @@ namespace AetPlugin
 
 		namespace Names
 		{
-			static constexpr const char* Data = "data";
-			static constexpr const char* Video = "video";
-			static constexpr const char* Audio = "audio";
-			static constexpr const char* Comp = "comp";
+			static constexpr const char* SetData = "data";
+			static constexpr const char* SceneData = "data";
+			static constexpr const char* SceneVideo = "video";
+			static constexpr const char* SceneAudio = "audio";
+			static constexpr const char* SceneComp = "comp";
 		};
 	};
 }

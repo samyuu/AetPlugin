@@ -257,18 +257,35 @@ namespace AetPlugin
 	{
 		const auto& setRootName = workingSet.NamePrefix;
 		suites.ItemSuite1->AEGP_CreateNewFolder(setRootName.c_str(), project.RootItemHandle, &project.Folders.Root);
-
 		CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, workingSet.Set->Name });
+
+		auto addDummyDataFootage = [&](const char* footageName, std::string_view key) 
+		{
+			const A_long dummySize = 16;
+			const AEGP_ColorVal dummyColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+			AEGP_FootageH dummyFootage;
+			AEGP_ItemH dummyItem;
+
+			suites.FootageSuite5->AEGP_NewSolidFootage(footageName, dummySize, dummySize, &dummyColor, &dummyFootage);
+			suites.FootageSuite5->AEGP_AddFootageToProject(dummyFootage, project.Folders.Data, &dummyItem);
+			CommentUtil::Set(suites.ItemSuite8, dummyItem, { key, "" });
+		};
+
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SetData, project.Folders.Root, &project.Folders.Data);
+		addDummyDataFootage("aet_set_id", CommentUtil::Keys::AetSetID);
+		addDummyDataFootage("aet_scene_ids", CommentUtil::Keys::SceneID);
+		addDummyDataFootage("spr_set_id", CommentUtil::Keys::SprSetID);
 	}
 
 	void AetImporter::CreateSceneFolders()
 	{
 		const auto sceneRootName = FormatUtil::ToLower(workingScene.Scene->Name);
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Data, project.Folders.Scene.Root, &project.Folders.Scene.Data);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Video, project.Folders.Scene.Data, &project.Folders.Scene.Video);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Audio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::Comp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneAudio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
+		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneComp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
 	}
 
 	void AetImporter::ImportAllFootage()
