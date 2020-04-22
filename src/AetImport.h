@@ -1,6 +1,8 @@
 #pragma once
 #include "AetPlugin.h"
 #include "Graphics/Auth2D/Aet/AetSet.h"
+#include "Database/AetDB.h"
+#include "Database/SprDB.h"
 #include <unordered_map>
 
 namespace AetPlugin
@@ -48,6 +50,16 @@ namespace AetPlugin
 		{
 			std::wstring ImportDirectory;
 			std::vector<SpriteFileData> AvailableSpriteFiles;
+
+			// NOTE: Optional to deal with hardcode expected IDs
+			struct DatabaseData
+			{
+				UniquePtr<Database::AetDB> AetDB = nullptr;
+				UniquePtr<Database::SprDB> SprDB = nullptr;
+				const Database::AetSetEntry* AetSetEntry = nullptr;
+				const Database::SprSetEntry* SprSetEntry = nullptr;
+			} DB;
+
 		} workingDirectory;
 
 		const SpriteFileData* FindMatchingSpriteFile(std::string_view sourceName) const;
@@ -71,7 +83,7 @@ namespace AetPlugin
 
 		void SetupWorkingSetData(const Aet::AetSet& set);
 		void SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex);
-		void CheckWorkingDirectorySpriteFiles();
+		void CheckWorkingDirectoryFiles();
 
 	protected:
 		A_Time FrameToAETime(frame_t frame) const;

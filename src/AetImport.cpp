@@ -166,7 +166,12 @@ namespace AetPlugin
 	A_Err AetImporter::ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
 		SetupWorkingSetData(set);
-		CheckWorkingDirectorySpriteFiles();
+
+		// TODO: Check WorkingDirectoryAetDB() / WorkingDirectorySprDB()
+		//		 Automatically import set id data and make sure to import all sprites even if unused by the aet.
+		//		 The user will then have to place them inside a comp to have them be included
+
+		CheckWorkingDirectoryFiles();
 
 		GetProjectHandles();
 		CreateProjectFolders();
@@ -220,25 +225,51 @@ namespace AetPlugin
 			setCompUsages(*comp);
 	}
 
-	void AetImporter::CheckWorkingDirectorySpriteFiles()
+	void AetImporter::CheckWorkingDirectoryFiles()
 	{
+		const auto aetSetEntryName = std::string(AetPrefix) + workingSet.NamePrefix;
+		const auto sprSetEntryName = std::string(SprPrefix) + workingSet.NamePrefix;
+
 		const auto directoryIterator = std::filesystem::directory_iterator(workingDirectory.ImportDirectory);
 		for (const auto& stdPath : directoryIterator)
 		{
 			const auto path = stdPath.path();
 			const auto fileName = path.filename().string();
 
-			if (!Utilities::EndsWithInsensitive(fileName, SpriteFileData::PngExtension))
-				continue;
+			if (Utilities::EndsWithInsensitive(fileName, ".bin"))
+			{
+				const auto mdataTrimmed = FormatUtil::StripPrefixIfExists(fileName, "mdata_");
+				if (Utilities::StartsWithInsensitive(mdataTrimmed, "aet_db") && workingDirectory.DB.AetDB == nullptr)
+				{
+					auto& aetDB = workingDirectory.DB.AetDB;
+					aetDB = MakeUnique<Database::AetDB>();
+					aetDB->Load(path.wstring());
 
-			std::string_view sanitizedFileName = std::string_view(fileName).substr(0, fileName.length() - SpriteFileData::PngExtension.size());
+					const auto foundEntry = std::find_if(aetDB->Entries.begin(), aetDB->Entries.end(), [&](const auto& entry) { return MatchesInsensitive(entry.Name, aetSetEntryName); });
+					if (foundEntry != aetDB->Entries.end())
+						workingDirectory.DB.AetSetEntry = &(*foundEntry);
+				}
+				else if (Utilities::StartsWithInsensitive(mdataTrimmed, "spr_db") && workingDirectory.DB.SprDB == nullptr)
+				{
+					auto& sprDB = workingDirectory.DB.SprDB;
+					sprDB = MakeUnique<Database::SprDB>();
+					sprDB->Load(path.wstring());
 
-			sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, SpriteFileData::SprPrefix);
-			sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, workingSet.NamePrefixUnderscore);
+					const auto foundEntry = std::find_if(sprDB->Entries.begin(), sprDB->Entries.end(), [&](const auto& entry) { return MatchesInsensitive(entry.Name, sprSetEntryName); });
+					if (foundEntry != sprDB->Entries.end())
+						workingDirectory.DB.SprSetEntry = &(*foundEntry);
+				}
+			}
+			else if (Utilities::EndsWithInsensitive(fileName, SpriteFileData::PngExtension))
+			{
+				auto sanitizedFileName = std::string_view(fileName).substr(0, fileName.length() - SpriteFileData::PngExtension.size());
+				sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, SpriteFileData::SprPrefix);
+				sanitizedFileName = FormatUtil::StripPrefixIfExists(sanitizedFileName, workingSet.NamePrefixUnderscore);
 
-			SpriteFileData& spriteFile = workingDirectory.AvailableSpriteFiles.emplace_back();
-			spriteFile.SanitizedFileName = sanitizedFileName;
-			spriteFile.FilePath = path.wstring();
+				SpriteFileData& spriteFile = workingDirectory.AvailableSpriteFiles.emplace_back();
+				spriteFile.SanitizedFileName = sanitizedFileName;
+				spriteFile.FilePath = path.wstring();
+			}
 		}
 	}
 
@@ -259,23 +290,53 @@ namespace AetPlugin
 		suites.ItemSuite1->AEGP_CreateNewFolder(setRootName.c_str(), project.RootItemHandle, &project.Folders.Root);
 		CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, workingSet.Set->Name });
 
-		auto addDummyDataFootage = [&](const char* footageName, std::string_view key) 
+		auto addDummyDataFootage = [&](const char* footageName)
 		{
 			const A_long dummySize = 16;
 			const AEGP_ColorVal dummyColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 			AEGP_FootageH dummyFootage;
-			AEGP_ItemH dummyItem;
-
 			suites.FootageSuite5->AEGP_NewSolidFootage(footageName, dummySize, dummySize, &dummyColor, &dummyFootage);
+
+			AEGP_ItemH dummyItem;
 			suites.FootageSuite5->AEGP_AddFootageToProject(dummyFootage, project.Folders.Data, &dummyItem);
-			CommentUtil::Set(suites.ItemSuite8, dummyItem, { key, "" });
+
+			return dummyItem;
 		};
 
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SetData, project.Folders.Root, &project.Folders.Data);
-		addDummyDataFootage("aet_set_id", CommentUtil::Keys::AetSetID);
-		addDummyDataFootage("aet_scene_ids", CommentUtil::Keys::SceneID);
-		addDummyDataFootage("spr_set_id", CommentUtil::Keys::SprSetID);
+
+		AEGP_ItemH aetSetIDItem = addDummyDataFootage("aet_set_id");
+		AEGP_ItemH aetSceneIDsItem = addDummyDataFootage("aet_scene_ids");
+		AEGP_ItemH sprSetIDItem = addDummyDataFootage("spr_set_id");
+
+		if (const auto* aetSetEntry = workingDirectory.DB.AetSetEntry; aetSetEntry != nullptr)
+		{
+			CommentUtil::Buffer commentBuffer = {};
+
+			sprintf(commentBuffer.data(), "0x%X", aetSetEntry->ID);
+			CommentUtil::Set(suites.ItemSuite8, aetSetIDItem, { CommentUtil::Keys::AetSetID, commentBuffer.data() });
+
+			commentBuffer[0] = '\0';
+			for (const auto& sceneEntry : aetSetEntry->SceneEntries)
+			{
+				char appendBuffer[32]; sprintf(appendBuffer, "0x%X", sceneEntry.ID);
+				std::strcat(commentBuffer.data(), appendBuffer);
+				if (&sceneEntry != &aetSetEntry->SceneEntries.back())
+					std::strcat(commentBuffer.data(), ", ");
+			}
+			CommentUtil::Set(suites.ItemSuite8, aetSceneIDsItem, { CommentUtil::Keys::SceneID, commentBuffer.data() });
+
+			commentBuffer[0] = '\0';
+			sprintf(commentBuffer.data(), "0x%X", aetSetEntry->SprSetID);
+			CommentUtil::Set(suites.ItemSuite8, sprSetIDItem, { CommentUtil::Keys::SprSetID, commentBuffer.data() });
+		}
+		else
+		{
+			CommentUtil::Set(suites.ItemSuite8, aetSetIDItem, { CommentUtil::Keys::AetSetID, "" });
+			CommentUtil::Set(suites.ItemSuite8, aetSceneIDsItem, { CommentUtil::Keys::SceneID, "" });
+			CommentUtil::Set(suites.ItemSuite8, sprSetIDItem, { CommentUtil::Keys::SprSetID, "" });
+		}
 	}
 
 	void AetImporter::CreateSceneFolders()
