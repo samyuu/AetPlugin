@@ -36,6 +36,9 @@ namespace AetPlugin
 			std::make_pair(ScreenMode::WQHD, ivec2(2560, 1440)),
 			std::make_pair(ScreenMode::HVGA, ivec2(480, 272)),
 			std::make_pair(ScreenMode::qHD, ivec2(960, 544)),
+
+			// NOTE: A bit of a weird one, static_cast<ScreenMode>(0x10)
+			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 728)),
 		};
 
 		constexpr ScreenMode GetScreenModeFromResolution(ivec2 inputResolution)
@@ -46,7 +49,7 @@ namespace AetPlugin
 					return mode;
 			}
 
-			return ScreenMode::Custom;
+			return ScreenMode::HDTV720;
 		}
 
 		ivec2 GetAetSetResolution(const Aet::AetSet& set)
@@ -113,7 +116,6 @@ namespace AetPlugin
 		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
 		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
 
-		// TODO: Handle ScreenMode::Custom (?)
 		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
 
 		// TODO: Reading, parsing and decoding the sprite images could be done multithreaded
