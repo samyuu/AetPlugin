@@ -120,7 +120,12 @@ namespace FileDialogUtil
 				else if (item.Type == Customize::ItemType::VisualGroupEnd)
 					result = dialogCustomize.EndVisualGroup();
 				else if (item.Type == Customize::ItemType::Checkbox)
-					result = dialogCustomize.AddCheckButton(itemID, Utf8ToUtf16(item.Label).c_str(), *item.Data.CheckboxChecked);
+				{
+					result = dialogCustomize.AddCheckButton(itemID, Utf8ToUtf16(item.Label).c_str(), (item.Data.CheckboxChecked != nullptr) ? *item.Data.CheckboxChecked : false);
+
+					if (item.Data.CheckboxChecked == nullptr)
+						result = dialogCustomize.SetControlState(itemID, CDCS_VISIBLE);
+				}
 			}
 		}
 
@@ -137,7 +142,8 @@ namespace FileDialogUtil
 				{
 					BOOL checked;
 					result = dialogCustomize.GetCheckButtonState(itemID, &checked);
-					*item.Data.CheckboxChecked = checked;
+					if (item.Data.CheckboxChecked != nullptr)
+						*item.Data.CheckboxChecked = checked;
 				}
 			}
 		}
