@@ -552,7 +552,7 @@ namespace AetPlugin
 		for (const auto& comp : scene.Compositions)
 		{
 			const frame_t frameDuration = givenCompDurations[comp.get()];
-			const A_Time duration = FrameToAETime(frameDuration);
+			const A_Time duration = FrameToAETime((frameDuration > 0.0f) ? frameDuration : workingScene.Scene->FrameRate);
 
 			suites.CompSuite7->AEGP_CreateComp(project.Folders.Scene.Comp, AEUtil::UTF16Cast(Utf8ToUtf16(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &comp->GuiData.AE_Comp);
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
