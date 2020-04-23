@@ -352,13 +352,18 @@ namespace AetPlugin
 		else
 		{
 			LogInfoLine("Suitable AetSet folder found: '%s'", foundSetFolder->Name.c_str());
-			set.Name = foundSetFolder->CommentProperty.Value;
+
+			const auto[setName, aetSetID, sprSetID] = CommentUtil::ParseArray<3>(foundSetFolder->CommentProperty.Value);
+			set.Name = setName;
+			workingSet.IDOverride.AetSetID = static_cast<AetSetID>(CommentUtil::ParseID(aetSetID));
+			workingSet.IDOverride.SprSetID = static_cast<SprSetID>(CommentUtil::ParseID(sprSetID));
+
 			workingSet.Folder = &(*foundSetFolder);
 
 			workingSet.SceneComps.reserve(2);
 			for (auto& item : workingProject.Items)
 			{
-				if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::Scene && item.IsParentOf(*foundSetFolder))
+				if (item.Type == AEGP_ItemType_COMP && item.CommentProperty.Key == CommentUtil::Keys::AetScene && item.IsParentOf(*foundSetFolder))
 				{
 					workingSet.SceneComps.push_back(&item);
 					LogInfoLine("Suitable scene composition found: '%s'", item.Name.c_str());
@@ -370,50 +375,16 @@ namespace AetPlugin
 				return sceneA->CommentProperty.KeyIndex.value_or(0) < sceneB->CommentProperty.KeyIndex.value_or(0);
 			});
 
-			SearchParseSetDataComments();
+			for (const auto& sceneComp : workingSet.SceneComps)
+			{
+				const auto[sceneName, sceneID] = CommentUtil::ParseArray<2>(sceneComp->CommentProperty.Value);
+				workingSet.IDOverride.SceneIDs.push_back(static_cast<AetSceneID>(CommentUtil::ParseID(sceneID)));
+			}
 		}
 
 		workingSet.SprPrefix = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(workingSet.Set->Name, AetPrefix)) + "_";
 		workingSet.SprHashPrefix = FormatUtil::ToUpper(SprPrefix) + workingSet.SprPrefix;
 		workingSet.SprSetSrcInfo = MakeUnique<SprSetSrcInfo>();
-	}
-
-	void AetExporter::SearchParseSetDataComments()
-	{
-		for (const auto& item : workingProject.Items)
-		{
-			if (!item.IsParentOf(*workingSet.Folder))
-				continue;
-
-			if (item.CommentProperty.Key == CommentUtil::Keys::AetSetID)
-			{
-				if (const auto parsedIDs = CommentUtil::ParseIDs(item.CommentProperty.Value); !parsedIDs.empty())
-				{
-					workingSet.IDOverride.AetSetID = static_cast<AetSetID>(parsedIDs.front());
-					LogInfoLine("Aet Set ID override comment found: '0x%X'", workingSet.IDOverride.AetSetID);
-				}
-			}
-			else if (item.CommentProperty.Key == CommentUtil::Keys::SceneID)
-			{
-				if (const auto parsedIDs = CommentUtil::ParseIDs(item.CommentProperty.Value); !parsedIDs.empty())
-				{
-					workingSet.IDOverride.SceneIDs.reserve(parsedIDs.size());
-					for (const auto& parsedID : parsedIDs)
-					{
-						LogInfoLine("Scene ID override comment found: '0x%X'", parsedID);
-						workingSet.IDOverride.SceneIDs.push_back(static_cast<AetSceneID>(parsedID));
-					}
-				}
-			}
-			else if (item.CommentProperty.Key == CommentUtil::Keys::SprSetID)
-			{
-				if (const auto parsedIDs = CommentUtil::ParseIDs(item.CommentProperty.Value); !parsedIDs.empty())
-				{
-					workingSet.IDOverride.SprSetID = static_cast<SprSetID>(parsedIDs.front());
-					LogInfoLine("Spr Set ID override comment found: '0x%X'", workingSet.IDOverride.SprSetID);
-				}
-			}
-		}
 	}
 
 	void AetExporter::SetupWorkingSceneData(AEItemData* sceneComp)
@@ -427,7 +398,8 @@ namespace AetPlugin
 		auto& scene = *workingScene.Scene;
 		auto& aeSceneComp = *workingScene.AESceneComp;
 
-		scene.Name = aeSceneComp.CommentProperty.Value;
+		const auto[sceneName, sceneID] = CommentUtil::ParseArray<2>(aeSceneComp.CommentProperty.Value);
+		scene.Name = sceneName;
 
 		A_FpLong compFPS;
 		suites.CompSuite7->AEGP_GetCompFramerate(aeSceneComp.CompHandle, &compFPS);
@@ -684,6 +656,7 @@ namespace AetPlugin
 
 					// TODO: Insert double keyframes (to emulate in+out tangents) for linear and hold keyframes
 					//		 What about imports? Check if they are linear first, otherwise maybe do some bezier fuckery...
+					// TODO: This can also somewhat be avoided by having the user manually place two keyframes around "sudden" value changes
 					if (interpolationTypeIn == AEGP_KeyInterp_LINEAR)
 					{
 						layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, value1D);
@@ -809,15 +782,16 @@ namespace AetPlugin
 			else
 				video.FilesPerFrame = 1.0f;
 
-			if (item.CommentProperty.Key == CommentUtil::Keys::SprID && settings.ParseSprIDComments)
+			if (item.CommentProperty.Key == CommentUtil::Keys::Spr && settings.ParseSprIDComments)
 			{
-				const auto parsedIDs = CommentUtil::ParseIDs(item.CommentProperty.Value);
-				for (size_t i = 0; i < parsedIDs.size(); i++)
+				size_t i = 0;
+				CommentUtil::IterateCommaSeparateList(item.CommentProperty.Value, [&](auto item)
 				{
-					const auto sprID = static_cast<SprID>(parsedIDs[i]);
+					const auto sprID = static_cast<SprID>(CommentUtil::ParseID(item));
 					if (sprID != SprID::Invalid && i < video.Sources.size())
 						video.Sources[i].ID = sprID;
-				}
+					i++;
+				});
 			}
 		}
 	}

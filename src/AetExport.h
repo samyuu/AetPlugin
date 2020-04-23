@@ -120,7 +120,6 @@ namespace AetPlugin
 		} workingSet;
 
 		void SetupWorkingSetData(Aet::AetSet& set);
-		void SearchParseSetDataComments();
 
 	protected:
 		struct WorkingSceneData

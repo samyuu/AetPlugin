@@ -11,17 +11,15 @@ namespace AetPlugin::CommentUtil
 
 	namespace Keys
 	{
+		// NOTE: #Aet::Set: { %set_name%, %aet_set_id%, %spr_set_id% }
 		static constexpr std::string_view AetSet = "Set";
-		static constexpr std::string_view Scene = "Scene";
-
-		static constexpr std::string_view AetSetID = "AetSetID";
-		static constexpr std::string_view SceneID = "SceneID";
-
-		static constexpr std::string_view SprSetID = "SprSetID";
-		static constexpr std::string_view SprID = "SprID";
+		// NOTE: #Aet::Scene: { %scene_name%, %scene_id% }
+		static constexpr std::string_view AetScene = "Scene";
+		// NOTE: #Aet::Spr: { %spr_id%, ... }
+		static constexpr std::string_view Spr = "Spr";
 	}
 
-	// NOTE: Enough space to store "#Aet::SprID: { 0x00000000, ... }"
+	// NOTE: Enough space to store "#Aet::Spr: { 0x00000000, ... }"
 	using Buffer = std::array<char, 8192>;
 
 	struct Property
@@ -99,6 +97,25 @@ namespace AetPlugin::CommentUtil
 
 			return result;
 		}
+
+		inline std::string_view AdvanceCommaSeparateList(std::string_view& inOutList)
+		{
+			if (inOutList.empty())
+				return inOutList.substr(0, 0);
+
+			if (const auto nextComma = inOutList.find(','); nextComma == std::string_view::npos)
+			{
+				const auto subString = inOutList.substr(0);
+				inOutList = inOutList.substr(inOutList.size() - 1, 0);
+				return subString;
+			}
+			else
+			{
+				const auto subString = inOutList.substr(0, nextComma);
+				inOutList = inOutList.substr(subString.length() + 1);
+				return subString;
+			}
+		}
 	}
 
 	inline void Set(AEGP_ItemSuite8* itemSuite8, AEGP_ItemH item, const Property& property)
@@ -130,26 +147,37 @@ namespace AetPlugin::CommentUtil
 		return (result.ec != std::errc::invalid_argument) ? resultID : 0xFFFFFFFF;
 	}
 
-	inline std::vector<uint32_t> ParseIDs(std::string_view commentValue)
+	template <typename Func>
+	inline void IterateCommaSeparateList(const std::string_view commaSeparateList, Func func)
 	{
-		std::vector<uint32_t> resultIDs;
+		std::string_view readHead = commaSeparateList;
+		const char* endOfList = commaSeparateList.data() + commaSeparateList.size() - 1;
 
-		size_t lastStartIndex = 0;
-		for (size_t i = 0; i < commentValue.size(); i++)
+		while (true)
 		{
-			if (commentValue[i] == ',')
-			{
-				const auto id = ParseID(FormatUtil::Trim(commentValue.substr(lastStartIndex, i - lastStartIndex)));
-				resultIDs.push_back(id);
-				lastStartIndex = ++i;
-			}
-			else if (i + 1 == commentValue.size())
-			{
-				const auto id = ParseID(FormatUtil::Trim(commentValue.substr(lastStartIndex)));
-				resultIDs.push_back(id);
-			}
-		}
+			const auto currentItem = Detail::AdvanceCommaSeparateList(readHead);
+			const auto itemTrimmed = FormatUtil::Trim(currentItem);
 
-		return resultIDs;
+			func(itemTrimmed);
+
+			if (readHead.data() >= endOfList)
+				return;
+		}
+	}
+
+	template <size_t Size>
+	inline std::array<std::string_view, Size> ParseArray(std::string_view commaSeparateList)
+	{
+		std::array<std::string_view, Size> result = {};
+
+		size_t index = 0;
+		IterateCommaSeparateList(commaSeparateList, [&](const auto& item)
+		{
+			if (index < Size)
+				result[index] = item;
+			index++;
+		});
+
+		return result;
 	}
 }

@@ -97,7 +97,6 @@ namespace AetPlugin
 			struct FolderHandles
 			{
 				AEGP_ItemH Root;
-				AEGP_ItemH Data;
 
 				struct SceneData
 				{

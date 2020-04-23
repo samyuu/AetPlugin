@@ -166,11 +166,6 @@ namespace AetPlugin
 	A_Err AetImporter::ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
 		SetupWorkingSetData(set);
-
-		// TODO: Check WorkingDirectoryAetDB() / WorkingDirectorySprDB()
-		//		 Automatically import set id data and make sure to import all sprites even if unused by the aet.
-		//		 The user will then have to place them inside a comp to have them be included
-
 		CheckWorkingDirectoryFiles();
 
 		GetProjectHandles();
@@ -288,54 +283,16 @@ namespace AetPlugin
 	{
 		const auto& setRootName = workingSet.NamePrefix;
 		suites.ItemSuite1->AEGP_CreateNewFolder(setRootName.c_str(), project.RootItemHandle, &project.Folders.Root);
-		CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, workingSet.Set->Name });
 
-		auto addDummyDataFootage = [&](const char* footageName)
-		{
-			const A_long dummySize = 16;
-			const AEGP_ColorVal dummyColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-			AEGP_FootageH dummyFootage;
-			suites.FootageSuite5->AEGP_NewSolidFootage(footageName, dummySize, dummySize, &dummyColor, &dummyFootage);
-
-			AEGP_ItemH dummyItem;
-			suites.FootageSuite5->AEGP_AddFootageToProject(dummyFootage, project.Folders.Data, &dummyItem);
-
-			return dummyItem;
-		};
-
-		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SetData, project.Folders.Root, &project.Folders.Data);
-
-		AEGP_ItemH aetSetIDItem = addDummyDataFootage("aet_set_id");
-		AEGP_ItemH aetSceneIDsItem = addDummyDataFootage("aet_scene_ids");
-		AEGP_ItemH sprSetIDItem = addDummyDataFootage("spr_set_id");
-
-		if (const auto* aetSetEntry = workingDirectory.DB.AetSetEntry; aetSetEntry != nullptr)
+		if (workingDirectory.DB.AetSetEntry != nullptr)
 		{
 			CommentUtil::Buffer commentBuffer = {};
-
-			sprintf(commentBuffer.data(), "0x%X", aetSetEntry->ID);
-			CommentUtil::Set(suites.ItemSuite8, aetSetIDItem, { CommentUtil::Keys::AetSetID, commentBuffer.data() });
-
-			commentBuffer[0] = '\0';
-			for (const auto& sceneEntry : aetSetEntry->SceneEntries)
-			{
-				char appendBuffer[32]; sprintf(appendBuffer, "0x%X", sceneEntry.ID);
-				std::strcat(commentBuffer.data(), appendBuffer);
-				if (&sceneEntry != &aetSetEntry->SceneEntries.back())
-					std::strcat(commentBuffer.data(), ", ");
-			}
-			CommentUtil::Set(suites.ItemSuite8, aetSceneIDsItem, { CommentUtil::Keys::SceneID, commentBuffer.data() });
-
-			commentBuffer[0] = '\0';
-			sprintf(commentBuffer.data(), "0x%X", aetSetEntry->SprSetID);
-			CommentUtil::Set(suites.ItemSuite8, sprSetIDItem, { CommentUtil::Keys::SprSetID, commentBuffer.data() });
+			sprintf(commentBuffer.data(), "%s, 0x%X, 0x%X", workingSet.Set->Name.c_str(), workingDirectory.DB.AetSetEntry->ID, workingDirectory.DB.SprSetEntry->ID);
+			CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, commentBuffer.data() });
 		}
 		else
 		{
-			CommentUtil::Set(suites.ItemSuite8, aetSetIDItem, { CommentUtil::Keys::AetSetID, "" });
-			CommentUtil::Set(suites.ItemSuite8, aetSceneIDsItem, { CommentUtil::Keys::SceneID, "" });
-			CommentUtil::Set(suites.ItemSuite8, sprSetIDItem, { CommentUtil::Keys::SprSetID, "" });
+			CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, workingSet.Set->Name });
 		}
 	}
 
@@ -447,7 +404,7 @@ namespace AetPlugin
 				std::strcat(commentBuffer.data(), ", ");
 		}
 
-		CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::SprID, commentBuffer.data() });
+		CommentUtil::Set(suites.ItemSuite8, video.GuiData.AE_FootageItem, { CommentUtil::Keys::Spr, commentBuffer.data() });
 	}
 
 	void AetImporter::ImportVideoSetSequenceInterpretation(const Aet::Video& video)
@@ -517,7 +474,16 @@ namespace AetPlugin
 			suites.CompSuite7->AEGP_GetItemFromComp(comp->GuiData.AE_Comp, &comp->GuiData.AE_CompItem);
 		}
 
-		CommentUtil::Set(suites.ItemSuite8, scene.RootComposition->GuiData.AE_CompItem, { CommentUtil::Keys::Scene, scene.Name, workingScene.SceneIndex });
+		if (workingDirectory.DB.AetSetEntry != nullptr && workingScene.SceneIndex < workingDirectory.DB.AetSetEntry->SceneEntries.size())
+		{
+			CommentUtil::Buffer commentBuffer = {};
+			sprintf(commentBuffer.data(), "%s, 0x%X", scene.Name.c_str(), workingDirectory.DB.AetSetEntry->SceneEntries[workingScene.SceneIndex].ID);
+			CommentUtil::Set(suites.ItemSuite8, scene.RootComposition->GuiData.AE_CompItem, { CommentUtil::Keys::AetScene, commentBuffer.data(), workingScene.SceneIndex });
+		}
+		else
+		{
+			CommentUtil::Set(suites.ItemSuite8, scene.RootComposition->GuiData.AE_CompItem, { CommentUtil::Keys::AetScene, scene.Name, workingScene.SceneIndex });
+		}
 	}
 
 	void AetImporter::ImportLayersInComp(const Aet::Composition& comp)
