@@ -13,7 +13,7 @@ namespace AetPlugin::CommentUtil
 	{
 		// NOTE: #Aet::Set: { %set_name%, %aet_set_id%, %spr_set_id% }
 		static constexpr std::string_view AetSet = "Set";
-		// NOTE: #Aet::Scene: { %scene_name%, %scene_id% }
+		// NOTE: #Aet::Scene[%index%]: { %scene_name%, %scene_id% }
 		static constexpr std::string_view AetScene = "Scene";
 		// NOTE: #Aet::Spr: { %spr_id%, ... }
 		static constexpr std::string_view Spr = "Spr";
