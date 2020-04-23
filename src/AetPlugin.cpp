@@ -141,7 +141,7 @@ namespace AetPlugin
 
 				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Compress Textures", &options.Sprite.CompressTextures },
+				{ FileDialogUtil::Customize::ItemType::Checkbox, "Compress Textures", nullptr /*&options.Sprite.CompressTextures*/ },
 				{ FileDialogUtil::Customize::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
 				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
 
