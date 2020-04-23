@@ -97,6 +97,7 @@ namespace AetPlugin
 			static constexpr const char* SceneRootPrefix = "_scene";
 			static constexpr const char* SceneData = "data";
 			static constexpr const char* SceneVideo = "video";
+			static constexpr const char* SceneVideoDB = "video_db";
 			static constexpr const char* SceneAudio = "audio";
 			static constexpr const char* SceneComp = "comp";
 		};

@@ -302,6 +302,8 @@ namespace AetPlugin
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
+		if (workingDirectory.DB.SprSetEntry != nullptr)
+			suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideoDB, project.Folders.Scene.Data, &project.Folders.Scene.VideoDB);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneAudio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneComp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
 	}
@@ -313,6 +315,88 @@ namespace AetPlugin
 
 		for (const auto& audio : workingScene.Scene->Audios)
 			ImportAudio(*audio);
+
+		ImportAdditionalSprDBFootage();
+	}
+
+	void AetImporter::ImportAdditionalSprDBFootage()
+	{
+		if (workingDirectory.DB.SprSetEntry == nullptr)
+			return;
+
+		// NOTE: { "TEST_SPRITE" -> 0 }, { "TEST_SPRITE_00" -> 2 }, { "TEST_SPRITE_000" -> 3 }
+		auto getSpriteSequenceDigitCount = [](std::string_view name) -> int
+		{
+			int count = 0;
+			for (auto it = name.rbegin(); it != name.rend(); it++)
+			{
+				if (*it == '0') count++;
+				else if (*it == '_') return count;
+				else break;
+			}
+			return count;
+		};
+
+		// NOTE: { "TEST_SPRITE_000", "TEST_SPRITE_001", "TEST_SPRITE_002", "TEST_SPRITE_003", "TEST_SPRITE_OTHER" -> 4 }
+		auto getSpriteSequenceFrameCount = [](const std::vector<Database::SprEntry>& entries, const size_t startIndex, const int digitCount) -> size_t
+		{
+			if (digitCount < 2)
+				return 1;
+
+			const auto& startEntry = entries[startIndex];
+			const auto baseName = startEntry.Name.substr(0, startEntry.Name.size() - digitCount);
+
+			for (size_t i = startIndex + 1; i < entries.size(); i++)
+			{
+				if (entries[i].Name.size() != startEntry.Name.size() || !StartsWith(entries[i].Name, baseName))
+					return (i - startIndex);
+			}
+
+			return 1;
+		};
+
+		Aet::Video dummyVideo = {};
+		dummyVideo.Color = 0x00FFFFFF;
+		dummyVideo.Size = ivec2(100, 100);
+		dummyVideo.FilesPerFrame = 1.0f;
+		dummyVideo.Sources.reserve(20);
+
+		const auto& sprEntries = workingDirectory.DB.SprSetEntry->SprEntries;
+		for (size_t i = 0; i < sprEntries.size(); i++)
+		{
+			const auto& currentSprEntry = sprEntries[i];
+
+			const int digitCount = getSpriteSequenceDigitCount(currentSprEntry.Name);
+			const size_t frameCount = getSpriteSequenceFrameCount(sprEntries, i, digitCount);
+
+			const auto existingVideo = std::find_if(workingScene.Scene->Videos.begin(), workingScene.Scene->Videos.end(), [&](const auto& video)
+			{
+				const auto matchingSource = std::find_if(video->Sources.begin(), video->Sources.end(), [&](const auto& source)
+				{
+					return source.ID == currentSprEntry.ID;
+				});
+
+				return (matchingSource != video->Sources.end());
+			});
+
+			if (existingVideo == workingScene.Scene->Videos.end())
+			{
+				dummyVideo.Sources.clear();
+
+				for (size_t frameIndex = 0; frameIndex < frameCount; frameIndex++)
+				{
+					const auto sprFrameEntry = sprEntries[i + frameIndex];
+					auto& source = dummyVideo.Sources.emplace_back();
+
+					source.Name = FormatUtil::StripPrefixIfExists(sprFrameEntry.Name, SprPrefix);
+					source.ID = sprFrameEntry.ID;
+				}
+
+				ImportSpriteVideo(dummyVideo, true);
+			}
+
+			i += (frameCount - 1);
+		}
 	}
 
 	void AetImporter::ImportAllCompositions()
@@ -351,7 +435,7 @@ namespace AetPlugin
 		ImportVideoAddItemToProject(video);
 	}
 
-	void AetImporter::ImportSpriteVideo(const Aet::Video& video)
+	void AetImporter::ImportSpriteVideo(const Aet::Video& video, bool dbVideo)
 	{
 		const auto frontSourceNameWithoutSetName = FormatUtil::StripPrefixIfExists(video.Sources.front().Name, workingSet.NamePrefixUnderscore);
 		if (auto matchingSpriteFile = FindMatchingSpriteFile(frontSourceNameWithoutSetName); matchingSpriteFile != nullptr)
@@ -376,16 +460,16 @@ namespace AetPlugin
 			suites.FootageSuite5->AEGP_NewPlaceholderFootage(EvilGlobalState.PluginID, frontSourceNameWithoutSetName.data(), video.Size.x, video.Size.y, &duration, &video.GuiData.AE_Footage);
 		}
 
-		ImportVideoAddItemToProject(video);
+		ImportVideoAddItemToProject(video, dbVideo);
 		ImportVideoSetSprIDComment(video);
 		ImportVideoSetSequenceInterpretation(video);
 		ImportVideoSetItemName(video);
 	}
 
-	void AetImporter::ImportVideoAddItemToProject(const Aet::Video& video)
+	void AetImporter::ImportVideoAddItemToProject(const Aet::Video& video, bool dbVideo)
 	{
 		if (video.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, project.Folders.Scene.Video, &video.GuiData.AE_FootageItem);
+			suites.FootageSuite5->AEGP_AddFootageToProject(video.GuiData.AE_Footage, dbVideo ? project.Folders.Scene.VideoDB : project.Folders.Scene.Video, &video.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportVideoSetSprIDComment(const Aet::Video& video)
@@ -448,7 +532,7 @@ namespace AetPlugin
 	{
 		// TODO:
 		if (audio.GuiData.AE_Footage != nullptr)
-			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Scene.Video, &audio.GuiData.AE_FootageItem);
+			suites.FootageSuite5->AEGP_AddFootageToProject(audio.GuiData.AE_Footage, project.Folders.Scene.Audio, &audio.GuiData.AE_FootageItem);
 	}
 
 	void AetImporter::ImportSceneComps()

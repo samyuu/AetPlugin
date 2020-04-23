@@ -103,6 +103,7 @@ namespace AetPlugin
 					AEGP_ItemH Root;
 					AEGP_ItemH Data;
 					AEGP_ItemH Video;
+					AEGP_ItemH VideoDB;
 					AEGP_ItemH Audio;
 					AEGP_ItemH Comp;
 				} Scene;
@@ -116,14 +117,15 @@ namespace AetPlugin
 	protected:
 		void CreateSceneFolders();
 		void ImportAllFootage();
+		void ImportAdditionalSprDBFootage();
 		void ImportAllCompositions();
 
 	protected:
 		void ImportVideo(const Aet::Video& video);
 
 		void ImportPlaceholderVideo(const Aet::Video& video);
-		void ImportSpriteVideo(const Aet::Video& video);
-		void ImportVideoAddItemToProject(const Aet::Video& video);
+		void ImportSpriteVideo(const Aet::Video& video, bool dbVideo = false);
+		void ImportVideoAddItemToProject(const Aet::Video& video, bool dbVideo = false);
 		void ImportVideoSetSprIDComment(const Aet::Video& video);
 		void ImportVideoSetSequenceInterpretation(const Aet::Video& video);
 		void ImportVideoSetItemName(const Aet::Video& video);
