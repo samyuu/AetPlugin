@@ -102,7 +102,7 @@ namespace AetPlugin
 			{
 				bool ExportSprDB = true;
 				bool ExportAetDB = true;
-				bool ParseSprIDComments = false;
+				bool ParseSprIDComments = true;
 			} Database;
 			struct SpriteData
 			{
