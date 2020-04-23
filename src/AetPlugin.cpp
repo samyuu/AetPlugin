@@ -107,9 +107,9 @@ namespace AetPlugin
 			struct SpriteData
 			{
 				bool ExportSprSet = true;
-				bool PowerOfTwoTextures = false;
+				bool PowerOfTwoTextures = true;
 				// TODO: 
-				bool CompressTextures = false;
+				// bool CompressTextures = false;
 				// bool GenerateMipMaps = false;
 			} Sprite;
 			struct LogData
