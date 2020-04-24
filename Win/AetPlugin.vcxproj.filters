@@ -15,9 +15,6 @@
       <UniqueIdentifier>{3587113d-d12f-4ded-951a-d813f2e25911}</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe</Extensions>
     </Filter>
-    <Filter Include="Supporting Code">
-      <UniqueIdentifier>{a56c5f67-e785-43db-af75-9e16011e1a5e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{826705d0-78bf-4635-a629-126012308f7f}</UniqueIdentifier>
     </Filter>
