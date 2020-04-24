@@ -533,7 +533,6 @@ namespace AetPlugin
 			AEGP_StreamValue streamVal;
 			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
-			// TODO: Add the layer start frame (?)
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate);
 			layer.Markers.push_back(MakeRef<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
 		}
