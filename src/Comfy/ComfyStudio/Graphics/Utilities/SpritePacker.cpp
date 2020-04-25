@@ -37,6 +37,16 @@ namespace Comfy::Graphics::Utilities
 			return box.y + box.w;
 		}
 
+		constexpr ivec2 GetBoxPos(const ivec4& box)
+		{
+			return ivec2(box.x, box.y);
+		}
+
+		constexpr ivec2 GetBoxSize(const ivec4& box)
+		{
+			return ivec2(box.z, box.w);
+		}
+
 		uint32_t RoundToNearestPowerOfTwo(uint32_t x)
 		{
 			return (x <= 1 || x > ((std::numeric_limits<uint32_t>::max() / 2) + 1)) ? x : (1 << (32 - __lzcnt(x - 1)));
@@ -92,17 +102,17 @@ namespace Comfy::Graphics::Utilities
 			const auto texSize = texMarkup.Size;
 
 			const auto sprSize = sprBox.Markup->Size;
-			const auto sprBoxSize = ivec2(sprBox.Box.z, sprBox.Box.w);
+			const auto sprBoxSize = GetBoxSize(sprBox.Box);
 
 			const auto sprPadding = (sprBoxSize - sprSize) / 2;
-			const auto sprOffset = ivec2(sprBox.Box.x, sprBox.Box.y) + sprPadding;
+			const auto sprOffset = GetBoxPos(sprBox.Box) + sprPadding;
 
 			const void* sprData = sprBox.Markup->RGBAPixels;
 
 			if (sprPadding.x > 0 && sprPadding.y > 0 && sprSize.x > 0 && sprSize.y > 0)
 			{
-				const auto cornerTopLeft = ivec2(sprBox.Box.x, sprBox.Box.y);
-				const auto cornerBottomRight = cornerTopLeft + ivec2(sprBox.Box.z, sprBox.Box.w) - sprPadding;
+				const auto cornerTopLeft = GetBoxPos(sprBox.Box);
+				const auto cornerBottomRight = cornerTopLeft + sprBoxSize - sprPadding;
 				for (int x = 0; x < sprPadding.x; x++)
 				{
 					for (int y = 0; y < sprPadding.y; y++)
@@ -180,19 +190,21 @@ namespace Comfy::Graphics::Utilities
 		sprSet.Flags = 0;
 		sprSet.Sprites.reserve(sprMarkups.size());
 
-		auto texMarkups = MergeTextures(sprMarkups);
+		const auto texMarkups = MergeTextures(sprMarkups);
 		texSet.Textures.reserve(texMarkups.size());
 
 		for (int texIndex = 0; texIndex < static_cast<int>(texMarkups.size()); texIndex++)
 		{
 			const auto& texMarkup = texMarkups[texIndex];
-			for (const auto& spriteBox : texMarkup.SpriteBoxes)
+			for (const auto& sprBox : texMarkup.SpriteBoxes)
 			{
-				const auto& sprMarkup = *spriteBox.Markup;
+				const auto& sprMarkup = *sprBox.Markup;
+				const auto sprPadding = (GetBoxSize(sprBox.Box) - sprMarkup.Size) / 2;
+
 				auto& spr = sprSet.Sprites.emplace_back();
 				spr.TextureIndex = texIndex;
 				spr.Rotate = 0;
-				spr.PixelRegion = ivec4(ivec2(spriteBox.Box) + Settings.SpritePadding, sprMarkup.Size);
+				spr.PixelRegion = ivec4(GetBoxPos(sprBox.Box) + sprPadding, sprMarkup.Size);
 				spr.TexelRegion = GetTexelRegionFromPixelRegion(spr.PixelRegion, texMarkup.Size);
 				spr.Name = sprMarkup.Name;
 				spr.Extra.Flags = 0;
@@ -248,7 +260,7 @@ namespace Comfy::Graphics::Utilities
 				if (const auto[fittingTex, fittingSprBox] = FindFittingTexMarkupToPlaceSprIn(sprMarkup, texMarkups); fittingTex != nullptr)
 				{
 					fittingTex->SpriteBoxes.push_back({ &sprMarkup, fittingSprBox });
-					fittingTex->RemainingFreePixels -= Area(ivec2(fittingSprBox.z, fittingSprBox.w));
+					fittingTex->RemainingFreePixels -= Area(GetBoxSize(fittingSprBox));
 				}
 				else
 				{
@@ -335,13 +347,13 @@ namespace Comfy::Graphics::Utilities
 					}
 
 					return std::make_pair(&existingTexMarkup, roughSprBox);
-		}
-		}
+				}
+			}
 #endif
-	}
+		}
 
 		return std::make_pair(static_cast<SprTexMarkup*>(nullptr), ivec4(0, 0, 0, 0));
-}
+	}
 
 	void SpritePacker::AdjustTexMarkupSizes(std::vector<SprTexMarkup>& texMarkups)
 	{
