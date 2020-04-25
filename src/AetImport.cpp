@@ -366,8 +366,8 @@ namespace AetPlugin
 		{
 			const auto& currentSprEntry = sprEntries[i];
 
-			const int digitCount = getSpriteSequenceDigitCount(currentSprEntry.Name);
-			const size_t frameCount = getSpriteSequenceFrameCount(sprEntries, i, digitCount);
+			constexpr bool tryImportSequence = false;
+			const size_t frameCount = (tryImportSequence) ? getSpriteSequenceFrameCount(sprEntries, i, getSpriteSequenceDigitCount(currentSprEntry.Name)) : 1;
 
 			const auto existingVideo = std::find_if(workingScene.Scene->Videos.begin(), workingScene.Scene->Videos.end(), [&](const auto& video)
 			{
