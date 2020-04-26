@@ -187,14 +187,8 @@ namespace AetPlugin
 				fclose(logFile);
 		}
 
-		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
+		A_Err ExportAetSetCommand()
 		{
-			*handledPB = false;
-			if (command != EvilGlobalState.ExportAetSetCommand)
-				return A_Err_NONE;
-
-			*handledPB = true;
-
 			auto exporter = AetExporter();
 
 			const auto setNameU8 = exporter.GetAetSetNameFromProjectName();
@@ -243,6 +237,23 @@ namespace AetPlugin
 			}
 
 			return A_Err_NONE;
+		}
+
+		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
+		{
+			A_Err err = A_Err_NONE;
+			
+			if (command == EvilGlobalState.ExportAetSetCommand)
+			{
+				*handledPB = true;
+				ERR(ExportAetSetCommand());
+			}
+			else
+			{
+				*handledPB = false;
+			}
+
+			return err;
 		}
 
 		A_Err RegisterAetSetFileTypeExport(const SuitesData& suites)
