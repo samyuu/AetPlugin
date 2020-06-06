@@ -97,6 +97,9 @@ namespace AetPlugin
 			static constexpr const char* SceneVideoDB = "video_db";
 			static constexpr const char* SceneAudio = "audio";
 			static constexpr const char* SceneComp = "comp";
+
+			static constexpr const char* UnreferencedSpritesComp = "video_db_comp";
+			static constexpr const char* UnreferencedSpritesLayer = "unreferenced_sprites";
 		};
 	};
 }

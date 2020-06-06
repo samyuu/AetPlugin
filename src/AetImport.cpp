@@ -176,7 +176,12 @@ namespace AetPlugin
 		{
 			SetupWorkingSceneData(*scene, sceneIndex++);
 			CreateSceneFolders();
+
 			ImportAllFootage();
+
+			if (!IsSceneVideoDBBlacklisted(*workingScene.Scene))
+				CreateImportUnreferencedSprDBFootageAndLayer();
+
 			ImportAllCompositions();
 		}
 
@@ -215,6 +220,9 @@ namespace AetPlugin
 		setCompUsages(*scene.RootComposition);
 		for (const auto& comp : scene.Compositions)
 			setCompUsages(*comp);
+
+		workingScene.UnreferencedVideoComp = nullptr;
+		workingScene.UnreferencedVideoLayer = nullptr;
 	}
 
 	void AetImporter::CheckWorkingDirectoryFiles()
@@ -290,13 +298,27 @@ namespace AetPlugin
 		}
 	}
 
+	bool AetImporter::IsSceneVideoDBBlacklisted(const Aet::Scene& scene) const
+	{
+		static constexpr std::array<std::string_view, 1> blacklistSceneNames =
+		{
+			// NOTE: Ignore DIVA "TOUCH" scenes because it should be safe to assume that they won't rely on any external spr_db sprites
+			"TOUCH",
+		};
+
+		return std::any_of(blacklistSceneNames.begin(), blacklistSceneNames.end(), [&](const auto& blacklistName)
+		{
+			return (scene.Name == blacklistName);
+		});
+	}
+
 	void AetImporter::CreateSceneFolders()
 	{
 		const auto sceneRootName = Util::ToSnakeCaseLowerCopy(workingScene.Scene->Name) + ProjectStructure::Names::SceneRootPrefix;
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
-		if (workingDirectory.DB.SprSetEntry != nullptr)
+		if (workingDirectory.DB.SprSetEntry != nullptr && !IsSceneVideoDBBlacklisted(*workingScene.Scene))
 			suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideoDB, project.Folders.Scene.Data, &project.Folders.Scene.VideoDB);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneAudio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneComp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
@@ -309,17 +331,12 @@ namespace AetPlugin
 
 		for (const auto& audio : workingScene.Scene->Audios)
 			ImportAudio(*audio);
-
-		ImportAdditionalSprDBFootage();
 	}
 
-	void AetImporter::ImportAdditionalSprDBFootage()
+	namespace
 	{
-		if (workingDirectory.DB.SprSetEntry == nullptr)
-			return;
-
 		// NOTE: { "TEST_SPRITE" -> 0 }, { "TEST_SPRITE_00" -> 2 }, { "TEST_SPRITE_000" -> 3 }
-		auto getSpriteSequenceDigitCount = [](std::string_view name) -> int
+		constexpr int GetSpriteSequenceDigitCount(std::string_view name)
 		{
 			int count = 0;
 			for (auto it = name.rbegin(); it != name.rend(); it++)
@@ -329,10 +346,10 @@ namespace AetPlugin
 				else break;
 			}
 			return count;
-		};
+		}
 
 		// NOTE: { "TEST_SPRITE_000", "TEST_SPRITE_001", "TEST_SPRITE_002", "TEST_SPRITE_003", "TEST_SPRITE_OTHER" -> 4 }
-		auto getSpriteSequenceFrameCount = [](const std::vector<Database::SprEntry>& entries, const size_t startIndex, const int digitCount) -> size_t
+		size_t GetSpriteSequenceFrameCount(const std::vector<Database::SprEntry>& entries, const size_t startIndex, const int digitCount)
 		{
 			if (digitCount < 2)
 				return 1;
@@ -347,13 +364,76 @@ namespace AetPlugin
 			}
 
 			return 1;
-		};
+		}
 
-		Aet::Video dummyVideo = {};
-		dummyVideo.Color = 0x00FFFFFF;
-		dummyVideo.Size = ivec2(100, 100);
-		dummyVideo.FilesPerFrame = 1.0f;
-		dummyVideo.Sources.reserve(20);
+		std::shared_ptr<Aet::LayerVideo> CreateStaticCenteredLayerVideo(vec2 videoSize, vec2 sceneSize)
+		{
+			auto layerVideo = std::make_shared<Aet::LayerVideo>();
+			layerVideo->Transform.Origin.X->emplace_back(videoSize.x / 2.0f);
+			layerVideo->Transform.Origin.Y->emplace_back(videoSize.y / 2.0f);
+			layerVideo->Transform.Position.X->emplace_back(sceneSize.x / 2.0f);
+			layerVideo->Transform.Position.Y->emplace_back(sceneSize.y / 2.0f);
+			layerVideo->Transform.Rotation->emplace_back(0.0f);
+			layerVideo->Transform.Scale.X->emplace_back(1.0f);
+			layerVideo->Transform.Scale.Y->emplace_back(1.0f);
+			layerVideo->Transform.Opacity->emplace_back(1.0f);
+			return layerVideo;
+		}
+	}
+
+	void AetImporter::CreateImportUnreferencedSprDBFootageAndLayer()
+	{
+		if (workingDirectory.DB.SprSetEntry == nullptr)
+			return;
+
+		const auto dbOnlyVideos = CreateUnreferencedSprDBVideos();
+		if (dbOnlyVideos.empty())
+			return;
+
+		const frame_t compDuration = (workingScene.Scene->FrameRate * 1.0f);
+
+		workingScene.UnreferencedVideoComp = std::make_shared<Aet::Composition>();
+		auto& composition = *workingScene.UnreferencedVideoComp;
+		composition.SetName(ProjectStructure::Names::UnreferencedSpritesComp);
+		composition.GetLayers().reserve(dbOnlyVideos.size());
+		for (const auto& video : dbOnlyVideos)
+		{
+			ImportSpriteVideo(*video, true);
+
+			auto& layer = *composition.GetLayers().emplace_back(std::make_shared<Aet::Layer>());
+			layer.StartFrame = 0.0f;
+			layer.EndFrame = compDuration;
+			layer.StartOffset = 0.0f;
+			layer.TimeScale = 1.0f;
+			layer.Flags.VideoActive = true;
+			layer.Quality = Aet::LayerQuality::Best;
+			layer.ItemType = Aet::ItemType::Video;
+			layer.LayerVideo = CreateStaticCenteredLayerVideo(vec2(0.0f, 0.0f), vec2(0.0f, 0.0f));
+			layer.LayerVideo->TransferMode.BlendMode = AetBlendMode::Normal;
+			layer.LayerVideo->TransferMode.TrackMatte = UnreferencedVideoRequiresSeparateSprite(*video) ? Aet::TrackMatte::Alpha : Aet::TrackMatte::NoTrackMatte;
+			layer.SetName(video->Sources.front().Name);
+			layer.SetItem(video);
+		}
+
+		workingScene.UnreferencedVideoLayer = std::make_shared<Aet::Layer>();
+		auto& videoDBLayer = *workingScene.UnreferencedVideoLayer;
+		videoDBLayer.StartFrame = 0.0f;
+		videoDBLayer.EndFrame = compDuration;
+		videoDBLayer.StartOffset = 0.0f;
+		videoDBLayer.TimeScale = 1.0f;
+		videoDBLayer.Flags.VideoActive = false;
+		videoDBLayer.Quality = Aet::LayerQuality::Best;
+		videoDBLayer.ItemType = Aet::ItemType::Composition;
+		videoDBLayer.LayerVideo = CreateStaticCenteredLayerVideo(workingScene.Scene->Resolution, workingScene.Scene->Resolution);
+		videoDBLayer.LayerVideo->TransferMode.BlendMode = AetBlendMode::Normal;
+		videoDBLayer.LayerVideo->TransferMode.TrackMatte = Aet::TrackMatte::NoTrackMatte;
+		videoDBLayer.SetName(ProjectStructure::Names::UnreferencedSpritesLayer);
+		videoDBLayer.SetItem(workingScene.UnreferencedVideoComp);
+	}
+
+	std::vector<std::shared_ptr<Aet::Video>> AetImporter::CreateUnreferencedSprDBVideos() const
+	{
+		std::vector<std::shared_ptr<Aet::Video>> dbOnlyVideos;
 
 		const auto& sprEntries = workingDirectory.DB.SprSetEntry->SprEntries;
 		for (size_t i = 0; i < sprEntries.size(); i++)
@@ -361,36 +441,41 @@ namespace AetPlugin
 			const auto& currentSprEntry = sprEntries[i];
 
 			constexpr bool tryImportSequence = false;
-			const size_t frameCount = (tryImportSequence) ? getSpriteSequenceFrameCount(sprEntries, i, getSpriteSequenceDigitCount(currentSprEntry.Name)) : 1;
+			const size_t frameCount = (tryImportSequence) ? GetSpriteSequenceFrameCount(sprEntries, i, GetSpriteSequenceDigitCount(currentSprEntry.Name)) : 1;
 
-			const auto existingVideo = std::find_if(workingScene.Scene->Videos.begin(), workingScene.Scene->Videos.end(), [&](const auto& video)
+			const auto existingVideo = FindIfOrNull(workingScene.Scene->Videos, [&](const auto& video)
 			{
-				const auto matchingSource = std::find_if(video->Sources.begin(), video->Sources.end(), [&](const auto& source)
-				{
-					return source.ID == currentSprEntry.ID;
-				});
-
-				return (matchingSource != video->Sources.end());
+				return (FindIfOrNull(video->Sources, [&](const auto& source) { return (source.ID == currentSprEntry.ID); })) != nullptr;
 			});
 
-			if (existingVideo == workingScene.Scene->Videos.end())
+			if (existingVideo == nullptr)
 			{
-				dummyVideo.Sources.clear();
+				auto& video = dbOnlyVideos.emplace_back(std::make_shared<Aet::Video>());
+				video->Color = 0x00FFFFFF;
+				video->Size = ivec2(100, 100);
+				video->FilesPerFrame = 1.0f;
+				video->Sources.reserve(frameCount);
 
 				for (size_t frameIndex = 0; frameIndex < frameCount; frameIndex++)
 				{
 					const auto sprFrameEntry = sprEntries[i + frameIndex];
-					auto& source = dummyVideo.Sources.emplace_back();
+					auto& source = video->Sources.emplace_back();
 
 					source.Name = Util::StripPrefixInsensitive(sprFrameEntry.Name, SprPrefix);
 					source.ID = sprFrameEntry.ID;
 				}
-
-				ImportSpriteVideo(dummyVideo, true);
 			}
 
 			i += (frameCount - 1);
 		}
+
+		return dbOnlyVideos;
+	}
+
+	bool AetImporter::UnreferencedVideoRequiresSeparateSprite(const Aet::Video& video) const
+	{
+		// TODO: Should this check against a hardcoded list of common sprites like gam_cmn kiseki (?)
+		return false;
 	}
 
 	void AetImporter::ImportAllCompositions()
@@ -398,8 +483,17 @@ namespace AetPlugin
 		ImportSceneComps();
 
 		ImportAllLayersInComp(*workingScene.Scene->RootComposition);
-		for (int i = static_cast<int>(workingScene.Scene->Compositions.size()) - 1; i >= 0; i--)
-			ImportAllLayersInComp(*workingScene.Scene->Compositions[i]);
+		std::for_each(workingScene.Scene->Compositions.rbegin(), workingScene.Scene->Compositions.rend(), [&](const auto& comp)
+		{
+			ImportAllLayersInComp(*comp);
+		});
+
+		if (workingScene.UnreferencedVideoComp != nullptr && workingScene.UnreferencedVideoLayer != nullptr)
+		{
+			ImportComposition(*workingScene.UnreferencedVideoComp, true);
+			ImportAllLayersInComp(*workingScene.UnreferencedVideoComp);
+			ImportLayer(*workingScene.Scene->RootComposition, *workingScene.UnreferencedVideoLayer);
+		}
 	}
 
 	void AetImporter::ImportVideo(const Aet::Video& video)
@@ -553,15 +647,7 @@ namespace AetPlugin
 		suites.CompSuite7->AEGP_SetCompBGColor(rootCompExtraData.AE_Comp, &backgroundColor);
 
 		for (const auto& comp : scene.Compositions)
-		{
-			const frame_t frameDuration = FindLongestLayerEndFrameInComp(*comp);
-			const A_Time duration = FrameToAETime((frameDuration > 0.0f) ? frameDuration : workingScene.Scene->FrameRate);
-
-			auto& compExtraData = extraData.Get(*comp);
-
-			suites.CompSuite7->AEGP_CreateComp(project.Folders.Scene.Comp, AEUtil::UTF16Cast(UTF8::WideArg(comp->GetName()).c_str()), scene.Resolution.x, scene.Resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &compExtraData.AE_Comp);
-			suites.CompSuite7->AEGP_GetItemFromComp(compExtraData.AE_Comp, &compExtraData.AE_CompItem);
-		}
+			ImportComposition(*comp);
 
 		if (workingDirectory.DB.AetSetEntry != nullptr && workingScene.SceneIndex < workingDirectory.DB.AetSetEntry->SceneEntries.size())
 		{
@@ -573,6 +659,18 @@ namespace AetPlugin
 		{
 			CommentUtil::Set(suites.ItemSuite8, rootCompExtraData.AE_CompItem, { CommentUtil::Keys::AetScene, scene.Name, workingScene.SceneIndex });
 		}
+	}
+
+	void AetImporter::ImportComposition(const Aet::Composition& comp, bool videoDB)
+	{
+		const frame_t frameDuration = FindLongestLayerEndFrameInComp(comp);
+		const A_Time duration = FrameToAETime((frameDuration > 0.0f) ? frameDuration : workingScene.Scene->FrameRate);
+
+		const auto resolution = workingScene.Scene->Resolution;
+		auto& compExtraData = extraData.Get(comp);
+
+		suites.CompSuite7->AEGP_CreateComp(videoDB ? project.Folders.Scene.VideoDB : project.Folders.Scene.Comp, AEUtil::UTF16Cast(UTF8::WideArg(comp.GetName()).c_str()), resolution.x, resolution.y, &AEUtil::OneToOneRatio, &duration, &workingScene.AE_FrameRate, &compExtraData.AE_Comp);
+		suites.CompSuite7->AEGP_GetItemFromComp(compExtraData.AE_Comp, &compExtraData.AE_CompItem);
 	}
 
 	void AetImporter::ImportAllLayersInComp(const Aet::Composition& comp)

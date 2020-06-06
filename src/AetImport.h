@@ -82,6 +82,9 @@ namespace AetPlugin
 
 			// NOTE: Videos without sources don't have a name, so they will be named after their layer usage instead
 			std::unordered_map<const Aet::Video*, const Aet::Layer*> SourcelessVideoLayerUsages;
+
+			std::shared_ptr<Aet::Composition> UnreferencedVideoComp = nullptr;
+			std::shared_ptr<Aet::Layer> UnreferencedVideoLayer = nullptr;
 		} workingScene = {};
 
 		void SetupWorkingSetData(const Aet::AetSet& set);
@@ -118,9 +121,16 @@ namespace AetPlugin
 		void CreateProjectFolders();
 
 	protected:
+		bool IsSceneVideoDBBlacklisted(const Aet::Scene& scene) const;
+
+	protected:
 		void CreateSceneFolders();
 		void ImportAllFootage();
-		void ImportAdditionalSprDBFootage();
+
+		void CreateImportUnreferencedSprDBFootageAndLayer();
+		std::vector<std::shared_ptr<Aet::Video>> CreateUnreferencedSprDBVideos() const;
+		bool UnreferencedVideoRequiresSeparateSprite(const Aet::Video& video) const;
+
 		void ImportAllCompositions();
 
 	protected:
@@ -137,6 +147,7 @@ namespace AetPlugin
 
 	protected:
 		void ImportSceneComps();
+		void ImportComposition(const Aet::Composition& comp, bool videoDB = false);
 		void ImportAllLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
