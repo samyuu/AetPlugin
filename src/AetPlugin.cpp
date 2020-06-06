@@ -1,11 +1,13 @@
 #include "AetPlugin.h"
 #include "AetImport.h"
 #include "AetExport.h"
-#include "FileDialogUtil.h"
-#include "FarcUtil.h"
-#include "FileSystem/FileHelper.h"
-#include "Misc/StringHelper.h"
-#include <ctime>
+#include <IO/File.h>
+#include <IO/Path.h>
+#include <IO/Shell.h>
+#include <IO/Directory.h>
+#include <IO/Archive/FArcPacker.h>
+#include <Misc/StringUtil.h>
+#include <Time/TimeUtilities.h>
 
 namespace AetPlugin
 {
@@ -21,7 +23,7 @@ namespace AetPlugin
 
 		A_Err AEGP_FileVerifyCallbackHandler(const A_UTF16Char* filePath, AE_FIM_Refcon refcon, A_Boolean* a_canImport)
 		{
-			const auto verifyResult = AetImporter::VerifyAetSetImportable(AEUtil::WCast(filePath));
+			const auto verifyResult = AetImporter::VerifyAetSetImportable(UTF8::Narrow(AEUtil::WCast(filePath)));
 			*a_canImport = (verifyResult == AetImporter::AetSetVerifyResult::Valid);
 
 			return A_Err_NONE;
@@ -29,7 +31,7 @@ namespace AetPlugin
 
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)
 		{
-			const auto filePathString = std::wstring(AEUtil::WCast(filePath));
+			const auto filePathString = UTF8::Narrow(AEUtil::WCast(filePath));
 			const auto aetSet = AetImporter::LoadAetSet(filePathString);
 
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
@@ -37,7 +39,7 @@ namespace AetPlugin
 
 			A_Err err = A_Err_NONE;
 
-			auto importer = AetImporter(FileSystem::GetDirectory(filePathString));
+			auto importer = AetImporter(IO::Path::GetDirectoryName(filePathString));
 			ERR(importer.ImportAetSet(*aetSet, importOptions, action, itemHandle));
 
 			return err;
@@ -119,42 +121,43 @@ namespace AetPlugin
 			struct MiscData
 			{
 				bool ExportAetSet = true;
+				bool RunPostExportScript = true;
 			} Misc;
 		};
 
-		std::pair<std::wstring, ExportOptions> OpenExportAetSetFileDialog(std::string_view fileName)
+		std::pair<std::string, ExportOptions> OpenExportAetSetFileDialog(std::string_view fileName)
 		{
 			ExportOptions options = {};
 
-			FileDialogUtil::SaveFileDialogInput dialog = {};
+			auto dialog = IO::Shell::FileDialog();
 			dialog.FileName = fileName;
 			dialog.DefaultExtension = "bin";
 			dialog.Filters = { { "Project DIVA AetSet (*.bin)", "*.bin" }, };
 			dialog.ParentWindowHandle = EvilGlobalState.MainWindowHandle;
 			dialog.CustomizeItems =
 			{
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Database" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
-				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Database" },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
+				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Sprite" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Compress Textures", nullptr /*&options.Sprite.CompressTextures*/ },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
-				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite" },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Textures", nullptr /*&options.Sprite.CompressTextures*/ },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
+				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
-				{ FileDialogUtil::Customize::ItemType::VisualGroupStart, "Log" },
-				{ FileDialogUtil::Customize::ItemType::Checkbox, "Write Log", &options.Log.WriteLog },
-				{ FileDialogUtil::Customize::ItemType::VisualGroupEnd, "---" },
+				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Log" },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Write Log", &options.Log.WriteLog },
+				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 			};
 
-			const auto result = FileDialogUtil::OpenDialog(dialog);
+			const auto result = dialog.OpenSave();
 			return std::make_pair(dialog.OutFilePath, options);
 		}
 
-		std::pair<FILE*, LogLevel> OpenAetSetExportLogFile(std::wstring_view directory, std::wstring_view setName, const ExportOptions& options)
+		std::pair<FILE*, LogLevel> OpenAetSetExportLogFile(std::string_view directory, std::string_view setName, const ExportOptions& options)
 		{
 			FILE* logStream = nullptr;
 			LogLevel logLevel = LogLevel_None;
@@ -167,15 +170,15 @@ namespace AetPlugin
 				__time64_t currentTime = {};
 				_time64(&currentTime);
 
-				wchar_t logFilePath[AEGP_MAX_PATH_SIZE] = {};
-				_swprintf(logFilePath, L"%.*s\\%.*s_%I64d.log",
+				char logFilePath[AEGP_MAX_PATH_SIZE];
+				sprintf(logFilePath, "%.*s\\%.*s_%I64d.log",
 					static_cast<int>(directory.size()),
 					directory.data(),
 					static_cast<int>(setName.size()),
 					setName.data(),
 					static_cast<int64_t>(currentTime));
 
-				const errno_t result = _wfopen_s(&logStream, logFilePath, L"w");
+				const errno_t result = _wfopen_s(&logStream, UTF8::WideArg(logFilePath).c_str(), L"w");
 			}
 
 			return std::make_pair(logStream, logLevel);
@@ -191,49 +194,52 @@ namespace AetPlugin
 		{
 			auto exporter = AetExporter();
 
-			const auto setNameU8 = exporter.GetAetSetNameFromProjectName();
-			const auto setNameU16 = Utf8ToUtf16(setNameU8);
+			const auto setName = exporter.GetAetSetNameFromProjectName();
+			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(setName);
 
-			const auto[outputFilePathU16, exportOptions] = OpenExportAetSetFileDialog(setNameU8);
-			const auto outputFilePathU8 = Utf16ToUtf8(outputFilePathU16);
+			const auto outputDirectory = IO::Path::GetDirectoryName(outputFilePath);
 
-			const auto outputDirectoryU16 = FileSystem::GetDirectory(outputFilePathU16);
-			const auto outputDirectoryU8 = Utf16ToUtf8(outputDirectoryU16);
+			const auto setFileName = IO::Path::GetFileName(outputFilePath, true);
+			const auto aetBaseName = std::string(IO::Path::TrimExtension(Util::StripPrefixInsensitive(setName, AetPrefix)));
 
-			const auto setFileNameU8 = FileSystem::GetFileName(outputFilePathU8, true);
-			const auto aetBaseNameU8 = std::string(FormatUtil::StripFileExtension(FormatUtil::StripPrefixIfExists(setNameU8, AetPrefix)));
-
-			if (outputFilePathU16.empty())
+			if (outputFilePath.empty())
 				return A_Err_NONE;
 
-			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectoryU16, FormatUtil::StripPrefixIfExists(setNameU16, AetPrefixW), exportOptions);
+			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Util::StripPrefixInsensitive(setName, AetPrefix), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectoryU16, exportOptions.Database.ParseSprIDComments);
+			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectory, exportOptions.Database.ParseSprIDComments);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
 			if (exportOptions.Misc.ExportAetSet)
-				aetSet->Save(outputFilePathU16);
+				IO::File::Save(outputFilePath, *aetSet);
 
-			UniquePtr<SprSet> sprSet = nullptr;
+			std::unique_ptr<SprSet> sprSet = nullptr;
 			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
 			{
 				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, exportOptions.Sprite.PowerOfTwoTextures);
-				FarcUtil::WriteUncompressedFarc((outputDirectoryU8 + "\\spr_" + aetBaseNameU8 + ".farc"), *sprSet, ("spr_" + aetBaseNameU8 + ".bin"));
+				const auto sprName = ("spr_" + aetBaseName);
+
+				if (sprSet != nullptr)
+				{
+					auto farcPacker = IO::FArcPacker();
+					farcPacker.AddFile(IO::Path::ChangeExtension(sprName, ".bin"), *sprSet);
+					farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, IO::Path::ChangeExtension(sprName, ".farc")));
+				}
 			}
 
 			if (exportOptions.Database.ExportSprDB)
 			{
-				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileNameU8, sprSet.get());
-				sprDB.Save(outputDirectoryU8 + "\\spr_db_" + aetBaseNameU8 + ".bin");
+				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileName, sprSet.get());
+				IO::File::Save(IO::Path::Combine(outputDirectory, ("spr_db_" + aetBaseName + ".bin")), sprDB);
 			}
 			if (exportOptions.Database.ExportAetDB)
 			{
-				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileNameU8);
-				aetDB.Save(outputDirectoryU8 + "\\aet_db_" + aetBaseNameU8 + ".bin");
+				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileName);
+				IO::File::Save(IO::Path::Combine(outputDirectory, ("aet_db_" + aetBaseName + ".bin")), aetDB);
 			}
 
 			return A_Err_NONE;
@@ -242,7 +248,7 @@ namespace AetPlugin
 		A_Err AEGP_CommandHook(AEGP_GlobalRefcon plugin_refconPV, AEGP_CommandRefcon refconPV, AEGP_Command command, AEGP_HookPriority hook_priority, A_Boolean already_handledB, A_Boolean* handledPB)
 		{
 			A_Err err = A_Err_NONE;
-			
+
 			if (command == EvilGlobalState.ExportAetSetCommand)
 			{
 				*handledPB = true;
