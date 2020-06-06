@@ -1,11 +1,12 @@
 #include "AetExport.h"
 #include "FormatUtil.h"
 #include "StreamUtil.h"
-#include "Graphics/Auth2D/Aet/AetMgr.h"
-#include "Graphics/Utilities/SpritePacker.h"
-#include "Misc/StringHelper.h"
-#include "Misc/ImageHelper.h"
-#include "Resource/IDHash.h"
+#include <Graphics/Auth2D/Aet/AetUtil.h>
+#include <Graphics/Utilities/SpritePacker.h>
+#include <IO/Path.h>
+#include <Misc/StringUtil.h>
+#include <Misc/ImageHelper.h>
+#include <Resource/IDHash.h>
 
 #define LogLine(format, ...)		do { if (logLevel != LogLevel_None)		{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogInfoLine(format, ...)	do { if (logLevel & LogLevel_Info)		{ fprintf(logStream, "[INFO] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
@@ -72,21 +73,21 @@ namespace AetPlugin
 
 		std::string setName;
 		setName += AetPrefix;
-		setName += FormatUtil::ToSnakeCaseLower(FormatUtil::StripFileExtension(projectName));
+		setName += Util::ToSnakeCaseLowerCopy(std::string(IO::Path::TrimExtension(projectName)));
 		return setName;
 	}
 
-	std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> AetExporter::ExportAetSet(std::wstring_view workingDirectory, bool parseSprIDComments)
+	std::pair<std::unique_ptr<Aet::AetSet>, std::unique_ptr<SprSetSrcInfo>> AetExporter::ExportAetSet(std::string_view workingDirectory, bool parseSprIDComments)
 	{
 		LogLine("--- Log Start ---");
 		LogLine("Log Level: '%s'", FormatUtil::FormatFlags(logLevel, LogLevelsToCheck).c_str());
 
 		settings.ParseSprIDComments = parseSprIDComments;
 
-		LogInfoLine("Working Directory: '%s'", Utf16ToUtf8(workingDirectory).c_str());
 		this->workingDirectory.ImportDirectory = workingDirectory;
+		LogInfoLine("Working Directory: '%s'", this->workingDirectory.ImportDirectory.c_str());
 
-		auto aetSet = MakeUnique<Aet::AetSet>();
+		auto aetSet = std::make_unique<Aet::AetSet>();
 
 		SetupWorkingProjectData();
 		SetupWorkingSetData(*aetSet);
@@ -104,7 +105,7 @@ namespace AetPlugin
 		return std::make_pair(std::move(aetSet), std::move(workingSet.SprSetSrcInfo));
 	}
 
-	UniquePtr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo)
+	std::unique_ptr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo)
 	{
 		// TODO: Callback and stuff
 		auto spritePacker = Graphics::Utilities::SpritePacker();
@@ -112,7 +113,7 @@ namespace AetPlugin
 
 		std::vector<Graphics::Utilities::SprMarkup> sprMarkups;
 
-		std::vector<UniquePtr<uint8_t[]>> owningImagePixels;
+		std::vector<std::unique_ptr<uint8_t[]>> owningImagePixels;
 		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
 
 		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
@@ -123,7 +124,7 @@ namespace AetPlugin
 			auto& owningPixels = owningImagePixels.emplace_back();
 
 			ivec2 imageSize = {};
-			ReadImage(srcSpr.FilePath, imageSize, owningPixels);
+			Util::ReadImage(srcSpr.FilePath, imageSize, owningPixels);
 
 			if (owningPixels == nullptr)
 				continue;
@@ -144,14 +145,14 @@ namespace AetPlugin
 		Database::AetDB aetDB;
 
 		auto& setEntry = aetDB.Entries.emplace_back();
-		setEntry.FileName = FormatUtil::ToSnakeCaseLower(setFileName);
-		setEntry.Name = FormatUtil::ToUpper(set.Name);
+		setEntry.FileName = Util::ToSnakeCaseLowerCopy(std::string(setFileName));
+		setEntry.Name = Util::ToUpperCopy(set.Name);
 		setEntry.ID = HashIDString<AetSetID>(setEntry.Name);
 
 		if (workingSet.IDOverride.AetSetID != AetSetID::Invalid)
 			setEntry.ID = workingSet.IDOverride.AetSetID;
 
-		const auto sprSetName = FormatUtil::ToUpper(SprPrefix) + std::string(FormatUtil::StripPrefixIfExists(setEntry.Name, AetPrefix));
+		const auto sprSetName = Util::ToUpperCopy(std::string(SprPrefix)) + std::string(Util::StripPrefixInsensitive(setEntry.Name, AetPrefix));
 		setEntry.SprSetID = HashIDString<SprSetID>(sprSetName);
 
 		if (workingSet.IDOverride.SprSetID != SprSetID::Invalid)
@@ -162,7 +163,7 @@ namespace AetPlugin
 		for (const auto& scene : set.GetScenes())
 		{
 			auto& sceneEntry = setEntry.SceneEntries.emplace_back();
-			sceneEntry.Name = setEntry.Name + "_" + FormatUtil::ToUpper(scene->Name);
+			sceneEntry.Name = setEntry.Name + "_" + Util::ToUpperCopy(scene->Name);
 			sceneEntry.ID = HashIDString<AetSceneID>(sceneEntry.Name);
 
 			if (sceneIndex < workingSet.IDOverride.SceneIDs.size() && workingSet.IDOverride.SceneIDs[sceneIndex] != AetSceneID::Invalid)
@@ -178,15 +179,18 @@ namespace AetPlugin
 	{
 		Database::SprDB sprDB;
 
+		const auto sprPrefixStr = std::string(SprPrefix);
+		const auto sprPrefixUpper = Util::ToUpperCopy(sprPrefixStr);
+
 		auto& setEntry = sprDB.Entries.emplace_back();
-		setEntry.FileName = FormatUtil::ToLower(SprPrefix) + FormatUtil::ToSnakeCaseLower(FormatUtil::StripPrefixIfExists(setFileName, AetPrefix));
-		setEntry.Name = FormatUtil::ToUpper(SprPrefix) + FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(set.Name, AetPrefix));
+		setEntry.FileName = Util::ToLowerCopy(sprPrefixStr) + Util::ToSnakeCaseLowerCopy(std::string(Util::StripPrefixInsensitive(setFileName, AetPrefix)));
+		setEntry.Name = Util::ToUpperCopy(sprPrefixStr) + Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(set.Name, AetPrefix)));
 		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
 
 		if (workingSet.IDOverride.SprSetID != SprSetID::Invalid)
 			setEntry.ID = workingSet.IDOverride.SprSetID;
 
-		const auto sprPrefix = FormatUtil::ToUpper((FormatUtil::StripPrefixIfExists(set.Name, AetPrefix))) + "_";
+		const auto sprPrefix = Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(set.Name, AetPrefix))) + "_";
 
 		int16_t sprIndex = 0;
 		for (const auto& scene : set.GetScenes())
@@ -197,12 +201,12 @@ namespace AetPlugin
 				for (const auto& source : video->Sources)
 				{
 					auto& sprEntry = setEntry.SprEntries.emplace_back();
-					sprEntry.Name = FormatUtil::ToUpper(SprPrefix) + source.Name;
+					sprEntry.Name = sprPrefixUpper + source.Name;
 					sprEntry.ID = source.ID;
 
 					if (sprSet != nullptr)
 					{
-						const auto nameToFind = FormatUtil::StripPrefixIfExists(source.Name, sprPrefix);
+						const auto nameToFind = Util::StripPrefixInsensitive(source.Name, sprPrefix);
 						auto matchingSpr = std::find_if(sprSet->Sprites.begin(), sprSet->Sprites.end(), [&](const Spr& spr) { return spr.Name == nameToFind; });
 
 						if (matchingSpr != sprSet->Sprites.end())
@@ -220,13 +224,15 @@ namespace AetPlugin
 
 		if (sprSet != nullptr && sprSet->TexSet != nullptr)
 		{
+			const auto sprTexPrefixUpper = Util::ToUpperCopy(std::string(SprTexPrefix));
+
 			setEntry.SprTexEntries.reserve(sprSet->TexSet->Textures.size());
 
 			int16_t sprTexIndex = 0;
 			for (const auto& tex : sprSet->TexSet->Textures)
 			{
 				auto& sprTexEntry = setEntry.SprTexEntries.emplace_back();
-				sprTexEntry.Name = FormatUtil::ToUpper(SprTexPrefix) + sprPrefix + tex->Name.value_or("UNKNOWN");
+				sprTexEntry.Name = sprTexPrefixUpper + sprPrefix + tex->Name.value_or("UNKNOWN");
 				sprTexEntry.ID = HashIDString<SprID>(sprTexEntry.Name);
 				sprTexEntry.Index = sprTexIndex++;
 			}
@@ -287,8 +293,8 @@ namespace AetPlugin
 
 		AEGP_MemHandle pathHandle;
 		suites.ProjSuite5->AEGP_GetProjectPath(workingProject.Handle, &pathHandle);
-		workingProject.Path = AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle);
-		LogInfoLine("Project Path: '%s'", Utf16ToUtf8(workingProject.Path).c_str());
+		workingProject.Path = UTF8::Narrow(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
+		LogInfoLine("Project Path: '%s'", workingProject.Path.c_str());
 
 		suites.ProjSuite5->AEGP_GetProjectRootFolder(workingProject.Handle, &workingProject.RootFolder);
 
@@ -308,7 +314,7 @@ namespace AetPlugin
 
 			AEGP_MemHandle nameHandle;
 			suites.ItemSuite8->AEGP_GetItemName(EvilGlobalState.PluginID, item.ItemHandle, &nameHandle);
-			item.Name = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
+			item.Name = UTF8::Narrow(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
 
 			A_u_long commentSize;
 			suites.ItemSuite8->AEGP_GetItemCommentLength(item.ItemHandle, &commentSize);
@@ -383,14 +389,14 @@ namespace AetPlugin
 			}
 		}
 
-		workingSet.SprPrefix = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(workingSet.Set->Name, AetPrefix)) + "_";
-		workingSet.SprHashPrefix = FormatUtil::ToUpper(SprPrefix) + workingSet.SprPrefix;
-		workingSet.SprSetSrcInfo = MakeUnique<SprSetSrcInfo>();
+		workingSet.SprPrefix = Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(workingSet.Set->Name, AetPrefix))) + "_";
+		workingSet.SprHashPrefix = Util::ToUpperCopy(std::string(SprPrefix)) + workingSet.SprPrefix;
+		workingSet.SprSetSrcInfo = std::make_unique<SprSetSrcInfo>();
 	}
 
 	void AetExporter::SetupWorkingSceneData(AEItemData* sceneComp)
 	{
-		workingScene.Scene = workingSet.Set->GetScenes().emplace_back(MakeRef<Aet::Scene>()).get();
+		workingScene.Scene = workingSet.Set->GetScenes().emplace_back(std::make_shared<Aet::Scene>()).get();
 		workingScene.AESceneComp = sceneComp;
 	}
 
@@ -429,10 +435,12 @@ namespace AetPlugin
 
 	void AetExporter::ExportAllCompositions()
 	{
-		workingScene.Scene->RootComposition = MakeRef<Aet::Composition>();
-		workingScene.Scene->RootComposition->GuiData.AE_Comp = workingScene.AESceneComp->CompHandle;
-		workingScene.Scene->RootComposition->GuiData.AE_CompItem = workingScene.AESceneComp->ItemHandle;
-		ExportComp(*workingScene.Scene->RootComposition);
+		workingScene.Scene->RootComposition = std::make_shared<Aet::Composition>();
+		auto& rootCompExtraData = extraData.Get(*workingScene.Scene->RootComposition);
+
+		rootCompExtraData.AE_Comp = workingScene.AESceneComp->CompHandle;
+		rootCompExtraData.AE_CompItem = workingScene.AESceneComp->ItemHandle;
+		ExportComp(*workingScene.Scene->RootComposition, rootCompExtraData);
 
 		// NOTE: Reverse once at the end because pushing to the end of the vector while creating the comps is a lot more efficient
 		std::reverse(workingScene.Scene->Compositions.begin(), workingScene.Scene->Compositions.end());
@@ -442,43 +450,44 @@ namespace AetPlugin
 			ScanCheckSetLayerRefParents(*layer);
 	}
 
-	void AetExporter::ExportComp(Aet::Composition& comp)
+	void AetExporter::ExportComp(Aet::Composition& comp, AetExtraData& compExtraData)
 	{
 		A_long compLayerCount;
-		suites.LayerSuite7->AEGP_GetCompNumLayers(comp.GuiData.AE_Comp, &compLayerCount);
+		suites.LayerSuite7->AEGP_GetCompNumLayers(compExtraData.AE_Comp, &compLayerCount);
 
 		auto& compLayers = comp.GetLayers();
 		compLayers.reserve(compLayerCount);
 
 		for (A_long i = 0; i < compLayerCount; i++)
 		{
-			auto& layer = *compLayers.emplace_back(MakeRef<Aet::Layer>());
-			suites.LayerSuite7->AEGP_GetCompLayerByIndex(comp.GuiData.AE_Comp, i, &layer.GuiData.AE_Layer);
+			auto& layer = *compLayers.emplace_back(std::make_shared<Aet::Layer>());
+			auto& layerExtraData = extraData.Get(layer);
 
-			ExportLayer(layer);
+			suites.LayerSuite7->AEGP_GetCompLayerByIndex(compExtraData.AE_Comp, i, &layerExtraData.AE_Layer);
+			ExportLayer(layer, layerExtraData);
 		}
 	}
 
-	void AetExporter::ExportLayer(Aet::Layer& layer)
+	void AetExporter::ExportLayer(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
-		ExportLayerName(layer);
-		ExportLayerTime(layer);
-		ExportLayerQuality(layer);
-		ExportLayerMarkers(layer);
-		ExportLayerFlags(layer);
-		ExportLayerSourceItem(layer);
+		ExportLayerName(layer, layerExtraData);
+		ExportLayerTime(layer, layerExtraData);
+		ExportLayerQuality(layer, layerExtraData);
+		ExportLayerMarkers(layer, layerExtraData);
+		ExportLayerFlags(layer, layerExtraData);
+		ExportLayerSourceItem(layer, layerExtraData);
 
 		if (layer.ItemType == Aet::ItemType::Video || layer.ItemType == Aet::ItemType::Composition)
-			ExportLayerVideo(layer);
+			ExportLayerVideo(layer, layerExtraData);
 	}
 
-	void AetExporter::ExportLayerName(Aet::Layer& layer)
+	void AetExporter::ExportLayerName(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_MemHandle nameHandle, sourceNameHandle;
-		suites.LayerSuite7->AEGP_GetLayerName(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, &nameHandle, &sourceNameHandle);
+		suites.LayerSuite7->AEGP_GetLayerName(EvilGlobalState.PluginID, layerExtraData.AE_Layer, &nameHandle, &sourceNameHandle);
 
-		const auto name = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
-		const auto sourceName = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, sourceNameHandle));
+		const auto name = UTF8::Narrow(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, nameHandle));
+		const auto sourceName = UTF8::Narrow(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, sourceNameHandle));
 
 		if (!name.empty() && name.front() != '\0')
 			layer.SetName(name);
@@ -486,14 +495,14 @@ namespace AetPlugin
 			layer.SetName(sourceName);
 	}
 
-	void AetExporter::ExportLayerTime(Aet::Layer& layer)
+	void AetExporter::ExportLayerTime(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		A_Time offset, inPoint, duration;
 		A_Ratio stretch;
-		suites.LayerSuite7->AEGP_GetLayerOffset(layer.GuiData.AE_Layer, &offset);
-		suites.LayerSuite7->AEGP_GetLayerInPoint(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &inPoint);
-		suites.LayerSuite7->AEGP_GetLayerDuration(layer.GuiData.AE_Layer, AEGP_LTimeMode_LayerTime, &duration);
-		suites.LayerSuite7->AEGP_GetLayerStretch(layer.GuiData.AE_Layer, &stretch);
+		suites.LayerSuite7->AEGP_GetLayerOffset(layerExtraData.AE_Layer, &offset);
+		suites.LayerSuite7->AEGP_GetLayerInPoint(layerExtraData.AE_Layer, AEGP_LTimeMode_LayerTime, &inPoint);
+		suites.LayerSuite7->AEGP_GetLayerDuration(layerExtraData.AE_Layer, AEGP_LTimeMode_LayerTime, &duration);
+		suites.LayerSuite7->AEGP_GetLayerStretch(layerExtraData.AE_Layer, &stretch);
 
 		const frame_t frameOffset = AEUtil::AETimeToFrame(offset, workingScene.Scene->FrameRate);
 		const frame_t frameInPoint = AEUtil::AETimeToFrame(inPoint, workingScene.Scene->FrameRate);
@@ -506,17 +515,17 @@ namespace AetPlugin
 		layer.TimeScale = (1.0f / floatStretch);
 	}
 
-	void AetExporter::ExportLayerQuality(Aet::Layer& layer)
+	void AetExporter::ExportLayerQuality(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_LayerQuality layerQuality;
-		suites.LayerSuite7->AEGP_GetLayerQuality(layer.GuiData.AE_Layer, &layerQuality);
+		suites.LayerSuite7->AEGP_GetLayerQuality(layerExtraData.AE_Layer, &layerQuality);
 		layer.Quality = (static_cast<Aet::LayerQuality>(layerQuality + 1));
 	}
 
-	void AetExporter::ExportLayerMarkers(Aet::Layer& layer)
+	void AetExporter::ExportLayerMarkers(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_StreamRefH streamRef;
-		suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, AEGP_LayerStream_MARKER, &streamRef);
+		suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layerExtraData.AE_Layer, AEGP_LayerStream_MARKER, &streamRef);
 
 		A_long keyFrameCount;
 		suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
@@ -533,14 +542,14 @@ namespace AetPlugin
 			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate);
-			layer.Markers.push_back(MakeRef<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
+			layer.Markers.push_back(std::make_shared<Aet::Marker>(frameTime, streamVal.val.markerH[0]->nameAC));
 		}
 	}
 
-	void AetExporter::ExportLayerFlags(Aet::Layer& layer)
+	void AetExporter::ExportLayerFlags(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_LayerFlags layerFlags;
-		suites.LayerSuite7->AEGP_GetLayerFlags(layer.GuiData.AE_Layer, &layerFlags);
+		suites.LayerSuite7->AEGP_GetLayerFlags(layerExtraData.AE_Layer, &layerFlags);
 
 		if (layerFlags & AEGP_LayerFlag_VIDEO_ACTIVE) layer.Flags.VideoActive = true;
 		if (layerFlags & AEGP_LayerFlag_AUDIO_ACTIVE) layer.Flags.AudioActive = true;
@@ -548,10 +557,10 @@ namespace AetPlugin
 		if (layerFlags & AEGP_LayerFlag_SHY) layer.Flags.Shy = true;
 	}
 
-	void AetExporter::ExportLayerSourceItem(Aet::Layer& layer)
+	void AetExporter::ExportLayerSourceItem(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_ItemH sourceItem;
-		suites.LayerSuite7->AEGP_GetLayerSourceItem(layer.GuiData.AE_Layer, &sourceItem);
+		suites.LayerSuite7->AEGP_GetLayerSourceItem(layerExtraData.AE_Layer, &sourceItem);
 
 		AEGP_ItemType sourceItemType;
 		suites.ItemSuite8->AEGP_GetItemType(sourceItem, &sourceItemType);
@@ -576,17 +585,17 @@ namespace AetPlugin
 		}
 	}
 
-	void AetExporter::ExportLayerVideo(Aet::Layer& layer)
+	void AetExporter::ExportLayerVideo(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
-		layer.LayerVideo = MakeRef<Aet::LayerVideo>();
-		ExportLayerTransferMode(layer, layer.LayerVideo->TransferMode);
-		ExportLayerVideoStream(layer, *layer.LayerVideo);
+		layer.LayerVideo = std::make_shared<Aet::LayerVideo>();
+		ExportLayerTransferMode(layer, layer.LayerVideo->TransferMode, layerExtraData);
+		ExportLayerVideoStream(layer, *layer.LayerVideo, layerExtraData);
 	}
 
-	void AetExporter::ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode)
+	void AetExporter::ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode, AetExtraData& layerExtraData)
 	{
 		AEGP_LayerTransferMode layerTransferMode;
-		suites.LayerSuite7->AEGP_GetLayerTransferMode(layer.GuiData.AE_Layer, &layerTransferMode);
+		suites.LayerSuite7->AEGP_GetLayerTransferMode(layerExtraData.AE_Layer, &layerTransferMode);
 
 		transferMode.BlendMode = static_cast<AetBlendMode>(layerTransferMode.mode + 1);
 		transferMode.TrackMatte = static_cast<Aet::TrackMatte>(layerTransferMode.track_matte);
@@ -606,14 +615,14 @@ namespace AetPlugin
 			LogWarningLine("Unsupported transfer mode flags used by layer '%s'. 'Preserve Alpha' nor 'Randomize Dissolve' are supported", layer.GetName().c_str());
 	}
 
-	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo)
+	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo, AetExtraData& layerExtraData)
 	{
 		const auto zeroTime = AEUtil::FrameToAETime(0.0f, workingScene.Scene->FrameRate);
 
 		for (const auto& aeToAetStream : StreamUtil::Transform2DRemapData)
 		{
 			AEGP_StreamRefH streamRef;
-			suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer.GuiData.AE_Layer, aeToAetStream.StreamType, &streamRef);
+			suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layerExtraData.AE_Layer, aeToAetStream.StreamType, &streamRef);
 
 			A_long keyFrameCount;
 			suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
@@ -622,7 +631,7 @@ namespace AetPlugin
 			{
 				AEGP_StreamVal2 streamVal2;
 				AEGP_StreamType streamType;
-				suites.StreamSuite4->AEGP_GetLayerStreamValue(layer.GuiData.AE_Layer, aeToAetStream.StreamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &streamType);
+				suites.StreamSuite4->AEGP_GetLayerStreamValue(layerExtraData.AE_Layer, aeToAetStream.StreamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &streamType);
 
 				const float value1D = static_cast<float>(streamVal2.one_d / aeToAetStream.ScaleFactor);
 				const float value2D = static_cast<float>(streamVal2.two_d.y / aeToAetStream.ScaleFactor);
@@ -708,40 +717,44 @@ namespace AetPlugin
 
 	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
 	{
-		auto& newCompItem = workingScene.Scene->Compositions.emplace_back(MakeRef<Aet::Composition>());
-		newCompItem->GuiData.AE_CompItem = sourceItem;
-		suites.CompSuite7->AEGP_GetCompFromItem(newCompItem->GuiData.AE_CompItem, &newCompItem->GuiData.AE_Comp);
+		auto& newCompItem = workingScene.Scene->Compositions.emplace_back(std::make_shared<Aet::Composition>());
+		auto& compExtraData = extraData.Get(*newCompItem);
+
+		compExtraData.AE_CompItem = sourceItem;
+		suites.CompSuite7->AEGP_GetCompFromItem(compExtraData.AE_CompItem, &compExtraData.AE_Comp);
 
 		layer.SetItem(newCompItem);
-		ExportComp(*newCompItem);
+		ExportComp(*newCompItem, compExtraData);
 	}
 
 	void AetExporter::ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
 	{
-		auto& newVideoItem = workingScene.Scene->Videos.emplace_back(MakeRef<Aet::Video>());
-		newVideoItem->GuiData.AE_FootageItem = sourceItem;
-		suites.FootageSuite5->AEGP_GetMainFootageFromItem(newVideoItem->GuiData.AE_FootageItem, &newVideoItem->GuiData.AE_Footage);
+		auto& newVideoItem = workingScene.Scene->Videos.emplace_back(std::make_shared<Aet::Video>());
+		auto& videoExtraData = extraData.Get(*newVideoItem);
+
+		videoExtraData.AE_FootageItem = sourceItem;
+		suites.FootageSuite5->AEGP_GetMainFootageFromItem(videoExtraData.AE_FootageItem, &videoExtraData.AE_Footage);
 
 		layer.SetItem(newVideoItem);
-		ExportVideo(*newVideoItem);
+		ExportVideo(*newVideoItem, videoExtraData);
 	}
 
-	void AetExporter::ExportVideo(Aet::Video& video)
+	void AetExporter::ExportVideo(Aet::Video& video, AetExtraData& videoExtraData)
 	{
-		auto foundItem = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](const auto& item) { return item.ItemHandle == video.GuiData.AE_FootageItem; });
+		auto foundItem = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](const auto& item) { return (item.ItemHandle == videoExtraData.AE_FootageItem); });
 		if (foundItem == workingProject.Items.end())
 			return;
 
 		auto& item = *foundItem;
-		const auto cleanItemName = FormatUtil::ToUpper(FormatUtil::StripPrefixIfExists(FormatUtil::StripPrefixIfExists(FormatUtil::StripFileExtension(item.Name), SprPrefix), workingSet.SprPrefix));
+		const auto cleanItemName = Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(Util::StripPrefixInsensitive(IO::Path::TrimExtension(item.Name), SprPrefix), workingSet.SprPrefix)));
 
-		suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &video.GuiData.AE_Footage);
+		suites.FootageSuite5->AEGP_GetMainFootageFromItem(item.ItemHandle, &videoExtraData.AE_Footage);
 
 		AEGP_FootageSignature signature;
-		suites.FootageSuite5->AEGP_GetFootageSignature(video.GuiData.AE_Footage, &signature);
+		suites.FootageSuite5->AEGP_GetFootageSignature(videoExtraData.AE_Footage, &signature);
 
 		AEGP_FootageInterp interpretation;
-		suites.FootageSuite5->AEGP_GetFootageInterpretation(video.GuiData.AE_FootageItem, false, &interpretation);
+		suites.FootageSuite5->AEGP_GetFootageInterpretation(videoExtraData.AE_FootageItem, false, &interpretation);
 
 		video.Size = { item.Dimensions.first, item.Dimensions.second };
 
@@ -757,7 +770,7 @@ namespace AetPlugin
 			video.Color = 0xFFFFFF00;
 
 			A_long mainFilesCount, filesPerFrame;
-			suites.FootageSuite5->AEGP_GetFootageNumFiles(video.GuiData.AE_Footage, &mainFilesCount, &filesPerFrame);
+			suites.FootageSuite5->AEGP_GetFootageNumFiles(videoExtraData.AE_Footage, &mainFilesCount, &filesPerFrame);
 
 			video.Sources.reserve(mainFilesCount);
 			for (A_long i = 0; i < mainFilesCount; i++)
@@ -769,9 +782,9 @@ namespace AetPlugin
 				source.ID = HashIDString<SprID>(workingSet.SprHashPrefix + sourceName); // NOTE: SPR_{SET_NAME}_{SPRITE_NAME}
 
 				AEGP_MemHandle pathHandle;
-				suites.FootageSuite5->AEGP_GetFootagePath(video.GuiData.AE_Footage, i, AEGP_FOOTAGE_MAIN_FILE_INDEX, &pathHandle);
+				suites.FootageSuite5->AEGP_GetFootagePath(videoExtraData.AE_Footage, i, AEGP_FOOTAGE_MAIN_FILE_INDEX, &pathHandle);
 
-				const auto sourcePath = Utf16ToUtf8(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
+				const auto sourcePath = UTF8::Narrow(AEUtil::MoveFreeUTF16String(suites.MemorySuite1, pathHandle));
 
 				if (!sourcePath.empty())
 					workingSet.SprSetSrcInfo->SprFileSources[sourceName] = SprSetSrcInfo::SprSrcInfo { sourcePath, &video };
@@ -808,22 +821,22 @@ namespace AetPlugin
 		return std::string(preIndexString) + indexString;
 	}
 
-	RefPtr<Aet::Composition> AetExporter::FindExistingCompSourceItem(AEGP_ItemH sourceItem)
+	std::shared_ptr<Aet::Composition> AetExporter::FindExistingCompSourceItem(AEGP_ItemH sourceItem)
 	{
 		// NOTE: No point in searching the root comp since it should never be referenced by any other child comp (?)
 		for (const auto& comp : workingScene.Scene->Compositions)
 		{
-			if (comp->GuiData.AE_CompItem == sourceItem)
+			if (extraData.Get(*comp).AE_CompItem == sourceItem)
 				return comp;
 		}
 		return nullptr;
 	}
 
-	RefPtr<Aet::Video> AetExporter::FindExistingVideoSourceItem(AEGP_ItemH sourceItem)
+	std::shared_ptr<Aet::Video> AetExporter::FindExistingVideoSourceItem(AEGP_ItemH sourceItem)
 	{
 		for (const auto& video : workingScene.Scene->Videos)
 		{
-			if (video->GuiData.AE_FootageItem == sourceItem)
+			if (extraData.Get(*video).AE_FootageItem == sourceItem)
 				return video;
 		}
 		return nullptr;
@@ -838,19 +851,19 @@ namespace AetPlugin
 		}
 
 		AEGP_LayerH parentHandle;
-		suites.LayerSuite7->AEGP_GetLayerParent(layer.GuiData.AE_Layer, &parentHandle);
+		suites.LayerSuite7->AEGP_GetLayerParent(extraData.Get(layer).AE_Layer, &parentHandle);
 
 		if (parentHandle != nullptr)
 			layer.SetRefParentLayer(FindLayerRefParent(layer, parentHandle));
 	}
 
-	RefPtr<Aet::Layer> AetExporter::FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle)
+	std::shared_ptr<Aet::Layer> AetExporter::FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle)
 	{
 		for (auto& comp : workingScene.Scene->Compositions)
 		{
 			for (auto& layer : comp->GetLayers())
 			{
-				if (layer->GuiData.AE_Layer == parentHandle)
+				if (extraData.Get(*layer).AE_Layer == parentHandle)
 					return layer;
 			}
 		}

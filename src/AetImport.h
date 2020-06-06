@@ -1,8 +1,9 @@
 #pragma once
 #include "AetPlugin.h"
-#include "Graphics/Auth2D/Aet/AetSet.h"
-#include "Database/AetDB.h"
-#include "Database/SprDB.h"
+#include "AetExtraData.h"
+#include <Graphics/Auth2D/Aet/AetSet.h>
+#include <Database/AetDB.h>
+#include <Database/SprDB.h>
 #include <unordered_map>
 
 namespace AetPlugin
@@ -12,17 +13,17 @@ namespace AetPlugin
 
 	struct SpriteFileData
 	{
-		static constexpr std::string_view PngExtension = ".png";
+		static constexpr std::string_view PNGExtension = ".png";
 		static constexpr std::string_view SprPrefix = "spr_";
 
 		std::string SanitizedFileName;
-		std::wstring FilePath;
+		std::string FilePath;
 	};
 
 	class AetImporter : NonCopyable
 	{
 	public:
-		static UniquePtr<Aet::AetSet> LoadAetSet(std::wstring_view filePath);
+		static std::unique_ptr<Aet::AetSet> LoadAetSet(std::string_view filePath);
 
 		enum class AetSetVerifyResult
 		{
@@ -34,10 +35,10 @@ namespace AetPlugin
 			InvalidData,
 		};
 
-		static AetSetVerifyResult VerifyAetSetImportable(std::wstring_view filePath);
+		static AetSetVerifyResult VerifyAetSetImportable(std::string_view filePath);
 
 	public:
-		AetImporter(std::wstring_view workingDirectory);
+		AetImporter(std::string_view workingDirectory);
 		~AetImporter() = default;
 
 		A_Err ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
@@ -48,14 +49,14 @@ namespace AetPlugin
 	protected:
 		struct WorkingDirectoryData
 		{
-			std::wstring ImportDirectory;
+			std::string ImportDirectory;
 			std::vector<SpriteFileData> AvailableSpriteFiles;
 
 			// NOTE: Optional to deal with hardcode expected IDs
 			struct DatabaseData
 			{
-				UniquePtr<Database::AetDB> AetDB = nullptr;
-				UniquePtr<Database::SprDB> SprDB = nullptr;
+				std::unique_ptr<Database::AetDB> AetDB = nullptr;
+				std::unique_ptr<Database::SprDB> SprDB = nullptr;
 				const Database::AetSetEntry* AetSetEntry = nullptr;
 				const Database::SprSetEntry* SprSetEntry = nullptr;
 			} DB;
@@ -65,6 +66,8 @@ namespace AetPlugin
 		const SpriteFileData* FindMatchingSpriteFile(std::string_view sourceName) const;
 
 	protected:
+		AetExtraDataMapper extraData;
+
 		struct WorkingAetData
 		{
 			const Aet::AetSet* Set = nullptr;
@@ -139,9 +142,9 @@ namespace AetPlugin
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
 		static std::unordered_map<const Aet::Composition*, frame_t> CreateGivenCompDurationsMap(const Aet::Scene& scene);
-		static bool LayerUsesStartOffset(const Aet::Layer& layer);
+		static bool LayerMakesUseOfStartOffset(const Aet::Layer& layer);
 
-		void ImportLayerVideo(const Aet::Layer& layer);
+		void ImportLayerVideo(const Aet::Layer& layer, AetExtraData& layerExtraData);
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
 		void ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo);
 
@@ -152,12 +155,12 @@ namespace AetPlugin
 
 		std::string_view GetLayerItemName(const Aet::Layer& layer) const;
 
-		void ImportLayerAudio(const Aet::Layer& layer);
-		void ImportLayerTiming(const Aet::Layer& layer);
-		void ImportLayerName(const Aet::Layer& layer);
-		void ImportLayerFlags(const Aet::Layer& layer);
-		void ImportLayerQuality(const Aet::Layer& layer);
-		void ImportLayerMarkers(const Aet::Layer& layer);
+		void ImportLayerAudio(const Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ImportLayerTiming(const Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ImportLayerName(const Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ImportLayerFlags(const Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ImportLayerQuality(const Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ImportLayerMarkers(const Aet::Layer& layer, AetExtraData& layerExtraData);
 
 		void SetLayerRefParentLayer(const Aet::Layer& layer);
 	};

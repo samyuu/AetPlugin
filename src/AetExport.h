@@ -1,9 +1,10 @@
 #pragma once
 #include "AetPlugin.h"
-#include "Graphics/Auth2D/Aet/AetSet.h"
-#include "Graphics/Auth2D/SprSet.h"
-#include "Database/AetDB.h"
-#include "Database/SprDB.h"
+#include "AetExtraData.h"
+#include <Graphics/Auth2D/Aet/AetSet.h>
+#include <Graphics/Auth2D/SprSet.h>
+#include <Database/AetDB.h>
+#include <Database/SprDB.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -35,8 +36,8 @@ namespace AetPlugin
 
 		std::string GetAetSetNameFromProjectName() const;
 
-		std::pair<UniquePtr<Aet::AetSet>, UniquePtr<SprSetSrcInfo>> ExportAetSet(std::wstring_view workingDirectory, bool parseSprIDComments);
-		UniquePtr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo);
+		std::pair<std::unique_ptr<Aet::AetSet>, std::unique_ptr<SprSetSrcInfo>> ExportAetSet(std::string_view workingDirectory, bool parseSprIDComments);
+		std::unique_ptr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo);
 
 		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
 		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
@@ -84,7 +85,7 @@ namespace AetPlugin
 			A_long Index;
 			AEGP_ProjectH Handle;
 			A_char Name[AEGP_MAX_PROJ_NAME_SIZE];
-			std::wstring Path;
+			std::string Path;
 			AEGP_ItemH RootFolder;
 
 			std::vector<AEItemData> Items;
@@ -94,9 +95,11 @@ namespace AetPlugin
 		void SetupWorkingProjectData();
 
 	protected:
+		AetExtraDataMapper extraData;
+
 		struct WorkingDirectoryData
 		{
-			std::wstring ImportDirectory;
+			std::string ImportDirectory;
 		} workingDirectory;
 
 		struct WorkingSetData
@@ -107,7 +110,7 @@ namespace AetPlugin
 
 			std::string SprPrefix, SprHashPrefix;
 
-			UniquePtr<SprSetSrcInfo> SprSetSrcInfo = nullptr;
+			std::unique_ptr<SprSetSrcInfo> SprSetSrcInfo = nullptr;
 			std::unordered_set<const Aet::Video*> TrackMatteUsingVideos;
 
 			struct IDOverrideData
@@ -134,31 +137,31 @@ namespace AetPlugin
 		void ExportScene();
 		void ExportAllCompositions();
 
-		void ExportComp(Aet::Composition& comp);
+		void ExportComp(Aet::Composition& comp, AetExtraData& compExtraData);
 
-		void ExportLayer(Aet::Layer& layer);
-		void ExportLayerName(Aet::Layer& layer);
-		void ExportLayerTime(Aet::Layer& layer);
-		void ExportLayerQuality(Aet::Layer& layer);
-		void ExportLayerMarkers(Aet::Layer& layer);
-		void ExportLayerFlags(Aet::Layer& layer);
-		void ExportLayerSourceItem(Aet::Layer& layer);
+		void ExportLayer(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerName(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerTime(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerQuality(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerMarkers(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerFlags(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerSourceItem(Aet::Layer& layer, AetExtraData& layerExtraData);
 
-		void ExportLayerVideo(Aet::Layer& layer);
-		void ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode);
-		void ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo);
+		void ExportLayerVideo(Aet::Layer& layer, AetExtraData& layerExtraData);
+		void ExportLayerTransferMode(Aet::Layer& layer, Aet::LayerTransferMode& transferMode, AetExtraData& layerExtraData);
+		void ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo, AetExtraData& layerExtraData);
 		void SetLayerVideoPropertyLinearTangents(Aet::Property1D& property);
 
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
-		void ExportVideo(Aet::Video& video);
+		void ExportVideo(Aet::Video& video, AetExtraData& videoExtraData);
 		std::string FormatVideoSourceName(Aet::Video& video, std::string_view itemName, int sourceIndex, int sourceCount) const;
 
-		RefPtr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
-		RefPtr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);
+		std::shared_ptr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
+		std::shared_ptr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);
 
 		void ScanCheckSetLayerRefParents(Aet::Layer& layer);
-		RefPtr<Aet::Layer> FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle);
+		std::shared_ptr<Aet::Layer> FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle);
 
 		void FixInvalidSceneData();
 		void FixInvalidCompositionData(Aet::Composition& comp);
