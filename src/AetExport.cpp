@@ -34,10 +34,9 @@ namespace AetPlugin
 			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 720)),
 			std::make_pair(ScreenMode::HDTV1080, ivec2(1920, 1080)),
 			std::make_pair(ScreenMode::WQHD, ivec2(2560, 1440)),
-			std::make_pair(ScreenMode::HVGA, ivec2(480, 272)),
-			std::make_pair(ScreenMode::qHD, ivec2(960, 544)),
-
-			// NOTE: A bit of a weird one, static_cast<ScreenMode>(0x10)
+			
+			// NOTE: Special cases for the CS3 games
+			std::make_pair(static_cast<ScreenMode>(0x10), ivec2(960, 544)),
 			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 728)),
 		};
 
