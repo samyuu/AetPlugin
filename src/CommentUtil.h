@@ -1,7 +1,6 @@
 #pragma once
 #include "AEUtil.h"
-#include "FormatUtil.h"
-#include "Misc/StringHelper.h"
+#include <Misc/StringUtil.h>
 #include <optional>
 #include <charconv>
 
@@ -57,8 +56,8 @@ namespace AetPlugin::CommentUtil
 		{
 			Property result = {};
 
-			const auto trimmedBuffer = FormatUtil::Trim(buffer);
-			if (!Comfy::Utilities::StartsWith(trimmedBuffer, AetID) || (trimmedBuffer.size() < (AetID.size() + std::strlen("::x: {}"))))
+			const auto trimmedBuffer = Comfy::Util::Trim(buffer);
+			if (!Comfy::Util::StartsWith(trimmedBuffer, AetID) || (trimmedBuffer.size() < (AetID.size() + std::strlen("::x: {}"))))
 				return result;
 
 			const std::string_view postIDBuffer = trimmedBuffer.substr(AetID.size() + std::strlen("::"));
@@ -87,10 +86,10 @@ namespace AetPlugin::CommentUtil
 			}
 
 			constexpr std::string_view bracketsStart = ": {", bracketsEnd = "}";
-			if (!Comfy::Utilities::StartsWith(postKeyBuffer, bracketsStart) || !Comfy::Utilities::EndsWith(postKeyBuffer, bracketsEnd))
+			if (!Comfy::Util::StartsWith(postKeyBuffer, bracketsStart) || !Comfy::Util::EndsWith(postKeyBuffer, bracketsEnd))
 				return result;
 
-			const std::string_view valueBuffer = FormatUtil::Trim(postKeyBuffer.substr(bracketsStart.size(), postKeyBuffer.size() - bracketsStart.size() - bracketsEnd.size()));
+			const std::string_view valueBuffer = Comfy::Util::Trim(postKeyBuffer.substr(bracketsStart.size(), postKeyBuffer.size() - bracketsStart.size() - bracketsEnd.size()));
 
 			result.Key = keyBuffer;
 			result.Value = valueBuffer;
@@ -139,7 +138,7 @@ namespace AetPlugin::CommentUtil
 	inline uint32_t ParseID(std::string_view commentValue)
 	{
 		const auto preHexTrimSize = commentValue.size();
-		commentValue = FormatUtil::StripPrefixIfExists(commentValue, FormatUtil::HexPrefix);
+		commentValue = Comfy::Util::StripPrefixInsensitive(commentValue, Comfy::Util::HexPrefix);
 
 		uint32_t resultID = {};
 		const auto result = std::from_chars(commentValue.data(), commentValue.data() + commentValue.size(), resultID, (commentValue.size() == preHexTrimSize) ? 10 : 16);;
@@ -156,7 +155,7 @@ namespace AetPlugin::CommentUtil
 		while (true)
 		{
 			const auto currentItem = Detail::AdvanceCommaSeparateList(readHead);
-			const auto itemTrimmed = FormatUtil::Trim(currentItem);
+			const auto itemTrimmed = Util::Trim(currentItem);
 
 			func(itemTrimmed);
 

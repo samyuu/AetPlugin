@@ -2,8 +2,8 @@
 #include "AEUtil.h"
 #include "CommentUtil.h"
 #include "entry.h"
-#include "Types.h"
-#include "CoreTypes.h"
+#include <Types.h>
+#include <CoreTypes.h>
 
 #ifndef ConCat
 #define ConCat(a, b) a ## b
@@ -29,13 +29,8 @@ namespace AetPlugin
 	};
 
 	constexpr std::string_view AetPrefix = "aet_";
-	constexpr std::wstring_view AetPrefixW = L"aet_";
-
 	constexpr std::string_view SprPrefix = "spr_";
-	constexpr std::wstring_view SprPrefixW = L"spr_";
-
 	constexpr std::string_view SprTexPrefix = "sprtex_";
-	constexpr std::wstring_view SprTexPrefixW = L"sprtex_";
 
 	struct PluginStateData
 	{
@@ -82,12 +77,14 @@ namespace AetPlugin
 					- audio
 					- comp
 					- video
+					- (video_db)
 				- {set_name}_{scene_name_0}
 			- {scene_name_1}
 				- data
 					- audio
 					- comp
 					- video
+					- (video_db)
 				- {set_name}_{scene_name_1}
 		*/
 

@@ -1,6 +1,4 @@
 #pragma once
-#include "Types.h"
-#include "CoreTypes.h"
 #include "AEConfig.h"
 #include "AE_GeneralPlug.h"
 #include "AE_Effect.h"
@@ -10,10 +8,12 @@
 #include "AE_EffectCBSuites.h"
 #include "AEGP_SuiteHandler.h"
 #include "AE_Macros.h"
+#include <Types.h>
+#include <CoreTypes.h>
 #include <algorithm>
 #include <numeric>
 
-namespace AEUtil
+namespace AetPlugin::AEUtil
 {
 	struct RGB8 { uint8_t R, G, B, A; };
 	constexpr float RGB8ToFloat = static_cast<float>(std::numeric_limits<uint8_t>::max());

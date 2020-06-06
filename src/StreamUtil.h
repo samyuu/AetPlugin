@@ -1,11 +1,10 @@
 #pragma once
-#include "Types.h"
-#include "CoreTypes.h"
-#include "Graphics/Auth2D/Aet/AetMgr.h"
+#include <Types.h>
+#include <CoreTypes.h>
+#include <Graphics/Auth2D/Aet/AetUtil.h>
 
-namespace StreamUtil
+namespace AetPlugin::StreamUtil
 {
-	using namespace Comfy;
 	using namespace Comfy::Graphics;
 
 	struct StreamRemapData
