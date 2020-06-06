@@ -99,12 +99,11 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\..\Comfy\ComfyLib\src;..\..\Comfy\Dependencies\glm\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <StructMemberAlignment>4Bytes</StructMemberAlignment>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>AE_Effect.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
       <AssemblerOutput>NoListing</AssemblerOutput>
@@ -122,6 +121,12 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DisableSpecificWarnings>4530</DisableSpecificWarnings>
       <IntrinsicFunctions>false</IntrinsicFunctions>
+      <AdditionalOptions>-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
+      <StringPooling>true</StringPooling>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -140,7 +145,8 @@
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)/$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX64</TargetMachine>
-      <AdditionalDependencies>shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;propsys.lib;comctl32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;propsys.lib;comctl32.lib;Bcrypt.lib;ComfyLib.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Comfy\ComfyLib\bin\x64-Debug;..\..\Comfy\Dependencies\bin\x64-Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>
@@ -161,12 +167,11 @@
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
-      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\src\Comfy\ComfyCore;..\src\Comfy\ComfyFileSystem;..\src\Comfy\ComfyStudio;..\src\Comfy\lib\glm\include;..\src\Comfy\lib\zlib\include;..\src\Comfy\lib\stb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\AfterEffectsSDK\Headers;..\src\AfterEffectsSDK\Headers\SP;..\src\AfterEffectsSDK\Headers\Win;..\src\AfterEffectsSDK\Resources;..\src\AfterEffectsSDK\Util;..\..\Comfy\ComfyLib\src;..\..\Comfy\Dependencies\glm\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MSWindows;WIN32;_CRT_SECURE_NO_WARNINGS;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <StructMemberAlignment>4Bytes</StructMemberAlignment>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>AE_Effect.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
       <AssemblerOutput>NoListing</AssemblerOutput>
@@ -184,6 +189,14 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DisableSpecificWarnings>4530</DisableSpecificWarnings>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalOptions>-D_HAS_EXCEPTIONS=0 -D_STATIC_CPPLIB %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>true</OmitFramePointers>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -202,10 +215,11 @@
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)/$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX64</TargetMachine>
-      <AdditionalDependencies>shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;propsys.lib;comctl32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;propsys.lib;comctl32.lib;Bcrypt.lib;ComfyLib.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>..\..\Comfy\ComfyLib\bin\x64-Release;..\..\Comfy\Dependencies\bin\x64-Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>
@@ -362,6 +376,7 @@
     <ClInclude Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.h" />
     <ClInclude Include="..\src\AfterEffectsSDK\Util\entry.h" />
     <ClInclude Include="..\src\AeExtraData.h" />
+    <ClInclude Include="..\src\AetExtraData.h" />
     <ClInclude Include="..\src\AetExport.h" />
     <ClInclude Include="..\src\AetImport.h" />
     <ClInclude Include="..\src\AetPlugin.h" />
