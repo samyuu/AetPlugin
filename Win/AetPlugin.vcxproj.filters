@@ -18,24 +18,6 @@
     <Filter Include="Source">
       <UniqueIdentifier>{826705d0-78bf-4635-a629-126012308f7f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Comfy">
-      <UniqueIdentifier>{a3ee3e9a-23ce-4442-8d61-5c3f49ba8cda}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Comfy\ComfyCore">
-      <UniqueIdentifier>{e515b63c-a0e9-49ee-a389-987143ad39e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Comfy\ComfyFileSystem">
-      <UniqueIdentifier>{f3d20157-d861-4f64-8468-97c78dfc0927}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Comfy\ComfyStudio">
-      <UniqueIdentifier>{eea621c1-c593-4f78-968e-477b501119c1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Comfy\lib">
-      <UniqueIdentifier>{94414581-c1d2-4556-ae95-54ef89c62906}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Comfy\lib\zlib">
-      <UniqueIdentifier>{036edfa7-3538-47e3-a077-b108abce7515}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\AE">
       <UniqueIdentifier>{c3285af2-7ec5-406b-9618-80448f643eeb}</UniqueIdentifier>
     </Filter>
@@ -58,162 +40,6 @@
     </ClInclude>
     <ClInclude Include="..\src\AEUtil.h">
       <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Core\Algorithm.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Core\Logger.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Core\NonCopyable.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Core\SmartPointers.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Core\Win32\ComfyWindows.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\EndianHelper.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\FileExtensionHelper.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\StringHelper.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\StringParseHelper.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\TextDatabaseParser.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\CoreTypes.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\FileAddr.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\IntegralTypes.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Types.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileHelper.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileHelperInternal.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileInterface.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileLoader.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileReader.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\ComfyArchive.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\Farc.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\FileArchive.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\Win32Crypto.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\FileStream.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\MemoryStream.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\Stream.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\BinaryMode.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\BinaryReader.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyFileSystem\FileSystem\BinaryWriter.h">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\Detail\IDTypeDeclarations.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDHash.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\IDTypes.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Resource\ResourceIDMap.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Transform2D.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GPU\GPURenderers.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GPU\GPUResources.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypes.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\GraphicTypesNames.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\crc32.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\deflate.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\gzguts.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\inffast.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\inffixed.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\inflate.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\inftrees.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\trees.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\src\zutil.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\include\zconf.h">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\lib\zlib\include\zlib.h">
-      <Filter>Comfy\lib\zlib</Filter>
     </ClInclude>
     <ClInclude Include="..\src\AfterEffectsSDK\Headers\AE_AdvEffectSuites.h">
       <Filter>Headers\AE</Filter>
@@ -284,30 +110,6 @@
     <ClInclude Include="..\src\FileDialogUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\SprDB.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\AetDB.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\Database.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.h">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Database\TexDB.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\FarcUtil.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpritePacker.h">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AetPlugin_PiPL.rc">
@@ -324,114 +126,6 @@
     <ClCompile Include="..\src\AetPlugin.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyCore\Core\Logger.cpp">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\FileExtensionHelper.cpp">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\StringHelper.cpp">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\StringParseHelper.cpp">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileInterface.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileLoader.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileReader.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\ComfyArchive.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\Farc.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\FileArchive.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Archive\Win32Crypto.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\FileStream.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\MemoryStream.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\Stream\Stream.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\BinaryReader.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\BinaryWriter.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyFileSystem\FileSystem\FileHelper.cpp">
-      <Filter>Comfy\ComfyFileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetMgr.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSet.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\Aet\AetSetFile.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Auth2D\SprSet.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\adler32.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\compress.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\crc32.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\deflate.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\gzclose.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\gzlib.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\gzread.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\gzwrite.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\infback.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\inffast.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\inflate.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\inftrees.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\trees.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\uncompr.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\lib\zlib\src\zutil.c">
-      <Filter>Comfy\lib\zlib</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.cpp">
       <Filter>Source\AE</Filter>
     </ClCompile>
@@ -441,26 +135,8 @@
     <ClCompile Include="..\src\FileDialogUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\SprDB.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\AetDB.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyCore\Misc\ImageHelper.cpp">
-      <Filter>Comfy\ComfyCore</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\TexSet.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Database\TexDB.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\FarcUtil.cpp">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Comfy\ComfyStudio\Graphics\Utilities\SpritePacker.cpp">
-      <Filter>Comfy\ComfyStudio</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
