@@ -537,20 +537,6 @@ namespace AetPlugin
 			suites.FootageSuite5->AEGP_AddFootageToProject(audioExtraData.AE_Footage, project.Folders.Scene.Audio, &audioExtraData.AE_FootageItem);
 	}
 
-	namespace
-	{
-		frame_t GetLongestLayerTimeInComp(const Aet::Composition& comp)
-		{
-			const auto& layers = comp.GetLayers();
-			const auto maxLayer = std::max_element(layers.begin(), layers.end(), [&](const auto& layerA, const auto& layerB)
-			{
-				return (layerA->EndFrame < layerB->EndFrame);
-			});
-
-			return (maxLayer == layers.end()) ? 0.0f : (*maxLayer)->EndFrame;
-		}
-	}
-
 	void AetImporter::ImportSceneComps()
 	{
 		const auto& scene = *workingScene.Scene;
@@ -566,17 +552,9 @@ namespace AetPlugin
 		const auto backgroundColor = AEUtil::ColorRGB8(scene.BackgroundColor);
 		suites.CompSuite7->AEGP_SetCompBGColor(rootCompExtraData.AE_Comp, &backgroundColor);
 
-#if 1
-		auto givenCompDurations = CreateGivenCompDurationsMap(scene);
 		for (const auto& comp : scene.Compositions)
 		{
-			const frame_t frameDuration = givenCompDurations[comp.get()];
-#else
-		for (const auto& comp : scene.Compositions)
-		{
-			const frame_t frameDuration = GetLongestLayerTimeInComp(*comp);
-#endif
-
+			const frame_t frameDuration = FindLongestLayerEndFrameInComp(*comp);
 			const A_Time duration = FrameToAETime((frameDuration > 0.0f) ? frameDuration : workingScene.Scene->FrameRate);
 
 			auto& compExtraData = extraData.Get(*comp);
@@ -682,6 +660,17 @@ namespace AetPlugin
 			registerGivenCompDurations(*comp);
 
 		return givenCompDurations;
+	}
+
+	frame_t AetImporter::FindLongestLayerEndFrameInComp(const Aet::Composition& comp)
+	{
+		frame_t longestTime = 0.0f;
+		for (const auto& layer : comp.GetLayers())
+		{
+			if (layer->EndFrame > longestTime)
+				longestTime = layer->EndFrame;
+		}
+		return longestTime;
 	}
 
 	bool AetImporter::LayerMakesUseOfStartOffset(const Aet::Layer& layer)
@@ -851,27 +840,10 @@ namespace AetPlugin
 
 	void AetImporter::ImportLayerTiming(const Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
-#if 1
-		// TODO: This still isn't entirely accurate it seems
-
-		const A_Time inPoint = LayerMakesUseOfStartOffset(layer) ?
-			FrameToAETime(layer.StartOffset) :
-			FrameToAETime(0.0f);
-		const A_Time duration = FrameToAETime((layer.EndFrame - layer.StartFrame) * layer.TimeScale);
-		suites.LayerSuite7->AEGP_SetLayerInPointAndDuration(layerExtraData.AE_Layer, AEGP_LTimeMode_CompTime, &inPoint, &duration);
-
-		const A_Time offset = LayerMakesUseOfStartOffset(layer) ?
-			FrameToAETime((-layer.StartOffset / layer.TimeScale) + layer.StartFrame) :
-			FrameToAETime(layer.StartFrame);
-		suites.LayerSuite7->AEGP_SetLayerOffset(layerExtraData.AE_Layer, &offset);
-
-		const A_Ratio stretch = AEUtil::Ratio(1.0f / layer.TimeScale);
-		suites.LayerSuite1->AEGP_SetLayerStretch(layerExtraData.AE_Layer, &stretch);
-#else
 		const frame_t startOffset = LayerMakesUseOfStartOffset(layer) ? layer.StartOffset : 0.0f;
 
 		const frame_t frameLayerDuration = (layer.EndFrame - layer.StartFrame);
-		const frame_t frameCompDuration = (frameLayerDuration + layer.StartOffset);
+		const frame_t frameCompDuration = (frameLayerDuration + startOffset);
 
 		const A_Time inPoint = FrameToAETime(startOffset);
 		const A_Time duration = FrameToAETime(frameCompDuration * layer.TimeScale);
@@ -880,9 +852,11 @@ namespace AetPlugin
 		const A_Time offset = FrameToAETime(layer.StartFrame - startOffset);
 		suites.LayerSuite7->AEGP_SetLayerOffset(layerExtraData.AE_Layer, &offset);
 
-		const A_Ratio stretch = AEUtil::Ratio(1.0f / layer.TimeScale);
-		suites.LayerSuite1->AEGP_SetLayerStretch(layerExtraData.AE_Layer, &stretch);
-#endif
+		if (layer.TimeScale != 1.0f)
+		{
+			const A_Ratio stretch = AEUtil::Ratio(1.0f / layer.TimeScale);
+			suites.LayerSuite1->AEGP_SetLayerStretch(layerExtraData.AE_Layer, &stretch);
+		}
 	}
 
 	void AetImporter::ImportLayerName(const Aet::Layer& layer, AetExtraData& layerExtraData)

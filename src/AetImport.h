@@ -142,6 +142,8 @@ namespace AetPlugin
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
 
 		static std::unordered_map<const Aet::Composition*, frame_t> CreateGivenCompDurationsMap(const Aet::Scene& scene);
+
+		static frame_t FindLongestLayerEndFrameInComp(const Aet::Composition& comp);
 		static bool LayerMakesUseOfStartOffset(const Aet::Layer& layer);
 
 		void ImportLayerVideo(const Aet::Layer& layer, AetExtraData& layerExtraData);
