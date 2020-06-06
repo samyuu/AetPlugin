@@ -137,7 +137,7 @@ namespace AetPlugin
 
 	protected:
 		void ImportSceneComps();
-		void ImportLayersInComp(const Aet::Composition& comp);
+		void ImportAllLayersInComp(const Aet::Composition& comp);
 		void ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer);
 		void ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer);
 

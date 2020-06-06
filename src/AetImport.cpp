@@ -397,9 +397,9 @@ namespace AetPlugin
 	{
 		ImportSceneComps();
 
-		ImportLayersInComp(*workingScene.Scene->RootComposition);
+		ImportAllLayersInComp(*workingScene.Scene->RootComposition);
 		for (int i = static_cast<int>(workingScene.Scene->Compositions.size()) - 1; i >= 0; i--)
-			ImportLayersInComp(*workingScene.Scene->Compositions[i]);
+			ImportAllLayersInComp(*workingScene.Scene->Compositions[i]);
 	}
 
 	void AetImporter::ImportVideo(const Aet::Video& video)
@@ -575,13 +575,17 @@ namespace AetPlugin
 		}
 	}
 
-	void AetImporter::ImportLayersInComp(const Aet::Composition& comp)
+	void AetImporter::ImportAllLayersInComp(const Aet::Composition& comp)
 	{
-		for (int i = static_cast<int>(comp.GetLayers().size()) - 1; i >= 0; i--)
-			ImportLayer(comp, *comp.GetLayers()[i]);
+		std::for_each(comp.GetLayers().rbegin(), comp.GetLayers().rend(), [&](const auto& layer)
+		{
+			ImportLayer(comp, *layer);
+		});
 
-		for (const auto& layer : comp.GetLayers())
+		std::for_each(comp.GetLayers().begin(), comp.GetLayers().end(), [&](const auto& layer)
+		{
 			SetLayerRefParentLayer(*layer);
+		});
 	}
 
 	void AetImporter::ImportLayer(const Aet::Composition& parentComp, const Aet::Layer& layer)
