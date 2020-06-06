@@ -367,8 +367,6 @@
     <ClInclude Include="..\src\AetPlugin.h" />
     <ClInclude Include="..\src\AEUtil.h" />
     <ClInclude Include="..\src\CommentUtil.h" />
-    <ClInclude Include="..\src\FarcUtil.h" />
-    <ClInclude Include="..\src\FileDialogUtil.h" />
     <ClInclude Include="..\src\FormatUtil.h" />
     <ClInclude Include="..\src\StreamUtil.h" />
     <ClInclude Include="resource.h" />
@@ -410,8 +408,6 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClCompile Include="..\src\AetExport.cpp" />
     <ClCompile Include="..\src\AetImport.cpp" />
     <ClCompile Include="..\src\AetPlugin.cpp" />
-    <ClCompile Include="..\src\FarcUtil.cpp" />
-    <ClCompile Include="..\src\FileDialogUtil.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
