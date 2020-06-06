@@ -375,7 +375,6 @@
     <ClInclude Include="..\src\AfterEffectsSDK\Headers\PT_Public.h" />
     <ClInclude Include="..\src\AfterEffectsSDK\Util\AEGP_SuiteHandler.h" />
     <ClInclude Include="..\src\AfterEffectsSDK\Util\entry.h" />
-    <ClInclude Include="..\src\AeExtraData.h" />
     <ClInclude Include="..\src\AetExtraData.h" />
     <ClInclude Include="..\src\AetExport.h" />
     <ClInclude Include="..\src\AetImport.h" />

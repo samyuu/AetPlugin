@@ -26,9 +26,6 @@
     <ClInclude Include="resource.h">
       <Filter>Headers\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\AeExtraData.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\AetExport.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -107,6 +104,7 @@
     <ClInclude Include="..\src\StreamUtil.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\AetExtraData.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
