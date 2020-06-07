@@ -179,7 +179,7 @@ namespace AetPlugin
 
 			ImportAllFootage();
 
-			if (!IsSceneVideoDBBlacklisted(*workingScene.Scene))
+			if (ShouldImportVideoDBForScene(*workingScene.Scene, workingScene.SceneIndex))
 				CreateImportUnreferencedSprDBFootageAndLayer();
 
 			ImportAllCompositions();
@@ -298,13 +298,14 @@ namespace AetPlugin
 		}
 	}
 
-	bool AetImporter::IsSceneVideoDBBlacklisted(const Aet::Scene& scene) const
+	bool AetImporter::ShouldImportVideoDBForScene(const Aet::Scene& scene, size_t sceneIndex) const
 	{
-		static constexpr std::array<std::string_view, 1> blacklistSceneNames =
-		{
-			// NOTE: Ignore DIVA "TOUCH" scenes because it should be safe to assume that they won't rely on any external spr_db sprites
-			"TOUCH",
-		};
+		// NOTE: Always import unreferenced sprites into the first scene only because duplicate videos will result in duplicate output sprites
+		//		 and the first typically "MAIN" scene is where in practice all of the unreferenced sprites are expected anyways
+		return (sceneIndex == 0);
+
+		// NOTE: Ignore DIVA "TOUCH" scenes because it should be safe to assume that they won't rely on any external spr_db sprites
+		static constexpr std::array<std::string_view, 1> blacklistSceneNames = { "TOUCH", };
 
 		return std::any_of(blacklistSceneNames.begin(), blacklistSceneNames.end(), [&](const auto& blacklistName)
 		{
@@ -318,7 +319,7 @@ namespace AetPlugin
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
-		if (workingDirectory.DB.SprSetEntry != nullptr && !IsSceneVideoDBBlacklisted(*workingScene.Scene))
+		if (workingDirectory.DB.SprSetEntry != nullptr && ShouldImportVideoDBForScene(*workingScene.Scene, workingScene.SceneIndex))
 			suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideoDB, project.Folders.Scene.Data, &project.Folders.Scene.VideoDB);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneAudio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneComp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
@@ -452,7 +453,7 @@ namespace AetPlugin
 			{
 				auto& video = dbOnlyVideos.emplace_back(std::make_shared<Aet::Video>());
 				video->Color = 0x00FFFFFF;
-				video->Size = ivec2(100, 100);
+				video->Size = ivec2(128, 128);
 				video->FilesPerFrame = 1.0f;
 				video->Sources.reserve(frameCount);
 
@@ -474,7 +475,7 @@ namespace AetPlugin
 
 	bool AetImporter::UnreferencedVideoRequiresSeparateSprite(const Aet::Video& video) const
 	{
-		// TODO: Should this check against a hardcoded list of common sprites like gam_cmn kiseki (?)
+		// TODO: Check for NOMERGE sprtex entries in spr_db... but that would only work if the spr_set was used for importing
 		return false;
 	}
 

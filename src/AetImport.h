@@ -121,7 +121,7 @@ namespace AetPlugin
 		void CreateProjectFolders();
 
 	protected:
-		bool IsSceneVideoDBBlacklisted(const Aet::Scene& scene) const;
+		bool ShouldImportVideoDBForScene(const Aet::Scene& scene, size_t sceneIndex) const;
 
 	protected:
 		void CreateSceneFolders();
