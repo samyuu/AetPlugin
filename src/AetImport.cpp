@@ -695,17 +695,18 @@ namespace AetPlugin
 		if (layerExtraData.AE_Layer == nullptr)
 			return;
 
-		if (layer.LayerVideo != nullptr)
-			ImportLayerVideo(layer, layerExtraData);
-
-		if (layer.LayerAudio != nullptr)
-			ImportLayerAudio(layer, layerExtraData);
-
+		// NOTE: Make sure to import the layer flags first to ensure the 3D layer video properties won't be discarded
 		ImportLayerTiming(layer, layerExtraData);
 		ImportLayerName(layer, layerExtraData);
 		ImportLayerFlags(layer, layerExtraData);
 		ImportLayerQuality(layer, layerExtraData);
 		ImportLayerMarkers(layer, layerExtraData);
+
+		if (layer.LayerVideo != nullptr)
+			ImportLayerVideo(layer, layerExtraData);
+
+		if (layer.LayerAudio != nullptr)
+			ImportLayerAudio(layer, layerExtraData);
 	}
 
 	void AetImporter::ImportLayerItemToComp(const Aet::Composition& parentComp, const Aet::Layer& layer)
@@ -807,76 +808,95 @@ namespace AetPlugin
 		suites.LayerSuite7->AEGP_SetLayerTransferMode(extraData.Get(layer).AE_Layer, &layerTransferMode);
 	}
 
-	void AetImporter::ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
+	namespace
 	{
-		auto& layerExtraData = extraData.Get(layer);
-
-		for (const auto& aetToAEStream : StreamUtil::Transform2DRemapData)
+		class AEKeyFramer
 		{
-			AEGP_StreamValue2 streamValue2 = {};
-			suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layerExtraData.AE_Layer, aetToAEStream.StreamType, &streamValue2.streamH);
-
-			const bool singleProperty = (aetToAEStream.FieldX == aetToAEStream.FieldY);
-			const Aet::Property1D& xKeyFrames = layerVideo.Transform[aetToAEStream.FieldX];
-			const Aet::Property1D& yKeyFrames = layerVideo.Transform[aetToAEStream.FieldY];
-
-			// NOTE: Set initial stream value
-			streamValue2.val.two_d.x = !xKeyFrames->empty() ? (xKeyFrames->front().Value * aetToAEStream.ScaleFactor) : 0.0f;
-			streamValue2.val.two_d.y = !yKeyFrames->empty() ? (yKeyFrames->front().Value * aetToAEStream.ScaleFactor) : 0.0f;
-			suites.StreamSuite4->AEGP_SetStreamValue(EvilGlobalState.PluginID, streamValue2.streamH, &streamValue2);
-
-			if (xKeyFrames.Keys.size() <= 1 && yKeyFrames.Keys.size() <= 1)
-				continue;
-
-#if 0
-			if (!singleProperty)
+		public:
+			AEKeyFramer(SuitesData& suites, AEGP_LayerH layer, AEGP_LayerStream streamType) : suites(suites)
 			{
-				// BUG: Only the position can be separated. WTF?
-				A_Boolean isSeparationLeader;
-				suites.DynamicStreamSuite4->AEGP_IsSeparationLeader(streamValue2.streamH, &isSeparationLeader);
-
-				if (isSeparationLeader)
-				{
-					suites.DynamicStreamSuite4->AEGP_SetDimensionsSeparated(streamValue2.streamH, true);
-					// continue;
-				}
+				suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer, streamType, &streamValue2.streamH);
+				valueScaleFactor = (streamType == AEGP_LayerStream_SCALE || streamType == AEGP_LayerStream_OPACITY) ? 100.0f : 1.0f;
 			}
-#endif
 
-			AEGP_AddKeyframesInfoH addKeyFrameInfo;
-			suites.KeyframeSuite3->AEGP_StartAddKeyframes(streamValue2.streamH, &addKeyFrameInfo);
-
-			auto insertStreamKeyFrame = [&](frame_t frame, float xValue, float yValue)
+		public:
+			void SetValue(vec3 value)
 			{
-				// TODO: Is this correct (?)
-				const frame_t startOffset = LayerMakesUseOfStartOffset(layer) ? layer.StartOffset : 0.0f;
-				const A_Time time = FrameToAETime(frame - layer.StartFrame + startOffset);
+				streamValue2.val.three_d.x = value.x * valueScaleFactor;
+				streamValue2.val.three_d.y = value.y * valueScaleFactor;
+				streamValue2.val.three_d.z = value.z * valueScaleFactor;
+				suites.StreamSuite4->AEGP_SetStreamValue(EvilGlobalState.PluginID, streamValue2.streamH, &streamValue2);
+			}
 
+			void Start()
+			{
+				suites.KeyframeSuite3->AEGP_StartAddKeyframes(streamValue2.streamH, &addKeyFrameInfo);
+			}
+
+			void AddKeyFrame(A_Time time, vec3 value)
+			{
 				AEGP_KeyframeIndex index;
 				suites.KeyframeSuite3->AEGP_AddKeyframes(addKeyFrameInfo, AEGP_LTimeMode_LayerTime, &time, &index);
 
 				AEGP_StreamValue streamValue = {};
 				streamValue.streamH = streamValue2.streamH;
-				streamValue.val.two_d.x = xValue * aetToAEStream.ScaleFactor;
-				streamValue.val.two_d.y = yValue * aetToAEStream.ScaleFactor;
+				streamValue.val.three_d.x = value.x * valueScaleFactor;
+				streamValue.val.three_d.y = value.y * valueScaleFactor;
+				streamValue.val.three_d.z = value.z * valueScaleFactor;
 				suites.KeyframeSuite3->AEGP_SetAddKeyframe(addKeyFrameInfo, index, &streamValue);
-			};
-
-			if (singleProperty)
-			{
-				for (const auto& keyFrame : xKeyFrames.Keys)
-					insertStreamKeyFrame(keyFrame.Frame, keyFrame.Value, 0.0f);
-			}
-			else
-			{
-				CombineXYPropertiesToKeyFrameVec2s(xKeyFrames, yKeyFrames, combinedVec2KeyFramesCache);
-
-				for (const KeyFrameVec2& keyFrame : combinedVec2KeyFramesCache)
-					insertStreamKeyFrame(keyFrame.Frame, keyFrame.Value.x, keyFrame.Value.y);
 			}
 
-			suites.KeyframeSuite3->AEGP_EndAddKeyframes(true, addKeyFrameInfo);
+			void End()
+			{
+				suites.KeyframeSuite3->AEGP_EndAddKeyframes(true, addKeyFrameInfo);
+			}
+
+		private:
+			SuitesData& suites;
+			float valueScaleFactor;
+			AEGP_StreamValue2 streamValue2;
+			AEGP_AddKeyframesInfoH addKeyFrameInfo;
+		};
+
+		float GetInitialValue(const Aet::Property1D* property)
+		{
+			return (property == nullptr || property->Keys.empty()) ? 0.0f : property->Keys.front().Value;
 		}
+	}
+
+	void AetImporter::ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo)
+	{
+		const auto& layerExtraData = extraData.Get(layer);
+
+		// TODO: Is this correct (?)
+		const auto keyFrameStartOffset = (LayerMakesUseOfStartOffset(layer) ? layer.StartOffset : 0.0f) - layer.StartFrame;
+
+		auto importStream = [&](AEGP_LayerStream streamType, const auto propX, const auto propY, const auto propZ)
+		{
+			if (propX == nullptr)
+				return;
+
+			auto keyFramer = AEKeyFramer(suites, layerExtraData.AE_Layer, streamType);
+			keyFramer.SetValue(vec3(GetInitialValue(propX), GetInitialValue(propY), GetInitialValue(propZ)));
+
+			if (CombinePropertyKeyFrames(propX, propY, propZ, combinedKeyFramesCache); combinedKeyFramesCache.size() > 1)
+			{
+				keyFramer.Start();
+				for (const auto& keyFrame : combinedKeyFramesCache)
+					keyFramer.AddKeyFrame(FrameToAETime(keyFrame.Frame + keyFrameStartOffset), keyFrame.Value);
+				keyFramer.End();
+			}
+		};
+
+		const auto combinedLayerVideo = StreamUtil::CombinedAetLayerVideo2D3D(*const_cast<Aet::LayerVideo*>(&layerVideo));
+		importStream(AEGP_LayerStream_ANCHORPOINT, combinedLayerVideo.OriginX, combinedLayerVideo.OriginY, combinedLayerVideo.OriginZ);
+		importStream(AEGP_LayerStream_POSITION, combinedLayerVideo.PositionX, combinedLayerVideo.PositionY, combinedLayerVideo.PositionZ);
+		importStream(AEGP_LayerStream_ROTATE_X, combinedLayerVideo.RotationX, nullptr, nullptr);
+		importStream(AEGP_LayerStream_ROTATE_Y, combinedLayerVideo.RotationY, nullptr, nullptr);
+		importStream(AEGP_LayerStream_ROTATE_Z, combinedLayerVideo.RotationZ, nullptr, nullptr);
+		importStream(AEGP_LayerStream_SCALE, combinedLayerVideo.ScaleX, combinedLayerVideo.ScaleY, combinedLayerVideo.ScaleZ);
+		importStream(AEGP_LayerStream_OPACITY, combinedLayerVideo.Opacity, nullptr, nullptr);
+		importStream(AEGP_LayerStream_ORIENTATION, combinedLayerVideo.DirectionX, combinedLayerVideo.DirectionY, combinedLayerVideo.DirectionZ);
 	}
 
 	namespace
@@ -884,34 +904,72 @@ namespace AetPlugin
 		template <class KeyFrameType>
 		const KeyFrameType* FindKeyFrameAt(frame_t frame, const std::vector<KeyFrameType>& keyFrames)
 		{
-			auto found = std::find_if(keyFrames.begin(), keyFrames.end(), [&](auto& k) { return Aet::Util::AreFramesTheSame(k.Frame, frame); });
-			return (found != keyFrames.end()) ? &(*found) : nullptr;
+			return FindIfOrNull(keyFrames, [&](const auto& k) { return Aet::Util::AreFramesTheSame(k.Frame, frame); });
+		}
+
+		template <class KeyFrameType>
+		const KeyFrameType* FindKeyFrameAt(frame_t frame, const Aet::Property1D* property)
+		{
+			return (property != nullptr) ? FindKeyFrameAt<KeyFrameType>(frame, property->Keys) : nullptr;
+		}
+
+		float GetValueAt(const Aet::Property1D* property, frame_t frame)
+		{
+			return (property != nullptr) ? Aet::Util::GetValueAt(*property, frame) : 0.0f;
 		}
 	}
 
-	void AetImporter::CombineXYPropertiesToKeyFrameVec2s(const Aet::Property1D& propertyX, const Aet::Property1D& propertyY, std::vector<KeyFrameVec2>& outCombinedKeyFrames) const
+	void AetImporter::CombinePropertyKeyFrames(const Aet::Property1D* propertyX, const Aet::Property1D* propertyY, const Aet::Property1D* propertyZ, std::vector<KeyFrameVec3>& outCombinedKeyFrames) const
 	{
-		outCombinedKeyFrames.clear();
-		outCombinedKeyFrames.reserve(propertyX->size() + propertyY->size());
+		assert(propertyX != nullptr);
 
-		for (const auto& xKeyFrame : propertyX.Keys)
+		outCombinedKeyFrames.clear();
+		outCombinedKeyFrames.reserve(propertyX->Keys.size());
+
+		if (propertyY == nullptr && propertyZ == nullptr)
 		{
-			const auto matchingYKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyY.Keys);
-			const vec2 value =
+			for (const auto& xKeyFrame : propertyX->Keys)
+				outCombinedKeyFrames.push_back({ xKeyFrame.Frame, vec3(xKeyFrame.Value, 0.0f, 0.0f), xKeyFrame.Curve });
+			return;
+		}
+
+		for (const auto& xKeyFrame : propertyX->Keys)
+		{
+			const auto matchingYKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyY);
+			const auto matchingZKeyFrame = FindKeyFrameAt<Aet::KeyFrame>(xKeyFrame.Frame, propertyZ);
+			const vec3 value =
 			{
 				xKeyFrame.Value,
-				(matchingYKeyFrame != nullptr) ? matchingYKeyFrame->Value : Aet::Util::GetValueAt(propertyY, xKeyFrame.Frame),
+				(matchingYKeyFrame != nullptr) ? matchingYKeyFrame->Value : GetValueAt(propertyY, xKeyFrame.Frame),
+				(matchingZKeyFrame != nullptr) ? matchingZKeyFrame->Value : GetValueAt(propertyZ, xKeyFrame.Frame),
 			};
 			outCombinedKeyFrames.push_back({ xKeyFrame.Frame, value, xKeyFrame.Curve });
 		}
 
-		for (const auto& yKeyFrame : propertyY.Keys)
+		if (propertyY != nullptr)
 		{
-			if (auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec2>(yKeyFrame.Frame, outCombinedKeyFrames); existingKeyFrame != nullptr)
-				continue;
+			for (const auto& yKeyFrame : propertyY->Keys)
+			{
+				if (auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec3>(yKeyFrame.Frame, outCombinedKeyFrames); existingKeyFrame != nullptr)
+					continue;
 
-			const float xValue = Aet::Util::GetValueAt(propertyX, yKeyFrame.Frame);
-			outCombinedKeyFrames.push_back({ yKeyFrame.Frame, vec2(xValue, yKeyFrame.Value), yKeyFrame.Curve });
+				const float xValue = GetValueAt(propertyX, yKeyFrame.Frame);
+				const float zValue = GetValueAt(propertyZ, yKeyFrame.Frame);
+				outCombinedKeyFrames.push_back({ yKeyFrame.Frame, vec3(xValue, yKeyFrame.Value, zValue), yKeyFrame.Curve });
+			}
+		}
+
+		if (propertyZ != nullptr)
+		{
+			for (const auto& zKeyFrame : propertyZ->Keys)
+			{
+				if (auto existingKeyFrame = FindKeyFrameAt<KeyFrameVec3>(zKeyFrame.Frame, outCombinedKeyFrames); existingKeyFrame != nullptr)
+					continue;
+
+				const float xValue = GetValueAt(propertyX, zKeyFrame.Frame);
+				const float yValue = GetValueAt(propertyY, zKeyFrame.Frame);
+				outCombinedKeyFrames.push_back({ zKeyFrame.Frame, vec3(xValue, yValue, zKeyFrame.Value), zKeyFrame.Curve });
+			}
 		}
 
 		std::sort(outCombinedKeyFrames.begin(), outCombinedKeyFrames.end(), [](const auto& a, const auto& b) { return a.Frame < b.Frame; });
@@ -981,6 +1039,9 @@ namespace AetPlugin
 		// NOTE: Makes sure underlying transfer modes etc are being preserved as well as the underlying layers aren't being cut off outside the comp region
 		if (layer.ItemType == Aet::ItemType::Composition)
 			suites.LayerSuite1->AEGP_SetLayerFlag(layerExtraData.AE_Layer, AEGP_LayerFlag_COLLAPSE, true);
+
+		if (layer.LayerVideo != nullptr && layer.LayerVideo->Transform3D != nullptr)
+			suites.LayerSuite1->AEGP_SetLayerFlag(layerExtraData.AE_Layer, AEGP_LayerFlag_LAYER_IS_3D, true);
 	}
 
 	void AetImporter::ImportLayerQuality(const Aet::Layer& layer, AetExtraData& layerExtraData)

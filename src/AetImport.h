@@ -161,10 +161,10 @@ namespace AetPlugin
 		void ImportLayerTransferMode(const Aet::Layer& layer, const Aet::LayerTransferMode& transferMode);
 		void ImportLayerVideoStream(const Aet::Layer& layer, const Aet::LayerVideo& layerVideo);
 
-		struct KeyFrameVec2 { frame_t Frame; vec2 Value; float Curve; };
-		std::vector<KeyFrameVec2> combinedVec2KeyFramesCache;
+		struct KeyFrameVec3 { frame_t Frame; vec3 Value; float Curve; };
+		std::vector<KeyFrameVec3> combinedKeyFramesCache;
 
-		void CombineXYPropertiesToKeyFrameVec2s(const Aet::Property1D& propertyX, const Aet::Property1D& propertyY, std::vector<KeyFrameVec2>& outCombinedKeyFrames) const;
+		void CombinePropertyKeyFrames(const Aet::Property1D* propertyX, const Aet::Property1D* propertyY, const Aet::Property1D* propertyZ, std::vector<KeyFrameVec3>& outCombinedKeyFrames) const;
 
 		std::string_view GetLayerItemName(const Aet::Layer& layer) const;
 
