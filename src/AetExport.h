@@ -152,6 +152,11 @@ namespace AetPlugin
 		void ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo, AetExtraData& layerExtraData);
 		void SetLayerVideoPropertyLinearTangents(Aet::Property1D& property);
 
+		struct AEKeyFrame { frame_t Time; vec3 Value; };
+		std::vector<AEKeyFrame> aeKeyFramesCache;
+
+		const std::vector<AEKeyFrame>& GetAEKeyFrames(const Aet::Layer& layer, const AetExtraData& layerExtraData, AEGP_LayerStream streamType);
+
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportVideo(Aet::Video& video, AetExtraData& videoExtraData);

@@ -816,7 +816,7 @@ namespace AetPlugin
 			AEKeyFramer(SuitesData& suites, AEGP_LayerH layer, AEGP_LayerStream streamType) : suites(suites)
 			{
 				suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layer, streamType, &streamValue2.streamH);
-				valueScaleFactor = (streamType == AEGP_LayerStream_SCALE || streamType == AEGP_LayerStream_OPACITY) ? 100.0f : 1.0f;
+				valueScaleFactor = StreamUtil::GetAetToAEStreamFactor(streamType);
 			}
 
 		public:

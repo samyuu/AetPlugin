@@ -35,7 +35,7 @@ namespace AetPlugin
 			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 720)),
 			std::make_pair(ScreenMode::HDTV1080, ivec2(1920, 1080)),
 			std::make_pair(ScreenMode::WQHD, ivec2(2560, 1440)),
-			
+
 			// NOTE: Special cases for the CS3 games
 			std::make_pair(static_cast<ScreenMode>(0x10), ivec2(960, 544)),
 			std::make_pair(ScreenMode::HDTV720, ivec2(1280, 728)),
@@ -588,6 +588,10 @@ namespace AetPlugin
 	void AetExporter::ExportLayerVideo(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		layer.LayerVideo = std::make_shared<Aet::LayerVideo>();
+
+		if (A_Boolean isLayer3D; (suites.LayerSuite1->AEGP_IsLayer3D(layerExtraData.AE_Layer, &isLayer3D) == A_Err_NONE) && isLayer3D)
+			layer.LayerVideo->Transform3D = std::make_shared<Aet::LayerVideo3D>();
+
 		ExportLayerTransferMode(layer, layer.LayerVideo->TransferMode, layerExtraData);
 		ExportLayerVideoStream(layer, *layer.LayerVideo, layerExtraData);
 	}
@@ -617,72 +621,44 @@ namespace AetPlugin
 
 	void AetExporter::ExportLayerVideoStream(Aet::Layer& layer, Aet::LayerVideo& layerVideo, AetExtraData& layerExtraData)
 	{
-		const auto zeroTime = AEUtil::FrameToAETime(0.0f, workingScene.Scene->FrameRate);
-
-		for (const auto& aeToAetStream : StreamUtil::Transform2DRemapData)
+		auto exportStream = [&](AEGP_LayerStream streamType, Aet::Property1D* propX, Aet::Property1D* propY, Aet::Property1D* propZ)
 		{
-			AEGP_StreamRefH streamRef;
-			suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layerExtraData.AE_Layer, aeToAetStream.StreamType, &streamRef);
+			if (propX == nullptr && propY == nullptr && propZ == nullptr)
+				return;
 
-			A_long keyFrameCount;
-			suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
+			const auto& aeKeyFrames = GetAEKeyFrames(layer, layerExtraData, streamType);
 
-			if (keyFrameCount < 1)
+			if (propX != nullptr)
 			{
-				AEGP_StreamVal2 streamVal2;
-				AEGP_StreamType streamType;
-				suites.StreamSuite4->AEGP_GetLayerStreamValue(layerExtraData.AE_Layer, aeToAetStream.StreamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &streamType);
-
-				const float value1D = static_cast<float>(streamVal2.one_d / aeToAetStream.ScaleFactor);
-				const float value2D = static_cast<float>(streamVal2.two_d.y / aeToAetStream.ScaleFactor);
-
-				layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(value1D);
-				if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-					layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(value2D);
+				for (const auto& aeKeyFrame : aeKeyFrames)
+					propX->Keys.emplace_back(aeKeyFrame.Time, aeKeyFrame.Value.x);
+				SetLayerVideoPropertyLinearTangents(*propX);
 			}
-			else
+
+			if (propY != nullptr)
 			{
-				layerVideo.Transform[aeToAetStream.FieldX]->reserve(keyFrameCount);
-				if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-					layerVideo.Transform[aeToAetStream.FieldY]->reserve(keyFrameCount);
-
-				for (AEGP_KeyframeIndex i = 0; i < keyFrameCount; i++)
-				{
-					A_Time time;
-					suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_LayerTime, &time);
-					AEGP_StreamValue streamVal;
-					suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
-
-					// TODO: Find a way to approximate the different interpolation types (including hold frames)
-					const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
-
-					const float value1D = static_cast<float>(streamVal.val.one_d / aeToAetStream.ScaleFactor);
-					const float value2D = static_cast<float>(streamVal.val.two_d.y / aeToAetStream.ScaleFactor);
-
-#if 0
-					AEGP_KeyframeInterpolationType interpolationTypeIn, interpolationTypeOut;
-					suites.KeyframeSuite3->AEGP_GetKeyframeInterpolation(streamRef, i, &interpolationTypeIn, &interpolationTypeOut);
-
-					// TODO: Insert double keyframes (to emulate in+out tangents) for linear and hold keyframes
-					//		 What about imports? Check if they are linear first, otherwise maybe do some bezier fuckery...
-					// TODO: This can also somewhat be avoided by having the user manually place two keyframes around "sudden" value changes
-					if (interpolationTypeIn == AEGP_KeyInterp_LINEAR)
-					{
-						layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, value1D);
-						if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-							layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, value2D);
-					}
-#endif
-
-					layerVideo.Transform[aeToAetStream.FieldX]->emplace_back(frameTime, value1D);
-					if (aeToAetStream.FieldX != aeToAetStream.FieldY)
-						layerVideo.Transform[aeToAetStream.FieldY]->emplace_back(frameTime, value2D);
-				}
+				for (const auto& aeKeyFrame : aeKeyFrames)
+					propY->Keys.emplace_back(aeKeyFrame.Time, aeKeyFrame.Value.y);
+				SetLayerVideoPropertyLinearTangents(*propY);
 			}
-		}
 
-		for (Transform2DField i = 0; i < Transform2DField_Count; i++)
-			SetLayerVideoPropertyLinearTangents(layerVideo.Transform[i]);
+			if (propZ != nullptr)
+			{
+				for (const auto& aeKeyFrame : aeKeyFrames)
+					propZ->Keys.emplace_back(aeKeyFrame.Time, aeKeyFrame.Value.z);
+				SetLayerVideoPropertyLinearTangents(*propZ);
+			}
+		};
+
+		const auto combinedLayerVideo = StreamUtil::CombinedAetLayerVideo2D3D(layerVideo);
+		exportStream(AEGP_LayerStream_ANCHORPOINT, combinedLayerVideo.OriginX, combinedLayerVideo.OriginY, combinedLayerVideo.OriginZ);
+		exportStream(AEGP_LayerStream_POSITION, combinedLayerVideo.PositionX, combinedLayerVideo.PositionY, combinedLayerVideo.PositionZ);
+		exportStream(AEGP_LayerStream_ROTATE_X, combinedLayerVideo.RotationX, nullptr, nullptr);
+		exportStream(AEGP_LayerStream_ROTATE_Y, combinedLayerVideo.RotationY, nullptr, nullptr);
+		exportStream(AEGP_LayerStream_ROTATE_Z, combinedLayerVideo.RotationZ, nullptr, nullptr);
+		exportStream(AEGP_LayerStream_SCALE, combinedLayerVideo.ScaleX, combinedLayerVideo.ScaleY, combinedLayerVideo.ScaleZ);
+		exportStream(AEGP_LayerStream_OPACITY, combinedLayerVideo.Opacity, nullptr, nullptr);
+		exportStream(AEGP_LayerStream_ORIENTATION, combinedLayerVideo.DirectionX, combinedLayerVideo.DirectionY, combinedLayerVideo.DirectionZ);
 	}
 
 	void AetExporter::SetLayerVideoPropertyLinearTangents(Aet::Property1D& property)
@@ -713,6 +689,51 @@ namespace AetPlugin
 			else
 				currKeyFrame->Curve = (getLinearTangent(*prevKeyFrame, *currKeyFrame) + getLinearTangent(*currKeyFrame, *nextKeyFrame)) / 2.0f;
 		}
+	}
+
+	const std::vector<AetExporter::AEKeyFrame>& AetExporter::GetAEKeyFrames(const Aet::Layer& layer, const AetExtraData& layerExtraData, AEGP_LayerStream streamType)
+	{
+		const auto scaleFactor = 1.0f / StreamUtil::GetAetToAEStreamFactor(streamType);
+		auto threeDValToVec3 = [&](const AEGP_ThreeDVal& input)
+		{
+			return vec3(static_cast<float>(input.x) * scaleFactor, static_cast<float>(input.y) * scaleFactor, static_cast<float>(input.z) * scaleFactor);
+		};
+
+		aeKeyFramesCache.clear();
+
+		AEGP_StreamRefH streamRef;
+		suites.StreamSuite4->AEGP_GetNewLayerStream(EvilGlobalState.PluginID, layerExtraData.AE_Layer, streamType, &streamRef);
+
+		A_long keyFrameCount;
+		suites.KeyframeSuite3->AEGP_GetStreamNumKFs(streamRef, &keyFrameCount);
+
+		if (keyFrameCount < 1)
+		{
+			const auto zeroTime = AEUtil::FrameToAETime(0.0f, workingScene.Scene->FrameRate);
+
+			AEGP_StreamVal2 streamVal2;
+			AEGP_StreamType outStreamType;
+			suites.StreamSuite4->AEGP_GetLayerStreamValue(layerExtraData.AE_Layer, streamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &outStreamType);
+
+			// HACK: Not sure why this one returns 0.0f despite being treated and displated as the default 100% scale in AE
+			if (streamType == AEGP_LayerStream_SCALE)
+				streamVal2.three_d.z = 100.0f;
+
+			aeKeyFramesCache.push_back({ 0.0f, threeDValToVec3(streamVal2.three_d) });
+			return aeKeyFramesCache;
+		}
+
+		for (AEGP_KeyframeIndex i = 0; i < keyFrameCount; i++)
+		{
+			A_Time time;
+			suites.KeyframeSuite3->AEGP_GetKeyframeTime(streamRef, i, AEGP_LTimeMode_LayerTime, &time);
+			AEGP_StreamValue streamVal;
+			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
+
+			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
+			aeKeyFramesCache.push_back({ frameTime, threeDValToVec3(streamVal.val.three_d) });
+}
+		return aeKeyFramesCache;
 	}
 
 	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
