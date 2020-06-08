@@ -479,6 +479,8 @@ namespace AetPlugin
 
 		if (layer.ItemType == Aet::ItemType::Video || layer.ItemType == Aet::ItemType::Composition)
 			ExportLayerVideo(layer, layerExtraData);
+		else if (layer.ItemType == Aet::ItemType::Audio)
+			ExportLayerAudio(layer, layerExtraData);
 	}
 
 	void AetExporter::ExportLayerName(Aet::Layer& layer, AetExtraData& layerExtraData)
@@ -557,6 +559,15 @@ namespace AetPlugin
 		if (layerFlags & AEGP_LayerFlag_SHY) layer.Flags.Shy = true;
 	}
 
+	namespace
+	{
+		bool HasAudioFileExtension(std::string_view name)
+		{
+			constexpr auto knownAudioExtensions = ".aif;.aiff;.adx;.wav;.mp3;.mpeg;.mpg;.ogg;.flac";
+			return IO::Path::DoesAnyPackedExtensionMatch(IO::Path::GetExtension(name), knownAudioExtensions);
+		}
+	}
+
 	void AetExporter::ExportLayerSourceItem(Aet::Layer& layer, AetExtraData& layerExtraData)
 	{
 		AEGP_ItemH sourceItem;
@@ -576,12 +587,25 @@ namespace AetPlugin
 		}
 		else if (sourceItemType == AEGP_ItemType_FOOTAGE)
 		{
-			layer.ItemType = Aet::ItemType::Video; // Aet::ItemType::Audio
+			// HACK: This is to ensure layers that have been imported using a dummy solid will still be exported correctly despite technically not being audio footage in AE
+			if (HasAudioFileExtension(layer.GetName()))
+			{
+				layer.ItemType = Aet::ItemType::Audio;
 
-			if (auto existingVideoItem = FindExistingVideoSourceItem(sourceItem); existingVideoItem != nullptr)
-				layer.SetItem(existingVideoItem);
+				if (auto existingAudioItem = FindExistingAudioSourceItem(sourceItem); existingAudioItem != nullptr)
+					layer.SetItem(existingAudioItem);
+				else
+					ExportNewAudioSource(layer, sourceItem);
+			}
 			else
-				ExportNewVideoSource(layer, sourceItem);
+			{
+				layer.ItemType = Aet::ItemType::Video;
+
+				if (auto existingVideoItem = FindExistingVideoSourceItem(sourceItem); existingVideoItem != nullptr)
+					layer.SetItem(existingVideoItem);
+				else
+					ExportNewVideoSource(layer, sourceItem);
+			}
 		}
 	}
 
@@ -732,8 +756,13 @@ namespace AetPlugin
 
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
 			aeKeyFramesCache.push_back({ frameTime, threeDValToVec3(streamVal.val.three_d) });
-}
+		}
 		return aeKeyFramesCache;
+	}
+
+	void AetExporter::ExportLayerAudio(Aet::Layer& layer, AetExtraData& layerExtraData)
+	{
+		layer.LayerAudio = std::make_shared<Aet::LayerAudio>();
 	}
 
 	void AetExporter::ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
@@ -842,6 +871,18 @@ namespace AetPlugin
 		return std::string(preIndexString) + indexString;
 	}
 
+	void AetExporter::ExportNewAudioSource(Aet::Layer& layer, AEGP_ItemH sourceItem)
+	{
+		auto& newAudioItem = workingScene.Scene->Audios.emplace_back(std::make_shared<Aet::Audio>());
+		auto& audioExtraData = extraData.Get(*newAudioItem);
+
+		audioExtraData.AE_FootageItem = sourceItem;
+		suites.FootageSuite5->AEGP_GetMainFootageFromItem(audioExtraData.AE_FootageItem, &audioExtraData.AE_Footage);
+
+		layer.SetItem(newAudioItem);
+		newAudioItem->SoundID = 0;
+	}
+
 	std::shared_ptr<Aet::Composition> AetExporter::FindExistingCompSourceItem(AEGP_ItemH sourceItem)
 	{
 		// NOTE: No point in searching the root comp since it should never be referenced by any other child comp (?)
@@ -859,6 +900,16 @@ namespace AetPlugin
 		{
 			if (extraData.Get(*video).AE_FootageItem == sourceItem)
 				return video;
+		}
+		return nullptr;
+	}
+
+	std::shared_ptr<Aet::Audio> AetExporter::FindExistingAudioSourceItem(AEGP_ItemH sourceItem)
+	{
+		for (const auto& audio : workingScene.Scene->Audios)
+		{
+			if (extraData.Get(*audio).AE_FootageItem == sourceItem)
+				return audio;
 		}
 		return nullptr;
 	}

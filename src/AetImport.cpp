@@ -627,7 +627,21 @@ namespace AetPlugin
 	{
 		auto& audioExtraData = extraData.Get(audio);
 
-		// TODO:
+		const Aet::Layer* usedLayer = nullptr;
+
+		// TODO: Might wanna create a lookup map instead
+		workingScene.Scene->ForEachComp([&](const auto& comp)
+		{
+			for (const auto& layer : comp->GetLayers())
+			{
+				if (layer->GetAudioItem().get() == &audio)
+					usedLayer = layer.get();
+			}
+		});
+
+		const auto videoColor = AEGP_ColorVal { 0.0, 0.70, 0.78, 0.70 };
+		suites.FootageSuite5->AEGP_NewSolidFootage((usedLayer != nullptr) ? usedLayer->GetName().c_str() : "unused_audio.aif", 100, 100, &videoColor, &extraData.Get(audio).AE_Footage);
+
 		if (audioExtraData.AE_Footage != nullptr)
 			suites.FootageSuite5->AEGP_AddFootageToProject(audioExtraData.AE_Footage, project.Folders.Scene.Audio, &audioExtraData.AE_FootageItem);
 	}
@@ -1035,6 +1049,10 @@ namespace AetPlugin
 			const uint16_t flagsBitMask = (1 << flagsBitIndex);
 			suites.LayerSuite1->AEGP_SetLayerFlag(layerExtraData.AE_Layer, static_cast<AEGP_LayerFlags>(flagsBitMask), static_cast<A_Boolean>(layerFlags & flagsBitMask));
 		}
+
+		// NOTE: Prevent the dummy import solid from being visible
+		if (layer.ItemType == Aet::ItemType::Audio)
+			suites.LayerSuite1->AEGP_SetLayerFlag(layerExtraData.AE_Layer, AEGP_LayerFlag_VIDEO_ACTIVE, false);
 
 		// NOTE: Makes sure underlying transfer modes etc are being preserved as well as the underlying layers aren't being cut off outside the comp region
 		if (layer.ItemType == Aet::ItemType::Composition)

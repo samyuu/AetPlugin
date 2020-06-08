@@ -156,14 +156,19 @@ namespace AetPlugin
 		std::vector<AEKeyFrame> aeKeyFramesCache;
 
 		const std::vector<AEKeyFrame>& GetAEKeyFrames(const Aet::Layer& layer, const AetExtraData& layerExtraData, AEGP_LayerStream streamType);
+		
+		void ExportLayerAudio(Aet::Layer& layer, AetExtraData& layerExtraData);
 
 		void ExportNewCompSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportNewVideoSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
 		void ExportVideo(Aet::Video& video, AetExtraData& videoExtraData);
 		std::string FormatVideoSourceName(Aet::Video& video, std::string_view itemName, int sourceIndex, int sourceCount) const;
 
+		void ExportNewAudioSource(Aet::Layer& layer, AEGP_ItemH sourceItem);
+
 		std::shared_ptr<Aet::Composition> FindExistingCompSourceItem(AEGP_ItemH sourceItem);
 		std::shared_ptr<Aet::Video> FindExistingVideoSourceItem(AEGP_ItemH sourceItem);
+		std::shared_ptr<Aet::Audio> FindExistingAudioSourceItem(AEGP_ItemH sourceItem);
 
 		void ScanCheckSetLayerRefParents(Aet::Layer& layer);
 		std::shared_ptr<Aet::Layer> FindLayerRefParent(Aet::Layer& layer, AEGP_LayerH parentHandle);
