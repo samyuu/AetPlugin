@@ -221,6 +221,8 @@ namespace AetPlugin
 		for (const auto& comp : scene.Compositions)
 			setCompUsages(*comp);
 
+		workingScene.GivenCompDurations = CreateGivenCompDurationsMap(*workingScene.Scene);
+
 		workingScene.UnreferencedVideoComp = nullptr;
 		workingScene.UnreferencedVideoLayer = nullptr;
 	}
@@ -678,7 +680,13 @@ namespace AetPlugin
 
 	void AetImporter::ImportComposition(const Aet::Composition& comp, bool videoDB)
 	{
-		const frame_t frameDuration = FindLongestLayerEndFrameInComp(comp);
+		const auto foundDuration = workingScene.GivenCompDurations.find(&comp);
+		const frame_t givenDuration = (foundDuration != workingScene.GivenCompDurations.end()) ? foundDuration->second : 0.0f;
+		const frame_t longestEndFrame = FindLongestLayerEndFrameInComp(comp);
+
+		// NOTE: Neither the comp content nor the layer usage can be used to definitively recover the original comp duration
+		//		 so we try to choose the longest one to minimize the risk of messing up any layer being shorter than expected
+		const frame_t frameDuration = std::max(longestEndFrame, givenDuration);
 		const A_Time duration = FrameToAETime((frameDuration > 0.0f) ? frameDuration : workingScene.Scene->FrameRate);
 
 		const auto resolution = workingScene.Scene->Resolution;

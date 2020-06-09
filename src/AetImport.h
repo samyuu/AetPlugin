@@ -83,6 +83,9 @@ namespace AetPlugin
 			// NOTE: Videos without sources don't have a name, so they will be named after their layer usage instead
 			std::unordered_map<const Aet::Video*, const Aet::Layer*> SourcelessVideoLayerUsages;
 
+			// NOTE: Because the AetSet format doesn't store the comp durations they have to be restored based on their layer usages
+			std::unordered_map<const Aet::Composition*, frame_t> GivenCompDurations;
+
 			std::shared_ptr<Aet::Composition> UnreferencedVideoComp = nullptr;
 			std::shared_ptr<Aet::Layer> UnreferencedVideoLayer = nullptr;
 		} workingScene = {};
