@@ -105,11 +105,13 @@ namespace AetPlugin
 		return std::make_pair(std::move(aetSet), std::move(workingSet.SprSetSrcInfo));
 	}
 
-	std::unique_ptr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, bool powerOfTwo)
+	std::unique_ptr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, const SprSetExportOptions& options)
 	{
 		// TODO: Callback and stuff
 		auto spritePacker = Graphics::Utilities::SpritePacker();
-		spritePacker.Settings.PowerOfTwoTextures = powerOfTwo;
+		spritePacker.Settings.PowerOfTwoTextures = options.PowerOfTwo;
+		spritePacker.Settings.AllowYCbCrTextures = options.EncodeYCbCr;
+		spritePacker.Settings.GenerateMipMaps = false;
 
 		std::vector<Graphics::Utilities::SprMarkup> sprMarkups;
 
@@ -134,7 +136,14 @@ namespace AetPlugin
 			sprMarkup.Size = imageSize;
 			sprMarkup.RGBAPixels = owningPixels.get();
 			sprMarkup.ScreenMode = aetSetScreenMode;
-			sprMarkup.Flags = srcSpr.UsesTrackMatte ? Graphics::Utilities::SprMarkupFlags_NoMerge : Graphics::Utilities::SprMarkupFlags_None;
+			sprMarkup.Flags = Graphics::Utilities::SprMarkupFlags_None;
+
+			// NOTE: Otherwise neighboring sprites might become visible through the mask
+			if (srcSpr.UsesTrackMatte)
+				sprMarkup.Flags |= Graphics::Utilities::SprMarkupFlags_NoMerge;
+
+			if (options.EnableCompression)
+				sprMarkup.Flags |= Graphics::Utilities::SprMarkupFlags_Compress;
 		}
 
 		return spritePacker.Create(sprMarkups);
@@ -278,6 +287,11 @@ namespace AetPlugin
 
 		// NOTE: Only allow a single set comment so there won't be any accidental exports due to ambiguity
 		return (aetSetCommentItemCount == 1);
+	}
+
+	const SuitesData& AetExporter::Suites() const
+	{
+		return suites;
 	}
 
 	void AetExporter::SetupWorkingProjectData()

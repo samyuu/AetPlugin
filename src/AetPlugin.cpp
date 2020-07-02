@@ -100,24 +100,39 @@ namespace AetPlugin
 
 		struct ExportOptions
 		{
+			// NOTE: Arbitrary buffer size to store at least the date time compile time ID
+			using IDType = std::array<char, 128>;
+
+			static constexpr auto StorageValueKey = COMFY_STRINGIFY(ExportOptions);
+			static constexpr auto CompileTimeID = IDType { COMFY_STRINGIFY(ExportOptions) "::" __DATE__ "_" __TIME__ };
+
+			// NOTE: To identify and compare the serialized object in memory
+			size_t ObjectSize = sizeof(ExportOptions);
+			IDType ObjectID = CompileTimeID;
+
 			struct DatabaseData
 			{
 				bool ExportSprDB = true;
 				bool ExportAetDB = true;
 				bool ParseSprIDComments = true;
+				bool MDataDBs = false;
 			} Database;
 			struct SpriteData
 			{
 				bool ExportSprSet = true;
 				bool PowerOfTwoTextures = true;
-				// TODO: 
-				// bool CompressTextures = false;
+				bool CompressTextures = true;
+				bool EncodeYCbCr = true;
 				// bool GenerateMipMaps = false;
 			} Sprite;
-			struct LogData
+			struct DebugData
 			{
 				bool WriteLog = false;
-			} Log;
+			} Debug;
+			struct FArcData
+			{
+				bool Compress = false;
+			} FArc;
 			struct MiscData
 			{
 				bool ExportAetSet = true;
@@ -125,9 +140,40 @@ namespace AetPlugin
 			} Misc;
 		};
 
-		std::pair<std::string, ExportOptions> OpenExportAetSetFileDialog(std::string_view fileName)
+		ExportOptions RetrieveLastUsedExportOptions(const SuitesData& suites)
 		{
-			ExportOptions options = {};
+			A_Err err = A_Err_NONE;
+
+			const ExportOptions defaultOptions = {};
+			ExportOptions optionsResult = {};
+
+			AEGP_PersistentBlobH persistentBlob = {};
+			ERR(suites.PersistentDataSuite3->AEGP_GetApplicationBlob(&persistentBlob));
+			ERR(suites.PersistentDataSuite3->AEGP_GetData(persistentBlob, PersistentDataPluginSectionKey, ExportOptions::StorageValueKey, static_cast<A_u_long>(sizeof(ExportOptions)), &defaultOptions, &optionsResult));
+
+			if (err != A_Err_NONE)
+				return defaultOptions;
+
+			// NOTE: The perstistent data is stored as a raw object memory dump so any version that even has the potentail of having a different memory layout or version will be discarded.
+			//		 This means previous options will always be invalidated after recompilation
+			if (optionsResult.ObjectSize != sizeof(ExportOptions) || optionsResult.ObjectID != ExportOptions::CompileTimeID)
+				return defaultOptions;
+
+			return optionsResult;
+		}
+
+		void SaveLastUsedExportOptions(const SuitesData& suites, const ExportOptions& options)
+		{
+			A_Err err = A_Err_NONE;
+
+			AEGP_PersistentBlobH persistentBlob = {};
+			ERR(suites.PersistentDataSuite3->AEGP_GetApplicationBlob(&persistentBlob));
+			ERR(suites.PersistentDataSuite3->AEGP_SetData(persistentBlob, PersistentDataPluginSectionKey, ExportOptions::StorageValueKey, static_cast<A_u_long>(sizeof(options)), &options));
+		}
+
+		std::pair<std::string, ExportOptions> OpenExportAetSetFileDialog(const SuitesData& suites, std::string_view fileName)
+		{
+			auto options = RetrieveLastUsedExportOptions(suites);
 
 			auto dialog = IO::Shell::FileDialog();
 			dialog.FileName = fileName;
@@ -140,20 +186,28 @@ namespace AetPlugin
 				{ IO::Shell::Custom::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
+				{ IO::Shell::Custom::ItemType::Checkbox, "MData Prefix", &options.Database.MDataDBs },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite" },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Export Spr Set", &options.Sprite.ExportSprSet },
-				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Textures", nullptr /*&options.Sprite.CompressTextures*/ },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Textures", &options.Sprite.CompressTextures },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Encode YCbCr", &options.Sprite.EncodeYCbCr },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Power of Two Textures", &options.Sprite.PowerOfTwoTextures },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
-				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Log" },
-				{ IO::Shell::Custom::ItemType::Checkbox, "Write Log", &options.Log.WriteLog },
+				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite FArc" },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Content", nullptr /*&options.FArc.Compress*/ },
+				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
+
+				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Debug" },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Write Log File", &options.Debug.WriteLog },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 			};
 
 			const auto result = dialog.OpenSave();
+			SaveLastUsedExportOptions(suites, options);
+
 			return std::make_pair(dialog.OutFilePath, options);
 		}
 
@@ -162,7 +216,7 @@ namespace AetPlugin
 			FILE* logStream = nullptr;
 			LogLevel logLevel = LogLevel_None;
 
-			if (options.Log.WriteLog)
+			if (options.Debug.WriteLog)
 				logLevel |= LogLevel_All;
 
 			if (logLevel != LogLevel_None)
@@ -190,12 +244,29 @@ namespace AetPlugin
 				fclose(logFile);
 		}
 
+		int RunDebugPostExportScript(std::string_view outputDirectory)
+		{
+			const auto scriptDirectory = std::string(outputDirectory) + "\\..";
+
+			const auto scriptFileName = "aetplugin_post_export.bat";
+			const auto scriptFilePath = (scriptDirectory + "\\" + scriptFileName);
+
+			if (!IO::File::Exists(scriptFilePath))
+				return 0;
+
+			// NOTE: This is of course **not** safe and should not be shipped with final builds
+			const auto command = "cd \"" + scriptDirectory + "\" && " + scriptFileName;
+			const int commandError = _wsystem(UTF8::WideArg(command).c_str());
+
+			return commandError;
+		}
+
 		A_Err ExportAetSetCommand()
 		{
 			auto exporter = AetExporter();
 
 			const auto setName = exporter.GetAetSetNameFromProjectName();
-			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(setName);
+			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(exporter.Suites(), setName);
 
 			const auto outputDirectory = IO::Path::GetDirectoryName(outputFilePath);
 
@@ -220,27 +291,41 @@ namespace AetPlugin
 			std::unique_ptr<SprSet> sprSet = nullptr;
 			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
 			{
-				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, exportOptions.Sprite.PowerOfTwoTextures);
+				auto sprSetOptions = AetExporter::SprSetExportOptions {};
+				sprSetOptions.PowerOfTwo = exportOptions.Sprite.PowerOfTwoTextures;
+				sprSetOptions.EnableCompression = exportOptions.Sprite.CompressTextures;
+				sprSetOptions.EncodeYCbCr = exportOptions.Sprite.EncodeYCbCr;
+
+				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, sprSetOptions);
 				const auto sprName = ("spr_" + aetBaseName);
 
 				if (sprSet != nullptr)
 				{
+					// TODO: exportOptions.FArc.Compress
 					auto farcPacker = IO::FArcPacker();
 					farcPacker.AddFile(IO::Path::ChangeExtension(sprName, ".bin"), *sprSet);
 					farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, IO::Path::ChangeExtension(sprName, ".farc")));
 				}
 			}
 
+			const auto dbNamePrefix = exportOptions.Database.MDataDBs ? std::string("mdata_") : "";
+			const auto dbNameSuffix = exportOptions.Database.MDataDBs ? "" : ("_" + aetBaseName);
+
 			if (exportOptions.Database.ExportSprDB)
 			{
 				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileName, sprSet.get());
-				IO::File::Save(IO::Path::Combine(outputDirectory, ("spr_db_" + aetBaseName + ".bin")), sprDB);
+				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "spr_db" + dbNameSuffix + ".bin")), sprDB);
 			}
 			if (exportOptions.Database.ExportAetDB)
 			{
 				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileName);
-				IO::File::Save(IO::Path::Combine(outputDirectory, ("aet_db_" + aetBaseName + ".bin")), aetDB);
+				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "aet_db" + dbNameSuffix + ".bin")), aetDB);
 			}
+
+#if 0 // DEBUG:
+			if (exportOptions.Misc.RunPostExportScript)
+				RunDebugPostExportScript(outputDirectory);
+#endif /* 1 */
 
 			return A_Err_NONE;
 		}

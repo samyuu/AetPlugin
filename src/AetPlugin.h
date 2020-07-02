@@ -28,6 +28,9 @@ namespace AetPlugin
 		std::make_pair(LogLevel_Error, "Error"),
 	};
 
+	// NOTE: Used as a "namespace" for all data stored using the PersistentDataSuite
+	constexpr const char* PersistentDataPluginSectionKey = "AetPlugin";
+
 	constexpr std::string_view AetPrefix = "aet_";
 	constexpr std::string_view SprPrefix = "spr_";
 	constexpr std::string_view SprTexPrefix = "sprtex_";
@@ -64,6 +67,7 @@ namespace AetPlugin
 		DeclareSuiteMember(KeyframeSuite3); // AE 6.5
 		DeclareSuiteMember(UtilitySuite3); // AE 10.0
 		DeclareSuiteMember(MemorySuite1); // AE 5.0
+		DeclareSuiteMember(PersistentDataSuite3); // AE 10.0
 
 #undef DeclareSuiteMember
 	};
