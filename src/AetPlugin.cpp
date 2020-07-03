@@ -7,6 +7,7 @@
 #include <IO/Directory.h>
 #include <IO/Archive/FArcPacker.h>
 #include <Misc/StringUtil.h>
+#include <Graphics/Utilities/SpriteExtraction.h>
 #include <Time/TimeUtilities.h>
 
 namespace AetPlugin
@@ -29,18 +30,55 @@ namespace AetPlugin
 			return A_Err_NONE;
 		}
 
+		std::unique_ptr<SprSet> TryLoadAetSetMatchingSprSet(std::string_view aetSetPath, std::string_view workingDirectory)
+		{
+			// NOTE: "aet_dummy.bin" -> "dummy"
+			const auto baseFileName = Util::StripPrefixInsensitive(IO::Path::GetFileName(aetSetPath, false), AetPrefix);
+			// NOTE: "dummy" -> "spr_dummy"
+			const auto sprBaseFileName = std::string(SprPrefix) + std::string(baseFileName);
+			// NOTE: "spr_dummy" -> "spr_dummy.farc"
+			const auto sprFArcFileName = IO::Path::ChangeExtension(sprBaseFileName, ".farc");
+			// NOTE: "spr_dummy.farc" -> "export/dir/spr_dummy.farc"
+			const auto sprFArcFilePath = IO::Path::Combine(workingDirectory, sprFArcFileName);
+
+			const auto sprFArc = IO::FArc::Open(sprFArcFilePath);
+			if (sprFArc == nullptr)
+				return nullptr;
+
+			// NOTE: "spr_dummy.bin" or "spr_dummy.spr"
+			const auto sprEntry = FindIfOrNull(sprFArc->GetEntries(), [&](const IO::FArcEntry& entry)
+			{
+				return IO::Path::TrimExtension(entry.Name) == sprBaseFileName && IO::Path::DoesAnyPackedExtensionMatch(IO::Path::GetExtension(entry.Name), ".bin;.spr");
+			});
+
+			const auto fileContent = (sprEntry != nullptr) ? sprEntry->ReadArray() : nullptr;
+			if (fileContent == nullptr)
+				return nullptr;
+
+			auto sprSet = std::make_unique<SprSet>();
+			sprSet->Parse(fileContent.get(), sprEntry->OriginalSize);
+
+			return sprSet;
+		}
+
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)
 		{
-			const auto filePathString = UTF8::Narrow(AEUtil::WCast(filePath));
-			const auto aetSet = AetImporter::LoadAetSet(filePathString);
+			const auto aetSetPath = UTF8::Narrow(AEUtil::WCast(filePath));
+			const auto aetSet = AetImporter::LoadAetSet(aetSetPath);
 
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
 			A_Err err = A_Err_NONE;
 
-			auto importer = AetImporter(IO::Path::GetDirectoryName(filePathString));
-			ERR(importer.ImportAetSet(*aetSet, importOptions, action, itemHandle));
+			const auto workingDirectory = IO::Path::GetDirectoryName(aetSetPath);
+			const auto sprSet = TryLoadAetSetMatchingSprSet(aetSetPath, workingDirectory);
+
+			if (sprSet != nullptr)
+				Utilities::ExtractAllSprPNGs(workingDirectory, *sprSet);
+
+			auto importer = AetImporter(workingDirectory);
+			ERR(importer.ImportAetSet(*aetSet, sprSet.get(), importOptions, action, itemHandle));
 
 			return err;
 		}
@@ -116,6 +154,7 @@ namespace AetPlugin
 				bool ExportAetDB = true;
 				bool ParseSprIDComments = true;
 				bool MDataDBs = false;
+				bool MergeExisting = false;
 			} Database;
 			struct SpriteData
 			{
@@ -185,8 +224,10 @@ namespace AetPlugin
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Database" },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Export Spr DB", &options.Database.ExportSprDB },
 				{ IO::Shell::Custom::ItemType::Checkbox, "Export Aet DB", &options.Database.ExportAetDB },
-				{ IO::Shell::Custom::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
+				// NOTE: Made unaccessible for now since SprID comments are almost always desired and in the rare cases that they aren't can be removed manually
+				// { IO::Shell::Custom::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
 				{ IO::Shell::Custom::ItemType::Checkbox, "MData Prefix", &options.Database.MDataDBs },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Merge Existing", nullptr /*&options.Database.MergeExisting*/ },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite" },
@@ -265,18 +306,17 @@ namespace AetPlugin
 		{
 			auto exporter = AetExporter();
 
-			const auto setName = exporter.GetAetSetNameFromProjectName();
-			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(exporter.Suites(), setName);
-
+			const auto[outputFilePath, exportOptions] = OpenExportAetSetFileDialog(exporter.Suites(), exporter.GetAetSetNameFromProjectName());
 			const auto outputDirectory = IO::Path::GetDirectoryName(outputFilePath);
-
-			const auto setFileName = IO::Path::GetFileName(outputFilePath, true);
-			const auto aetBaseName = std::string(IO::Path::TrimExtension(Util::StripPrefixInsensitive(setName, AetPrefix)));
 
 			if (outputFilePath.empty())
 				return A_Err_NONE;
 
-			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Util::StripPrefixInsensitive(setName, AetPrefix), exportOptions);
+			const auto aetSetName = IO::Path::GetFileName(outputFilePath, false);
+			const auto aetSetFileName = IO::Path::GetFileName(outputFilePath, true);
+			const auto setBaseName = std::string(Util::StripPrefixInsensitive(aetSetName, AetPrefix));
+
+			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Util::StripPrefixInsensitive(aetSetName, AetPrefix), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
 			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectory, exportOptions.Database.ParseSprIDComments);
@@ -297,7 +337,7 @@ namespace AetPlugin
 				sprSetOptions.EncodeYCbCr = exportOptions.Sprite.EncodeYCbCr;
 
 				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, sprSetOptions);
-				const auto sprName = ("spr_" + aetBaseName);
+				const auto sprName = ("spr_" + setBaseName);
 
 				if (sprSet != nullptr)
 				{
@@ -308,16 +348,21 @@ namespace AetPlugin
 			}
 
 			const auto dbNamePrefix = exportOptions.Database.MDataDBs ? std::string("mdata_") : "";
-			const auto dbNameSuffix = exportOptions.Database.MDataDBs ? "" : ("_" + aetBaseName);
+			const auto dbNameSuffix = exportOptions.Database.MDataDBs ? "" : ("_" + setBaseName);
+
+			if (exportOptions.Database.MergeExisting)
+			{
+				// TODO:
+			}
 
 			if (exportOptions.Database.ExportSprDB)
 			{
-				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, setFileName, sprSet.get());
+				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, aetSetFileName, sprSet.get());
 				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "spr_db" + dbNameSuffix + ".bin")), sprDB);
 			}
 			if (exportOptions.Database.ExportAetDB)
 			{
-				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, setFileName);
+				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, aetSetFileName);
 				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "aet_db" + dbNameSuffix + ".bin")), aetDB);
 			}
 

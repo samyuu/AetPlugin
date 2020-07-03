@@ -163,9 +163,9 @@ namespace AetPlugin
 		this->workingDirectory.ImportDirectory = std::string(workingDirectory);
 	}
 
-	A_Err AetImporter::ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
+	A_Err AetImporter::ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
-		SetupWorkingSetData(set);
+		SetupWorkingSetData(aetSet, sprSet);
 		CheckWorkingDirectoryFiles();
 
 		GetProjectHandles();
@@ -197,10 +197,11 @@ namespace AetPlugin
 		});
 	}
 
-	void AetImporter::SetupWorkingSetData(const Aet::AetSet& set)
+	void AetImporter::SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet)
 	{
-		workingSet.Set = &set;
-		workingSet.NamePrefix = GetAetSetName(set);
+		workingSet.Set = &aetSet;
+		workingSet.SprSet = sprSet;
+		workingSet.NamePrefix = GetAetSetName(aetSet);
 		workingSet.NamePrefixUnderscore = workingSet.NamePrefix + "_";
 	}
 
@@ -477,7 +478,29 @@ namespace AetPlugin
 
 	bool AetImporter::UnreferencedVideoRequiresSeparateSprite(const Aet::Video& video) const
 	{
-		// TODO: Check for NOMERGE sprtex entries in spr_db... but that would only work if the spr_set was used for importing
+		if (video.Sources.empty())
+			return false;
+
+		if (workingSet.SprSet == nullptr || workingSet.SprSet->TexSet == nullptr)
+			return false;
+
+		const auto& sprSet = *workingSet.SprSet;
+
+		for (const auto& spr : sprSet.Sprites)
+		{
+			if (!InBounds(spr.TextureIndex, sprSet.TexSet->Textures))
+				continue;
+
+			if (!Util::MatchesInsensitive(spr.Name, Util::StripPrefixInsensitive(video.Sources.front().Name, workingSet.NamePrefixUnderscore)))
+				continue;
+
+			const auto& texture = sprSet.TexSet->Textures[spr.TextureIndex];
+			const bool isNoMergeTexture = Util::Contains(texture->GetName(), "NOMERGE");
+
+			if (isNoMergeTexture)
+				return true;
+		}
+
 		return false;
 	}
 

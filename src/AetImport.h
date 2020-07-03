@@ -2,6 +2,7 @@
 #include "AetPlugin.h"
 #include "AetExtraData.h"
 #include <Graphics/Auth2D/Aet/AetSet.h>
+#include <Graphics/Auth2D/SprSet.h>
 #include <Database/AetDB.h>
 #include <Database/SprDB.h>
 #include <unordered_map>
@@ -41,7 +42,7 @@ namespace AetPlugin
 		AetImporter(std::string_view workingDirectory);
 		~AetImporter() = default;
 
-		A_Err ImportAetSet(Aet::AetSet& set, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
+		A_Err ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
 
 	protected:
 		SuitesData suites;
@@ -71,6 +72,8 @@ namespace AetPlugin
 		struct WorkingAetData
 		{
 			const Aet::AetSet* Set = nullptr;
+			const SprSet* SprSet = nullptr;
+
 			std::string NamePrefix, NamePrefixUnderscore;
 		} workingSet;
 
@@ -90,7 +93,7 @@ namespace AetPlugin
 			std::shared_ptr<Aet::Layer> UnreferencedVideoLayer = nullptr;
 		} workingScene = {};
 
-		void SetupWorkingSetData(const Aet::AetSet& set);
+		void SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet);
 		void SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex);
 		void CheckWorkingDirectoryFiles();
 
