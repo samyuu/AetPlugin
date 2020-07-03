@@ -104,7 +104,7 @@ namespace AetPlugin
 			using IDType = std::array<char, 128>;
 
 			static constexpr auto StorageValueKey = COMFY_STRINGIFY(ExportOptions);
-			static constexpr auto CompileTimeID = IDType { COMFY_STRINGIFY(ExportOptions) "::" __DATE__ "_" __TIME__ };
+			static constexpr auto CompileTimeID = IDType { COMFY_STRINGIFY(ExportOptions) " { { " __DATE__ " }, { " __TIME__ " } };" };
 
 			// NOTE: To identify and compare the serialized object in memory
 			size_t ObjectSize = sizeof(ExportOptions);
@@ -197,7 +197,7 @@ namespace AetPlugin
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite FArc" },
-				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Content", nullptr /*&options.FArc.Compress*/ },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Compress Content", &options.FArc.Compress },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Debug" },
@@ -301,10 +301,9 @@ namespace AetPlugin
 
 				if (sprSet != nullptr)
 				{
-					// TODO: exportOptions.FArc.Compress
 					auto farcPacker = IO::FArcPacker();
 					farcPacker.AddFile(IO::Path::ChangeExtension(sprName, ".bin"), *sprSet);
-					farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, IO::Path::ChangeExtension(sprName, ".farc")));
+					farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, IO::Path::ChangeExtension(sprName, ".farc")), exportOptions.FArc.Compress);
 				}
 			}
 
