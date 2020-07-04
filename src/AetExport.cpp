@@ -7,6 +7,7 @@
 #include <Misc/StringUtil.h>
 #include <Misc/ImageHelper.h>
 #include <Resource/IDHash.h>
+#include <future>
 
 #define LogLine(format, ...)		do { if (logLevel != LogLevel_None)		{ fprintf(logStream, "%s(): "			format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
 #define LogInfoLine(format, ...)	do { if (logLevel & LogLevel_Info)		{ fprintf(logStream, "[INFO] %s(): "	format "\n", __FUNCTION__, __VA_ARGS__); } } while (false)
@@ -107,46 +108,67 @@ namespace AetPlugin
 
 	std::unique_ptr<SprSet> AetExporter::CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, const SprSetExportOptions& options)
 	{
-		// TODO: Callback and stuff
-		auto spritePacker = Graphics::Utilities::SpritePacker();
+		struct SpriteImageSource
+		{
+			std::string SprName;
+			const SprSetSrcInfo::SprSrcInfo* SrcSpr;
+
+			ivec2 Size;
+			std::unique_ptr<uint8_t[]> Pixels;
+		};
+
+		std::vector<std::future<SpriteImageSource>> imageSourceFutures;
+		imageSourceFutures.reserve(sprSetSrcInfo.SprFileSources.size());
+
+		for (const auto&[sprName, srcSpr] : sprSetSrcInfo.SprFileSources)
+		{
+			imageSourceFutures.emplace_back(std::async(std::launch::async, [&sprName, &srcSpr]
+			{
+				auto imageSource = SpriteImageSource();
+				imageSource.SprName = sprName;
+				imageSource.SrcSpr = &srcSpr;
+				Util::ReadImage(imageSource.SrcSpr->FilePath, imageSource.Size, imageSource.Pixels);
+				return imageSource;
+			}));
+		}
+
+		std::vector<SpriteImageSource> imageSources;
+		imageSources.reserve(imageSourceFutures.size());
+
+		for (auto& future : imageSourceFutures)
+		{
+			if (auto imageSource = future.get(); imageSource.Pixels != nullptr)
+				imageSources.emplace_back(std::move(imageSource));
+		}
+
+		// TODO: Maybe callback progress reporting
+		auto spritePackerMarkups = std::vector<Utilities::SprMarkup>();
+		auto spritePacker = Utilities::SpritePacker();
 		spritePacker.Settings.PowerOfTwoTextures = options.PowerOfTwo;
 		spritePacker.Settings.AllowYCbCrTextures = options.EncodeYCbCr;
 		spritePacker.Settings.GenerateMipMaps = false;
 
-		std::vector<Graphics::Utilities::SprMarkup> sprMarkups;
-
-		std::vector<std::unique_ptr<uint8_t[]>> owningImagePixels;
-		owningImagePixels.reserve(sprSetSrcInfo.SprFileSources.size());
-
 		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
 
-		// TODO: Reading, parsing and decoding the sprite images could be done multithreaded
-		for (const auto&[sprName, srcSpr] : sprSetSrcInfo.SprFileSources)
+		spritePackerMarkups.reserve(imageSources.size());
+		for (const auto& imageSource : imageSources)
 		{
-			auto& owningPixels = owningImagePixels.emplace_back();
-
-			ivec2 imageSize = {};
-			Util::ReadImage(srcSpr.FilePath, imageSize, owningPixels);
-
-			if (owningPixels == nullptr)
-				continue;
-
-			auto& sprMarkup = sprMarkups.emplace_back();
-			sprMarkup.Name = sprName;
-			sprMarkup.Size = imageSize;
-			sprMarkup.RGBAPixels = owningPixels.get();
+			auto& sprMarkup = spritePackerMarkups.emplace_back();
+			sprMarkup.Name = imageSource.SprName;
+			sprMarkup.Size = imageSource.Size;
+			sprMarkup.RGBAPixels = imageSource.Pixels.get();
 			sprMarkup.ScreenMode = aetSetScreenMode;
-			sprMarkup.Flags = Graphics::Utilities::SprMarkupFlags_None;
+			sprMarkup.Flags = Utilities::SprMarkupFlags_None;
 
 			// NOTE: Otherwise neighboring sprites might become visible through the mask
-			if (srcSpr.UsesTrackMatte)
-				sprMarkup.Flags |= Graphics::Utilities::SprMarkupFlags_NoMerge;
+			if (imageSource.SrcSpr->UsesTrackMatte)
+				sprMarkup.Flags |= Utilities::SprMarkupFlags_NoMerge;
 
 			if (options.EnableCompression)
-				sprMarkup.Flags |= Graphics::Utilities::SprMarkupFlags_Compress;
+				sprMarkup.Flags |= Utilities::SprMarkupFlags_Compress;
 		}
 
-		return spritePacker.Create(sprMarkups);
+		return spritePacker.Create(spritePackerMarkups);
 	}
 
 	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
