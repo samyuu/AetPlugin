@@ -55,47 +55,50 @@ namespace AetPlugin
 
 		struct SceneRawData
 		{
-			uint32_t NameOffset;
-			frame_t StartFrame;
-			frame_t EndFrame;
-			frame_t FrameRate;
-			uint32_t BackgroundColor;
-			int32_t Width;
-			int32_t Height;
-			uint32_t CameraOffset;
-			uint32_t CompositionCount;
-			uint32_t CompositionOffset;
-			uint32_t VideoCount;
-			uint32_t VideoOffset;
-			uint32_t AudioCount;
-			uint32_t AudioOffset;
+			u32 NameOffset;
+			f32 StartFrame;
+			f32 EndFrame;
+			f32 FrameRate;
+			u32 BackgroundColor;
+			i32 Width;
+			i32 Height;
+			u32 CameraOffset;
+			u32 CompositionCount;
+			u32 CompositionOffset;
+			u32 VideoCount;
+			u32 VideoOffset;
+			u32 AudioCount;
+			u32 AudioOffset;
 		};
 
-		constexpr FileAddr validScenePlusPointerSize = static_cast<FileAddr>(sizeof(SceneRawData) + (sizeof(uint32_t) * 2));
+		constexpr auto validScenePlusPointerSize = static_cast<FileAddr>(sizeof(SceneRawData) + (sizeof(u32) * 2));
 		if (reader.GetLength() < validScenePlusPointerSize)
 			return AetSetVerifyResult::InvalidPointer;
 
-		std::array<uint8_t, 4> fileMagic;
-		reader.ReadBuffer(fileMagic.data(), sizeof(fileMagic));
+		const auto baseHeader = IO::SectionHeader::TryRead(reader, IO::SectionSignature::AETC);
 
 		// NOTE: Thanks CS3 for making it this easy
-		if (std::memcmp(fileMagic.data(), "AETC", sizeof(fileMagic)) == 0)
+		if (baseHeader.has_value())
+		{
+			if (!reader.IsValidPointer(baseHeader->EndOfSectionAddress()))
+				return AetSetVerifyResult::InvalidPointer;
+
+			if (!reader.IsValidPointer(baseHeader->EndOfSubSectionAddress()))
+				return AetSetVerifyResult::InvalidPointer;
+
 			return AetSetVerifyResult::Valid;
+		}
 
-		const auto isValidPointer = [&](FileAddr address) { return (address <= reader.GetLength()); };
-
-		reader.SetPosition(static_cast<FileAddr>(0));
-
-		constexpr uint32_t maxReasonableSceneCount = 64;
+		constexpr u32 maxReasonableSceneCount = 64;
 		std::array<FileAddr, maxReasonableSceneCount> scenePointers = {};
 
-		for (uint32_t i = 0; i < maxReasonableSceneCount; i++)
+		for (u32 i = 0; i < maxReasonableSceneCount; i++)
 		{
 			scenePointers[i] = reader.ReadPtr();
 
 			if (scenePointers[i] == FileAddr::NullPtr)
 				break;
-			else if (!isValidPointer(scenePointers[i]))
+			else if (!reader.IsValidPointer(scenePointers[i]))
 				return AetSetVerifyResult::InvalidPointer;
 		}
 
@@ -104,7 +107,7 @@ namespace AetPlugin
 			return AetSetVerifyResult::InvalidPointer;
 
 		SceneRawData rawScene;
-		reader.SetPosition(scenePointers[0]);
+		reader.Seek(scenePointers[0]);
 		reader.ReadBuffer(&rawScene, sizeof(rawScene));
 
 		const std::array<FileAddr, 5> fileOffsetsToCheck =
@@ -116,17 +119,17 @@ namespace AetPlugin
 			static_cast<FileAddr>(rawScene.AudioOffset),
 		};
 
-		if (!std::any_of(fileOffsetsToCheck.begin(), fileOffsetsToCheck.end(), isValidPointer))
+		if (!std::any_of(fileOffsetsToCheck.begin(), fileOffsetsToCheck.end(), [&](auto& offset) { return reader.IsValidPointer(offset); }))
 			return AetSetVerifyResult::InvalidPointer;
 
-		const std::array<uint32_t, 3> arraySizesToCheck =
+		const std::array<u32, 3> arraySizesToCheck =
 		{
 			rawScene.CompositionCount,
 			rawScene.VideoCount,
 			rawScene.AudioCount,
 		};
 
-		constexpr uint32_t reasonableArraySizeLimit = 999999;
+		constexpr u32 reasonableArraySizeLimit = 999999;
 		if (std::any_of(arraySizesToCheck.begin(), arraySizesToCheck.end(), [&](const auto size) { return size > reasonableArraySizeLimit; }))
 			return AetSetVerifyResult::InvalidCount;
 
@@ -142,9 +145,9 @@ namespace AetPlugin
 			return (frameRate > 0.0f && frameRate <= reasonableFrameRateLimit);
 		};
 
-		const auto isReasonableSize = [](int32_t size)
+		const auto isReasonableSize = [](i32 size)
 		{
-			constexpr int32_t reasonableSizeLimit = 30000;
+			constexpr i32 reasonableSizeLimit = 30000;
 			return (size > 0 && size <= reasonableSizeLimit);
 		};
 
