@@ -51,12 +51,24 @@ namespace AetPlugin
 				return IO::Path::TrimExtension(entry.Name) == sprBaseFileName && IO::Path::DoesAnyPackedExtensionMatch(IO::Path::GetExtension(entry.Name), ".bin;.spr");
 			});
 
-			const auto fileContent = (sprEntry != nullptr) ? sprEntry->ReadArray() : nullptr;
-			if (fileContent == nullptr)
+			if (sprEntry == nullptr)
 				return nullptr;
 
+			std::vector<u8> fileContent;
+			fileContent.resize(sprEntry->OriginalSize);
+			sprEntry->ReadIntoBuffer(fileContent.data());
+
+			auto stream = IO::MemoryStream();
+			stream.FromStreamSource(fileContent);
+
+			auto reader = IO::StreamReader(stream);
 			auto sprSet = std::make_unique<SprSet>();
-			sprSet->Parse(fileContent.get(), sprEntry->OriginalSize);
+
+			if (sprSet == nullptr)
+				return nullptr;
+
+			if (auto streamResult = sprSet->Read(reader); streamResult != IO::StreamResult::Success)
+				return nullptr;
 
 			return sprSet;
 		}
@@ -153,8 +165,8 @@ namespace AetPlugin
 				bool ExportSprDB = true;
 				bool ExportAetDB = true;
 				bool ParseSprIDComments = true;
-				bool MDataDBs = false;
-				bool MergeExisting = false;
+				bool MDataDBs = true;
+				bool MergeExisting = true;
 			} Database;
 			struct SpriteData
 			{
@@ -162,7 +174,6 @@ namespace AetPlugin
 				bool PowerOfTwoTextures = true;
 				bool CompressTextures = true;
 				bool EncodeYCbCr = true;
-				// bool GenerateMipMaps = false;
 			} Sprite;
 			struct DebugData
 			{
@@ -170,7 +181,7 @@ namespace AetPlugin
 			} Debug;
 			struct FArcData
 			{
-				bool Compress = false;
+				bool Compress = true;
 			} FArc;
 			struct MiscData
 			{
@@ -227,7 +238,7 @@ namespace AetPlugin
 				// NOTE: Made unaccessible for now since SprID comments are almost always desired and in the rare cases that they aren't can be removed manually
 				// { IO::Shell::Custom::ItemType::Checkbox, "Spr ID Comments", &options.Database.ParseSprIDComments },
 				{ IO::Shell::Custom::ItemType::Checkbox, "MData Prefix", &options.Database.MDataDBs },
-				{ IO::Shell::Custom::ItemType::Checkbox, "Merge Existing", nullptr /*&options.Database.MergeExisting*/ },
+				{ IO::Shell::Custom::ItemType::Checkbox, "Merge Existing", &options.Database.MergeExisting },
 				{ IO::Shell::Custom::ItemType::VisualGroupEnd, "---" },
 
 				{ IO::Shell::Custom::ItemType::VisualGroupStart, "Sprite" },
@@ -285,6 +296,19 @@ namespace AetPlugin
 				fclose(logFile);
 		}
 
+		std::unique_ptr<SprSet> TryExportSprSetFromAetSet(AetExporter& exporter, const ExportOptions& exportOptions, const SprSetSrcInfo* sprSetSrcInfo, const Aet::AetSet& aetSet)
+		{
+			if (!exportOptions.Sprite.ExportSprSet || sprSetSrcInfo == nullptr)
+				return nullptr;
+
+			auto sprSetOptions = AetExporter::SprSetExportOptions {};
+			sprSetOptions.PowerOfTwo = exportOptions.Sprite.PowerOfTwoTextures;
+			sprSetOptions.EnableCompression = exportOptions.Sprite.CompressTextures;
+			sprSetOptions.EncodeYCbCr = exportOptions.Sprite.EncodeYCbCr;
+
+			return exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, aetSet, sprSetOptions);
+		}
+
 		int RunDebugPostExportScript(std::string_view outputDirectory)
 		{
 			const auto scriptDirectory = std::string(outputDirectory) + "\\..";
@@ -302,6 +326,27 @@ namespace AetPlugin
 			return commandError;
 		}
 
+		template <typename DBType>
+		bool TryMergeExistingDB(DBType& outNewDB, DBType* existingDB)
+		{
+			static_assert(std::is_same_v<DBType, Database::AetDB> || std::is_same_v<DBType, Database::SprDB>);
+
+			if (outNewDB.Entries.empty() || existingDB == nullptr || existingDB->Entries.empty())
+				return false;
+
+			auto newSetEntry = std::move(outNewDB.Entries.front());
+			const auto existingSetIndex = FindIndexOf(existingDB->Entries, [&](const auto& e) { return (e.ID == newSetEntry.ID || e.Name == newSetEntry.Name); });
+
+			outNewDB.Entries = std::move(existingDB->Entries);
+
+			if (InBounds(existingSetIndex, outNewDB.Entries))
+				outNewDB.Entries[existingSetIndex] = std::move(newSetEntry);
+			else
+				outNewDB.Entries.emplace_back(std::move(newSetEntry));
+
+			return true;
+		}
+
 		A_Err ExportAetSetCommand()
 		{
 			auto exporter = AetExporter();
@@ -315,56 +360,50 @@ namespace AetPlugin
 			const auto aetSetName = IO::Path::GetFileName(outputFilePath, false);
 			const auto aetSetFileName = IO::Path::GetFileName(outputFilePath, true);
 			const auto setBaseName = std::string(Util::StripPrefixInsensitive(aetSetName, AetPrefix));
+			const auto sprSetName = ("spr_" + setBaseName);
 
-			auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Util::StripPrefixInsensitive(aetSetName, AetPrefix), exportOptions);
+			const auto[logFile, logLevel] = OpenAetSetExportLogFile(outputDirectory, Util::StripPrefixInsensitive(aetSetName, AetPrefix), exportOptions);
 			exporter.SetLog(logFile, logLevel);
 
-			auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectory, exportOptions.Database.ParseSprIDComments);
+			const auto[aetSet, sprSetSrcInfo] = exporter.ExportAetSet(outputDirectory, exportOptions.Database.ParseSprIDComments);
 			CloseAetSetExportLogFile(logFile);
 
 			if (aetSet == nullptr)
 				return A_Err_GENERIC;
 
-			if (exportOptions.Misc.ExportAetSet)
-				IO::File::Save(outputFilePath, *aetSet);
+			const auto aetSaveFuture = IO::File::SaveAsync(outputFilePath, (exportOptions.Misc.ExportAetSet) ? aetSet.get() : nullptr);
 
-			std::unique_ptr<SprSet> sprSet = nullptr;
-			if (exportOptions.Sprite.ExportSprSet && sprSetSrcInfo != nullptr)
+			const auto sprSet = TryExportSprSetFromAetSet(exporter, exportOptions, sprSetSrcInfo.get(), *aetSet);
+			const auto sprSaveFuture = std::async(std::launch::async, [&]
 			{
-				auto sprSetOptions = AetExporter::SprSetExportOptions {};
-				sprSetOptions.PowerOfTwo = exportOptions.Sprite.PowerOfTwoTextures;
-				sprSetOptions.EnableCompression = exportOptions.Sprite.CompressTextures;
-				sprSetOptions.EncodeYCbCr = exportOptions.Sprite.EncodeYCbCr;
+				if (sprSet == nullptr)
+					return;
 
-				sprSet = exporter.CreateSprSetFromSprSetSrcInfo(*sprSetSrcInfo, *aetSet, sprSetOptions);
-				const auto sprName = ("spr_" + setBaseName);
-
-				if (sprSet != nullptr)
-				{
-					auto farcPacker = IO::FArcPacker();
-					farcPacker.AddFile(IO::Path::ChangeExtension(sprName, ".bin"), *sprSet);
-					farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, IO::Path::ChangeExtension(sprName, ".farc")), exportOptions.FArc.Compress);
-				}
-			}
+				auto farcPacker = IO::FArcPacker();
+				farcPacker.AddFile(sprSetName + ".bin", *sprSet);
+				farcPacker.CreateFlushFArc(IO::Path::Combine(outputDirectory, sprSetName + ".farc"), exportOptions.FArc.Compress);
+			});
 
 			const auto dbNamePrefix = exportOptions.Database.MDataDBs ? std::string("mdata_") : "";
 			const auto dbNameSuffix = exportOptions.Database.MDataDBs ? "" : ("_" + setBaseName);
 
+			const auto sprDBPath = IO::Path::Combine(outputDirectory, (dbNamePrefix + "spr_db" + dbNameSuffix + ".bin"));
+			const auto aetDBPath = IO::Path::Combine(outputDirectory, (dbNamePrefix + "aet_db" + dbNameSuffix + ".bin"));
+
+			auto sprDB = (exportOptions.Database.ExportSprDB) ? exporter.CreateSprDBFromAetSet(*aetSet, aetSetFileName, sprSet.get()) : nullptr;
+			auto aetDB = (exportOptions.Database.ExportAetDB) ? exporter.CreateAetDBFromAetSet(*aetSet, aetSetFileName) : nullptr;
+
 			if (exportOptions.Database.MergeExisting)
 			{
-				// TODO:
+				if (sprDB != nullptr) { TryMergeExistingDB(*sprDB, IO::File::Load<Database::SprDB>(sprDBPath).get()); }
+				if (aetDB != nullptr) { TryMergeExistingDB(*aetDB, IO::File::Load<Database::AetDB>(aetDBPath).get()); }
 			}
 
-			if (exportOptions.Database.ExportSprDB)
+			const auto dbSaveFutures = std::array
 			{
-				auto sprDB = exporter.CreateSprDBFromAetSet(*aetSet, aetSetFileName, sprSet.get());
-				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "spr_db" + dbNameSuffix + ".bin")), sprDB);
-			}
-			if (exportOptions.Database.ExportAetDB)
-			{
-				auto aetDB = exporter.CreateAetDBFromAetSet(*aetSet, aetSetFileName);
-				IO::File::Save(IO::Path::Combine(outputDirectory, (dbNamePrefix + "aet_db" + dbNameSuffix + ".bin")), aetDB);
-			}
+				IO::File::SaveAsync(sprDBPath, sprDB.get()),
+				IO::File::SaveAsync(aetDBPath, aetDB.get()),
+			};
 
 #if 0 // DEBUG:
 			if (exportOptions.Misc.RunPostExportScript)
