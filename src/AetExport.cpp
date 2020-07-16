@@ -146,7 +146,6 @@ namespace AetPlugin
 		auto spritePacker = Utilities::SpritePacker();
 		spritePacker.Settings.PowerOfTwoTextures = options.PowerOfTwo;
 		spritePacker.Settings.AllowYCbCrTextures = options.EncodeYCbCr;
-		spritePacker.Settings.GenerateMipMaps = false;
 
 		const auto aetSetScreenMode = GetScreenModeFromResolution(GetAetSetResolution(aetSet));
 
@@ -171,11 +170,11 @@ namespace AetPlugin
 		return spritePacker.Create(spritePackerMarkups);
 	}
 
-	Database::AetDB AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
+	std::unique_ptr<Database::AetDB> AetExporter::CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const
 	{
-		Database::AetDB aetDB;
+		auto aetDB = std::make_unique<Database::AetDB>();
 
-		auto& setEntry = aetDB.Entries.emplace_back();
+		auto& setEntry = aetDB->Entries.emplace_back();
 		setEntry.FileName = Util::ToSnakeCaseLowerCopy(std::string(setFileName));
 		setEntry.Name = Util::ToUpperCopy(set.Name);
 		setEntry.ID = HashIDString<AetSetID>(setEntry.Name);
@@ -206,14 +205,14 @@ namespace AetPlugin
 		return aetDB;
 	}
 
-	Database::SprDB AetExporter::CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const
+	std::unique_ptr<Database::SprDB> AetExporter::CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const
 	{
-		Database::SprDB sprDB;
+		auto sprDB = std::make_unique<Database::SprDB>();
 
 		const auto sprPrefixStr = std::string(SprPrefix);
 		const auto sprPrefixUpper = Util::ToUpperCopy(sprPrefixStr);
 
-		auto& setEntry = sprDB.Entries.emplace_back();
+		auto& setEntry = sprDB->Entries.emplace_back();
 		setEntry.FileName = Util::ToLowerCopy(sprPrefixStr) + Util::ToSnakeCaseLowerCopy(std::string(Util::StripPrefixInsensitive(setFileName, AetPrefix)));
 		setEntry.Name = Util::ToUpperCopy(sprPrefixStr) + Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(set.Name, AetPrefix)));
 		setEntry.ID = HashIDString<SprSetID>(setEntry.Name);
@@ -238,9 +237,9 @@ namespace AetPlugin
 					if (sprSet != nullptr)
 					{
 						const auto nameToFind = Util::StripPrefixInsensitive(source.Name, sprPrefix);
-						auto matchingSpr = std::find_if(sprSet->Sprites.begin(), sprSet->Sprites.end(), [&](const Spr& spr) { return spr.Name == nameToFind; });
+						auto matchingSpr = FindIfOrNull(sprSet->Sprites, [&](const Spr& spr) { return spr.Name == nameToFind; });
 
-						if (matchingSpr != sprSet->Sprites.end())
+						if (matchingSpr != nullptr)
 							sprEntry.Index = static_cast<int16_t>(std::distance(sprSet->Sprites.data(), &(*matchingSpr)));
 						else
 							sprEntry.Index = sprIndex++;
@@ -268,6 +267,15 @@ namespace AetPlugin
 				sprTexEntry.Index = sprTexIndex++;
 			}
 		}
+
+		auto sortSprEntriesByIndex = [](auto& sprEntries)
+		{
+			std::sort(std::begin(sprEntries), std::end(sprEntries), [&](const auto& entryA, const auto& entryB) { return (entryA.Index < entryB.Index); });
+		};
+
+		// NOTE: Not technically required but makes the DB look nicer due to it mirroring the SprSet exactly
+		sortSprEntriesByIndex(setEntry.SprEntries);
+		sortSprEntriesByIndex(setEntry.SprTexEntries);
 
 		return sprDB;
 	}
@@ -374,8 +382,7 @@ namespace AetPlugin
 			AEGP_ItemH parentHandle;
 			suites.ItemSuite8->AEGP_GetItemParentFolder(item.ItemHandle, &parentHandle);
 
-			auto foundParent = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](auto& i) { return i.ItemHandle == parentHandle; });
-			item.Parent = (foundParent != workingProject.Items.end()) ? &(*foundParent) : nullptr;
+			item.Parent = FindIfOrNull(workingProject.Items, [&](auto& i) { return i.ItemHandle == parentHandle; });
 		}
 	}
 
@@ -383,12 +390,12 @@ namespace AetPlugin
 	{
 		workingSet.Set = &set;
 
-		auto foundSetFolder = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](const AEItemData& item)
+		auto foundSetFolder = FindIfOrNull(workingProject.Items, [&](const AEItemData& item)
 		{
 			return item.CommentProperty.Key == CommentUtil::Keys::AetSet;
 		});
 
-		if (foundSetFolder == workingProject.Items.end())
+		if (foundSetFolder == nullptr)
 		{
 			LogErrorLine("No suitable AetSet folder found");
 		}
@@ -827,8 +834,8 @@ namespace AetPlugin
 
 	void AetExporter::ExportVideo(Aet::Video& video, AetExtraData& videoExtraData)
 	{
-		auto foundItem = std::find_if(workingProject.Items.begin(), workingProject.Items.end(), [&](const auto& item) { return (item.ItemHandle == videoExtraData.AE_FootageItem); });
-		if (foundItem == workingProject.Items.end())
+		auto foundItem = FindIfOrNull(workingProject.Items, [&](const auto& item) { return (item.ItemHandle == videoExtraData.AE_FootageItem); });
+		if (foundItem == nullptr)
 			return;
 
 		auto& item = *foundItem;

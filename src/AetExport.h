@@ -47,8 +47,8 @@ namespace AetPlugin
 
 		std::unique_ptr<SprSet> CreateSprSetFromSprSetSrcInfo(const SprSetSrcInfo& sprSetSrcInfo, const Aet::AetSet& aetSet, const SprSetExportOptions& options);
 
-		Database::AetDB CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
-		Database::SprDB CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
+		std::unique_ptr<Database::AetDB> CreateAetDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName) const;
+		std::unique_ptr<Database::SprDB> CreateSprDBFromAetSet(const Aet::AetSet& set, std::string_view setFileName, const SprSet* sprSet) const;
 
 		static bool IsProjectExportable(const SuitesData& suites);
 
