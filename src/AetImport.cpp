@@ -29,25 +29,118 @@ namespace AetPlugin
 		}
 	}
 
-	std::unique_ptr<Aet::AetSet> AetImporter::LoadAetSet(std::string_view filePath)
+	std::pair<std::unique_ptr<Aet::AetSet>, std::unique_ptr<Database::AetDB>> AetImporter::TryLoadAetSetAndDB(std::string_view aetFilePathOrFArc)
 	{
-		const auto verifyResult = VerifyAetSetImportable(filePath);
+		const auto verifyResult = VerifyAetSetImportable(aetFilePathOrFArc);
 		if (verifyResult != AetSetVerifyResult::Valid)
-			return nullptr;
+			return std::make_pair(nullptr, nullptr);
 
-		auto aetSet = IO::File::Load<Aet::AetSet>(filePath);
+		const auto directory = IO::Path::GetDirectoryName(aetFilePathOrFArc);
+		const auto aetFileName = std::string(IO::Path::GetFileName(aetFilePathOrFArc, false));
+		const bool isFArc = Util::MatchesInsensitive(IO::Path::GetExtension(aetFilePathOrFArc), ".farc");
+
+		std::unique_ptr<Aet::AetSet> aetSet = nullptr;
+		std::unique_ptr<Database::AetDB> aetDB = nullptr;
+
+		if (isFArc)
+		{
+			aetSet = IO::File::Load<Aet::AetSet>(IO::Archive::CombinePath(aetFilePathOrFArc, aetFileName + ".aec"));
+			aetDB = IO::File::Load<Database::AetDB>(IO::Archive::CombinePath(aetFilePathOrFArc, aetFileName + ".aei"));
+		}
+		else
+		{
+			aetSet = IO::File::Load<Aet::AetSet>(aetFilePathOrFArc);
+
+			const std::array<std::string, 4> dbPathsToCheck =
+			{
+				IO::Path::Combine(directory, "aet_db.bin"),
+				IO::Path::Combine(directory, "mdata_aet_db.bin"),
+				IO::Path::Combine(directory, "aet_db_" + std::string(Util::StripPrefixInsensitive(aetFileName, AetPrefix)) + ".bin"),
+				IO::Path::Combine(directory, std::string(aetFileName) + ".aei"),
+			};
+
+			for (auto& dbPath : dbPathsToCheck)
+			{
+				if ((aetDB = IO::File::Load<Database::AetDB>(dbPath)) != nullptr)
+					break;
+			}
+		}
+
 		if (aetSet != nullptr)
-			aetSet->Name = IO::Path::GetFileName(filePath, false);
-		return aetSet;
+			aetSet->Name = aetFileName;
+
+		return std::make_pair(std::move(aetSet), std::move(aetDB));
 	}
 
-	AetImporter::AetSetVerifyResult AetImporter::VerifyAetSetImportable(std::string_view filePath)
+	std::pair<std::unique_ptr<SprSet>, std::unique_ptr<Database::SprDB>> AetImporter::TryLoadSprSetAndDB(std::string_view aetFilePathOrFArc)
 	{
-		const auto fileName = IO::Path::GetFileName(filePath, false);
+		const auto directory = IO::Path::GetDirectoryName(aetFilePathOrFArc);
+		const auto sprFileName = std::string(SprPrefix) + std::string(Util::StripPrefixInsensitive(IO::Path::GetFileName(aetFilePathOrFArc, false), AetPrefix));
+		const bool isFArc = Util::MatchesInsensitive(IO::Path::GetExtension(aetFilePathOrFArc), ".farc");
+
+		std::unique_ptr<SprSet> sprSet = nullptr;
+		std::unique_ptr<Database::SprDB> sprDB = nullptr;
+
+		if (isFArc)
+		{
+			const auto sprFArcPath = IO::Path::Combine(directory, sprFileName) + ".farc";
+
+			sprSet = IO::File::Load<SprSet>(IO::Archive::CombinePath(sprFArcPath, sprFileName + ".spr"));
+			sprDB = IO::File::Load<Database::SprDB>(IO::Archive::CombinePath(sprFArcPath, sprFileName + ".spi"));
+
+			if (sprSet != nullptr && sprDB != nullptr)
+			{
+				const auto matchingEntry = (sprDB->Entries.size() == 1) ?
+					&sprDB->Entries.front() :
+					FindIfOrNull(sprDB->Entries, [&](const auto& e) { return Util::MatchesInsensitive(e.Name, sprFileName); });
+
+				if (matchingEntry != nullptr)
+					sprSet->ApplyDBNames(*matchingEntry);
+			}
+		}
+		else
+		{
+			sprSet = IO::File::Load<SprSet>(IO::Path::Combine(directory, sprFileName + ".bin"));
+			if (sprSet == nullptr)
+				sprSet = IO::File::Load<SprSet>(IO::Archive::CombinePath(IO::Path::Combine(directory, sprFileName + ".farc"), sprFileName + ".bin"));
+
+			const std::array<std::string, 4> dbPathsToCheck =
+			{
+				IO::Path::Combine(directory, "spr_db.bin"),
+				IO::Path::Combine(directory, "mdata_spr_db.bin"),
+				IO::Path::Combine(directory, "spr_db_" + std::string(Util::StripPrefixInsensitive(sprFileName, SprPrefix)) + ".bin"),
+				IO::Path::Combine(directory, std::string(sprFileName) + ".spi"),
+			};
+
+			for (auto& dbPath : dbPathsToCheck)
+			{
+				if ((sprDB = IO::File::Load<Database::SprDB>(dbPath)) != nullptr)
+					break;
+			}
+		}
+
+		if (sprSet != nullptr)
+			sprSet->Name = sprFileName;
+
+		return std::make_pair(std::move(sprSet), std::move(sprDB));
+	}
+
+	AetImporter::AetSetVerifyResult AetImporter::VerifyAetSetImportable(std::string_view aetFilePathOrFArc)
+	{
+		const auto fileName = IO::Path::GetFileName(aetFilePathOrFArc, false);
 		if (!Util::StartsWithInsensitive(fileName, AetPrefix))
 			return AetSetVerifyResult::InvalidPath;
 
-		auto fileStream = IO::File::OpenRead(filePath);
+		const auto extension = IO::Path::GetExtension(aetFilePathOrFArc);
+
+		// NOTE: Opening every farc clicked is expensive and potentially error prone, FArcs will be error checked on load instead
+		if (Util::MatchesInsensitive(extension, ".farc"))
+			return AetSetVerifyResult::Valid;
+
+		if (!IO::Path::DoesAnyPackedExtensionMatch(extension, ".bin;.aec"))
+			return AetSetVerifyResult::InvalidPath;
+
+		auto fileStream = IO::File::OpenRead(aetFilePathOrFArc);
 		if (!fileStream.IsOpen())
 			return AetSetVerifyResult::InvalidFile;
 
@@ -166,9 +259,9 @@ namespace AetPlugin
 		this->workingDirectory.ImportDirectory = std::string(workingDirectory);
 	}
 
-	A_Err AetImporter::ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
+	A_Err AetImporter::ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, const Database::AetDB* aetDB, const Database::SprDB* sprDB, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle)
 	{
-		SetupWorkingSetData(aetSet, sprSet);
+		SetupWorkingSetData(aetSet, sprSet, aetDB, sprDB);
 		CheckWorkingDirectoryFiles();
 
 		GetProjectHandles();
@@ -200,12 +293,19 @@ namespace AetPlugin
 		});
 	}
 
-	void AetImporter::SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet)
+	void AetImporter::SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet, const Database::AetDB* aetDB, const Database::SprDB* sprDB)
 	{
 		workingSet.Set = &aetSet;
 		workingSet.SprSet = sprSet;
+
 		workingSet.NamePrefix = GetAetSetName(aetSet);
 		workingSet.NamePrefixUnderscore = workingSet.NamePrefix + "_";
+
+		const auto aetSetEntryName = std::string(AetPrefix) + workingSet.NamePrefix;
+		const auto sprSetEntryName = std::string(SprPrefix) + workingSet.NamePrefix;
+
+		workingSet.AetEntry = (aetDB != nullptr) ? FindIfOrNull(aetDB->Entries, [&](const auto& e) { return Util::MatchesInsensitive(e.Name, aetSetEntryName); }) : nullptr;
+		workingSet.SprEntry = (sprDB != nullptr) ? FindIfOrNull(sprDB->Entries, [&](const auto& e) { return Util::MatchesInsensitive(e.Name, sprSetEntryName); }) : nullptr;
 	}
 
 	void AetImporter::SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex)
@@ -233,37 +333,12 @@ namespace AetPlugin
 
 	void AetImporter::CheckWorkingDirectoryFiles()
 	{
-		const auto aetSetEntryName = std::string(AetPrefix) + workingSet.NamePrefix;
-		const auto sprSetEntryName = std::string(SprPrefix) + workingSet.NamePrefix;
-
 		IO::Directory::IterateFiles(workingDirectory.ImportDirectory, [&](const auto& filePath)
 		{
 			const auto fileName = IO::Path::GetFileName(filePath);
 			const auto extension = IO::Path::GetExtension(fileName);
 
-			if (Util::MatchesInsensitive(extension, ".bin"))
-			{
-				const auto mdataTrimmedFileName = Util::StripPrefixInsensitive(fileName, "mdata_");
-				if (Util::StartsWithInsensitive(mdataTrimmedFileName, "aet_db") && workingDirectory.DB.AetDB == nullptr)
-				{
-					auto& aetDB = workingDirectory.DB.AetDB;
-					aetDB = IO::File::Load<Database::AetDB>(filePath);
-
-					const auto foundEntry = std::find_if(aetDB->Entries.begin(), aetDB->Entries.end(), [&](const auto& entry) { return Util::MatchesInsensitive(entry.Name, aetSetEntryName); });
-					if (foundEntry != aetDB->Entries.end())
-						workingDirectory.DB.AetSetEntry = &(*foundEntry);
-				}
-				else if (Util::StartsWithInsensitive(mdataTrimmedFileName, "spr_db") && workingDirectory.DB.SprDB == nullptr)
-				{
-					auto& sprDB = workingDirectory.DB.SprDB;
-					sprDB = IO::File::Load<Database::SprDB>(filePath);
-
-					const auto foundEntry = std::find_if(sprDB->Entries.begin(), sprDB->Entries.end(), [&](const auto& entry) { return Util::MatchesInsensitive(entry.Name, sprSetEntryName); });
-					if (foundEntry != sprDB->Entries.end())
-						workingDirectory.DB.SprSetEntry = &(*foundEntry);
-				}
-			}
-			else if (Util::MatchesInsensitive(extension, SpriteFileData::PNGExtension))
+			if (Util::MatchesInsensitive(extension, SpriteFileData::PNGExtension))
 			{
 				auto sanitizedFileName = IO::Path::TrimExtension(fileName);
 				sanitizedFileName = Util::StripPrefixInsensitive(sanitizedFileName, SpriteFileData::SprPrefix);
@@ -292,10 +367,10 @@ namespace AetPlugin
 		const auto& setRootName = workingSet.NamePrefix;
 		suites.ItemSuite1->AEGP_CreateNewFolder(setRootName.c_str(), project.RootItemHandle, &project.Folders.Root);
 
-		if (workingDirectory.DB.AetSetEntry != nullptr)
+		if (workingSet.AetEntry != nullptr && workingSet.SprEntry != nullptr)
 		{
 			CommentUtil::Buffer commentBuffer = {};
-			sprintf(commentBuffer.data(), "%s, 0x%X, 0x%X", workingSet.Set->Name.c_str(), workingDirectory.DB.AetSetEntry->ID, workingDirectory.DB.SprSetEntry->ID);
+			sprintf(commentBuffer.data(), "%s, 0x%X, 0x%X", workingSet.Set->Name.c_str(), workingSet.AetEntry->ID, workingSet.SprEntry->ID);
 			CommentUtil::Set(suites.ItemSuite8, project.Folders.Root, { CommentUtil::Keys::AetSet, commentBuffer.data() });
 		}
 		else
@@ -325,7 +400,7 @@ namespace AetPlugin
 		suites.ItemSuite1->AEGP_CreateNewFolder(sceneRootName.c_str(), project.Folders.Root, &project.Folders.Scene.Root);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneData, project.Folders.Scene.Root, &project.Folders.Scene.Data);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideo, project.Folders.Scene.Data, &project.Folders.Scene.Video);
-		if (workingDirectory.DB.SprSetEntry != nullptr && ShouldImportVideoDBForScene(*workingScene.Scene, workingScene.SceneIndex))
+		if (workingSet.SprEntry != nullptr && ShouldImportVideoDBForScene(*workingScene.Scene, workingScene.SceneIndex))
 			suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneVideoDB, project.Folders.Scene.Data, &project.Folders.Scene.VideoDB);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneAudio, project.Folders.Scene.Data, &project.Folders.Scene.Audio);
 		suites.ItemSuite1->AEGP_CreateNewFolder(ProjectStructure::Names::SceneComp, project.Folders.Scene.Data, &project.Folders.Scene.Comp);
@@ -390,7 +465,7 @@ namespace AetPlugin
 
 	void AetImporter::CreateImportUnreferencedSprDBFootageAndLayer()
 	{
-		if (workingDirectory.DB.SprSetEntry == nullptr)
+		if (workingSet.SprEntry == nullptr)
 			return;
 
 		const auto dbOnlyVideos = CreateUnreferencedSprDBVideos();
@@ -441,8 +516,9 @@ namespace AetPlugin
 	std::vector<std::shared_ptr<Aet::Video>> AetImporter::CreateUnreferencedSprDBVideos() const
 	{
 		std::vector<std::shared_ptr<Aet::Video>> dbOnlyVideos;
+		assert(workingSet.SprEntry != nullptr);
 
-		const auto& sprEntries = workingDirectory.DB.SprSetEntry->SprEntries;
+		const auto& sprEntries = workingSet.SprEntry->SprEntries;
 		for (size_t i = 0; i < sprEntries.size(); i++)
 		{
 			const auto& currentSprEntry = sprEntries[i];
@@ -692,10 +768,10 @@ namespace AetPlugin
 		for (const auto& comp : scene.Compositions)
 			ImportComposition(*comp);
 
-		if (workingDirectory.DB.AetSetEntry != nullptr && workingScene.SceneIndex < workingDirectory.DB.AetSetEntry->SceneEntries.size())
+		if (workingSet.AetEntry != nullptr && workingScene.SceneIndex < workingSet.AetEntry->SceneEntries.size())
 		{
 			CommentUtil::Buffer commentBuffer = {};
-			sprintf(commentBuffer.data(), "%s, 0x%X", scene.Name.c_str(), workingDirectory.DB.AetSetEntry->SceneEntries[workingScene.SceneIndex].ID);
+			sprintf(commentBuffer.data(), "%s, 0x%X", scene.Name.c_str(), workingSet.AetEntry->SceneEntries[workingScene.SceneIndex].ID);
 			CommentUtil::Set(suites.ItemSuite8, rootCompExtraData.AE_CompItem, { CommentUtil::Keys::AetScene, commentBuffer.data(), workingScene.SceneIndex });
 		}
 		else

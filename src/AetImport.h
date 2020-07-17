@@ -24,7 +24,8 @@ namespace AetPlugin
 	class AetImporter : NonCopyable
 	{
 	public:
-		static std::unique_ptr<Aet::AetSet> LoadAetSet(std::string_view filePath);
+		static std::pair<std::unique_ptr<Aet::AetSet>, std::unique_ptr<Database::AetDB>> TryLoadAetSetAndDB(std::string_view aetFilePathOrFArc);
+		static std::pair<std::unique_ptr<SprSet>, std::unique_ptr<Database::SprDB>> TryLoadSprSetAndDB(std::string_view aetFilePathOrFArc);
 
 		enum class AetSetVerifyResult
 		{
@@ -36,13 +37,13 @@ namespace AetPlugin
 			InvalidData,
 		};
 
-		static AetSetVerifyResult VerifyAetSetImportable(std::string_view filePath);
+		static AetSetVerifyResult VerifyAetSetImportable(std::string_view aetFilePathOrFArc);
 
 	public:
 		AetImporter(std::string_view workingDirectory);
 		~AetImporter() = default;
 
-		A_Err ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
+		A_Err ImportAetSet(Aet::AetSet& aetSet, const SprSet* sprSet, const Database::AetDB* aetDB, const Database::SprDB* sprDB, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle);
 
 	protected:
 		SuitesData suites;
@@ -52,16 +53,6 @@ namespace AetPlugin
 		{
 			std::string ImportDirectory;
 			std::vector<SpriteFileData> AvailableSpriteFiles;
-
-			// NOTE: Optional to deal with hardcode expected IDs
-			struct DatabaseData
-			{
-				std::unique_ptr<Database::AetDB> AetDB = nullptr;
-				std::unique_ptr<Database::SprDB> SprDB = nullptr;
-				const Database::AetSetEntry* AetSetEntry = nullptr;
-				const Database::SprSetEntry* SprSetEntry = nullptr;
-			} DB;
-
 		} workingDirectory;
 
 		const SpriteFileData* FindMatchingSpriteFile(std::string_view sourceName) const;
@@ -73,6 +64,10 @@ namespace AetPlugin
 		{
 			const Aet::AetSet* Set = nullptr;
 			const SprSet* SprSet = nullptr;
+			
+			// NOTE: Optional to deal with hardcode expected IDs
+			const Database::AetSetEntry* AetEntry = nullptr;
+			const Database::SprSetEntry* SprEntry = nullptr;
 
 			std::string NamePrefix, NamePrefixUnderscore;
 		} workingSet;
@@ -93,7 +88,7 @@ namespace AetPlugin
 			std::shared_ptr<Aet::Layer> UnreferencedVideoLayer = nullptr;
 		} workingScene = {};
 
-		void SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet);
+		void SetupWorkingSetData(const Aet::AetSet& aetSet, const SprSet* sprSet, const Database::AetDB* aetDB, const Database::SprDB* sprDB);
 		void SetupWorkingSceneData(const Aet::Scene& scene, size_t sceneIndex);
 		void CheckWorkingDirectoryFiles();
 

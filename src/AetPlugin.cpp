@@ -18,8 +18,9 @@ namespace AetPlugin
 	{
 		constexpr std::array AetSetFileExtensions =
 		{
-			std::array { 'b', 'i', 'n' },
-			std::array { 'a', 'e', 'c' },
+			std::array { '.', 'b', 'i', 'n' },
+			std::array { '.', 'a', 'e', 'c' },
+			std::array { 'f', 'a', 'r', 'c' },
 		};
 
 		A_Err AEGP_FileVerifyCallbackHandler(const A_UTF16Char* filePath, AE_FIM_Refcon refcon, A_Boolean* a_canImport)
@@ -30,67 +31,22 @@ namespace AetPlugin
 			return A_Err_NONE;
 		}
 
-		std::unique_ptr<SprSet> TryLoadAetSetMatchingSprSet(std::string_view aetSetPath, std::string_view workingDirectory)
-		{
-			// NOTE: "aet_dummy.bin" -> "dummy"
-			const auto baseFileName = Util::StripPrefixInsensitive(IO::Path::GetFileName(aetSetPath, false), AetPrefix);
-			// NOTE: "dummy" -> "spr_dummy"
-			const auto sprBaseFileName = std::string(SprPrefix) + std::string(baseFileName);
-			// NOTE: "spr_dummy" -> "spr_dummy.farc"
-			const auto sprFArcFileName = IO::Path::ChangeExtension(sprBaseFileName, ".farc");
-			// NOTE: "spr_dummy.farc" -> "export/dir/spr_dummy.farc"
-			const auto sprFArcFilePath = IO::Path::Combine(workingDirectory, sprFArcFileName);
-
-			const auto sprFArc = IO::FArc::Open(sprFArcFilePath);
-			if (sprFArc == nullptr)
-				return nullptr;
-
-			// NOTE: "spr_dummy.bin" or "spr_dummy.spr"
-			const auto sprEntry = FindIfOrNull(sprFArc->GetEntries(), [&](const IO::FArcEntry& entry)
-			{
-				return IO::Path::TrimExtension(entry.Name) == sprBaseFileName && IO::Path::DoesAnyPackedExtensionMatch(IO::Path::GetExtension(entry.Name), ".bin;.spr");
-			});
-
-			if (sprEntry == nullptr)
-				return nullptr;
-
-			std::vector<u8> fileContent;
-			fileContent.resize(sprEntry->OriginalSize);
-			sprEntry->ReadIntoBuffer(fileContent.data());
-
-			auto stream = IO::MemoryStream();
-			stream.FromStreamSource(fileContent);
-
-			auto reader = IO::StreamReader(stream);
-			auto sprSet = std::make_unique<SprSet>();
-
-			if (sprSet == nullptr)
-				return nullptr;
-
-			if (auto streamResult = sprSet->Read(reader); streamResult != IO::StreamResult::Success)
-				return nullptr;
-
-			return sprSet;
-		}
-
 		A_Err AEGP_FileImportCallbackHandler(const A_UTF16Char* filePath, AE_FIM_ImportOptions importOptions, AE_FIM_SpecialAction action, AEGP_ItemH itemHandle, AE_FIM_Refcon refcon)
 		{
-			const auto aetSetPath = UTF8::Narrow(AEUtil::WCast(filePath));
-			const auto aetSet = AetImporter::LoadAetSet(aetSetPath);
+			const auto aetSetPathOrFArc = UTF8::Narrow(AEUtil::WCast(filePath));
+			const auto[aetSet, aetDB] = AetImporter::TryLoadAetSetAndDB(aetSetPathOrFArc);
 
 			if (aetSet == nullptr || aetSet->GetScenes().empty())
 				return A_Err_GENERIC;
 
-			A_Err err = A_Err_NONE;
-
-			const auto workingDirectory = IO::Path::GetDirectoryName(aetSetPath);
-			const auto sprSet = TryLoadAetSetMatchingSprSet(aetSetPath, workingDirectory);
+			const auto[sprSet, sprDB] = AetImporter::TryLoadSprSetAndDB(aetSetPathOrFArc);
+			const auto workingDirectory = IO::Path::GetDirectoryName(aetSetPathOrFArc);
 
 			if (sprSet != nullptr)
 				Utilities::ExtractAllSprPNGs(workingDirectory, *sprSet);
 
 			auto importer = AetImporter(workingDirectory);
-			ERR(importer.ImportAetSet(*aetSet, sprSet.get(), importOptions, action, itemHandle));
+			auto err = importer.ImportAetSet(*aetSet, sprSet.get(), aetDB.get(), sprDB.get(), importOptions, action, itemHandle);
 
 			return err;
 		}
@@ -107,10 +63,10 @@ namespace AetPlugin
 			std::array<AEIO_FileKind, AetSetFileExtensions.size()> fileExtensions = {};
 			for (size_t i = 0; i < AetSetFileExtensions.size(); i++)
 			{
-				fileExtensions[i].ext.pad = '.';
-				fileExtensions[i].ext.extension[0] = AetSetFileExtensions[i][0];
-				fileExtensions[i].ext.extension[1] = AetSetFileExtensions[i][1];
-				fileExtensions[i].ext.extension[2] = AetSetFileExtensions[i][2];
+				fileExtensions[i].ext.pad = AetSetFileExtensions[i][0];
+				fileExtensions[i].ext.extension[0] = AetSetFileExtensions[i][1];
+				fileExtensions[i].ext.extension[1] = AetSetFileExtensions[i][2];
+				fileExtensions[i].ext.extension[2] = AetSetFileExtensions[i][3];
 			}
 
 			AE_FIM_ImportFlavorRef importFlavorRef = AE_FIM_ImportFlavorRef_NONE;
