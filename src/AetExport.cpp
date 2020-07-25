@@ -189,12 +189,13 @@ namespace AetPlugin
 			setEntry.SprSetID = workingSet.IDOverride.SprSetID;
 
 		setEntry.SceneEntries.reserve(set.GetScenes().size());
-		size_t sceneIndex = 0;
+		i16 sceneIndex = 0;
 		for (const auto& scene : set.GetScenes())
 		{
 			auto& sceneEntry = setEntry.SceneEntries.emplace_back();
 			sceneEntry.Name = setEntry.Name + "_" + Util::ToUpperCopy(scene->Name);
 			sceneEntry.ID = HashIDString<AetSceneID>(sceneEntry.Name);
+			sceneEntry.Index = sceneIndex;
 
 			if (sceneIndex < workingSet.IDOverride.SceneIDs.size() && workingSet.IDOverride.SceneIDs[sceneIndex] != AetSceneID::Invalid)
 				sceneEntry.ID = workingSet.IDOverride.SceneIDs[sceneIndex];
@@ -222,7 +223,7 @@ namespace AetPlugin
 
 		const auto sprPrefix = Util::ToUpperCopy(std::string(Util::StripPrefixInsensitive(set.Name, AetPrefix))) + "_";
 
-		int16_t sprIndex = 0;
+		i16 sprIndex = 0;
 		for (const auto& scene : set.GetScenes())
 		{
 			setEntry.SprEntries.reserve(setEntry.SprEntries.size() + scene->Videos.size());
@@ -240,7 +241,7 @@ namespace AetPlugin
 						auto matchingSpr = FindIfOrNull(sprSet->Sprites, [&](const Spr& spr) { return spr.Name == nameToFind; });
 
 						if (matchingSpr != nullptr)
-							sprEntry.Index = static_cast<int16_t>(std::distance(sprSet->Sprites.data(), &(*matchingSpr)));
+							sprEntry.Index = static_cast<i16>(std::distance(sprSet->Sprites.data(), &(*matchingSpr)));
 						else
 							sprEntry.Index = sprIndex++;
 					}
@@ -252,14 +253,14 @@ namespace AetPlugin
 			}
 		}
 
-		if (sprSet != nullptr && sprSet->TexSet != nullptr)
+		if (sprSet != nullptr)
 		{
 			const auto sprTexPrefixUpper = Util::ToUpperCopy(std::string(SprTexPrefix));
 
-			setEntry.SprTexEntries.reserve(sprSet->TexSet->Textures.size());
+			setEntry.SprTexEntries.reserve(sprSet->TexSet.Textures.size());
 
-			int16_t sprTexIndex = 0;
-			for (const auto& tex : sprSet->TexSet->Textures)
+			i16 sprTexIndex = 0;
+			for (const auto& tex : sprSet->TexSet.Textures)
 			{
 				auto& sprTexEntry = setEntry.SprTexEntries.emplace_back();
 				sprTexEntry.Name = sprTexPrefixUpper + sprPrefix + tex->Name.value_or("UNKNOWN");

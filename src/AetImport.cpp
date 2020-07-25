@@ -560,20 +560,20 @@ namespace AetPlugin
 		if (video.Sources.empty())
 			return false;
 
-		if (workingSet.SprSet == nullptr || workingSet.SprSet->TexSet == nullptr)
+		if (workingSet.SprSet == nullptr)
 			return false;
 
 		const auto& sprSet = *workingSet.SprSet;
 
 		for (const auto& spr : sprSet.Sprites)
 		{
-			if (!InBounds(spr.TextureIndex, sprSet.TexSet->Textures))
+			if (!InBounds(spr.TextureIndex, sprSet.TexSet.Textures))
 				continue;
 
 			if (!Util::MatchesInsensitive(spr.Name, Util::StripPrefixInsensitive(video.Sources.front().Name, workingSet.NamePrefixUnderscore)))
 				continue;
 
-			const auto& texture = sprSet.TexSet->Textures[spr.TextureIndex];
+			const auto& texture = sprSet.TexSet.Textures[spr.TextureIndex];
 			const bool isNoMergeTexture = Util::Contains(texture->GetName(), "NOMERGE");
 
 			if (isNoMergeTexture)
