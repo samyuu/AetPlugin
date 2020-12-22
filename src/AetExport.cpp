@@ -783,7 +783,7 @@ namespace AetPlugin
 			AEGP_StreamType outStreamType;
 			suites.StreamSuite4->AEGP_GetLayerStreamValue(layerExtraData.AE_Layer, streamType, AEGP_LTimeMode_LayerTime, &zeroTime, false, &streamVal2, &outStreamType);
 
-			// HACK: Not sure why this one returns 0.0f despite being treated and displated as the default 100% scale in AE
+			// HACK: Not sure why this one returns 0.0f despite being treated and displayed as the default 100% scale in AE
 			if (streamType == AEGP_LayerStream_SCALE)
 				streamVal2.three_d.z = 100.0f;
 
@@ -798,7 +798,12 @@ namespace AetPlugin
 			AEGP_StreamValue streamVal;
 			suites.KeyframeSuite3->AEGP_GetNewKeyframeValue(EvilGlobalState.PluginID, streamRef, i, &streamVal);
 
+#if 0 // BUG: Exactly how should this work... Should the start offset only be applied to comp and image sequence layers..?
 			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame;
+#else
+			const frame_t frameTime = AEUtil::AETimeToFrame(time, workingScene.Scene->FrameRate) + layer.StartFrame - layer.StartOffset;
+#endif
+
 			aeKeyFramesCache.push_back({ frameTime, threeDValToVec3(streamVal.val.three_d) });
 		}
 		return aeKeyFramesCache;
