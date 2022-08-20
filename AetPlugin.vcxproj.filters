@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\aet_plugin_export.cpp" />
+    <ClCompile Include="src\aet_plugin_import.cpp" />
+    <ClCompile Include="src\aet_plugin_main.cpp" />
+    <ClCompile Include="src\core_type.cpp" />
+    <ClCompile Include="src\core_string.cpp" />
+    <ClCompile Include="src\core_io.cpp" />
+    <ClCompile Include="src\comfy\file_format_aet_set.cpp" />
+    <ClCompile Include="src\comfy\file_format_farc.cpp" />
+    <ClCompile Include="src\comfy\file_format_spr_set.cpp" />
+    <ClCompile Include="src\comfy\file_format_common.cpp" />
+    <ClCompile Include="src\comfy\texture_util.cpp" />
+    <ClCompile Include="3rdparty\AfterEffectsSDK\Util\AEGP_SuiteHandler.cpp" />
+    <ClCompile Include="3rdparty\AfterEffectsSDK\Util\MissingSuiteError.cpp" />
+    <ClCompile Include="src\comfy\file_format_db.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src_res\resource.h" />
+    <ClInclude Include="src\core_types.h" />
+    <ClInclude Include="src\aet_plugin_export.h" />
+    <ClInclude Include="src\aet_plugin_import.h" />
+    <ClInclude Include="src\aet_plugin_main.h" />
+    <ClInclude Include="src\aet_plugin_common.h" />
+    <ClInclude Include="src\core_string.h" />
+    <ClInclude Include="src\core_io.h" />
+    <ClInclude Include="src\comfy\file_format_aet_set.h" />
+    <ClInclude Include="src\comfy\file_format_common.h" />
+    <ClInclude Include="src\comfy\file_format_farc.h" />
+    <ClInclude Include="src\comfy\file_format_spr_set.h" />
+    <ClInclude Include="src\comfy\texture_util.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\A.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_Effect.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectCBSuites.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectGPUSuites.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectSuites.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectSuitesHelper.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectUI.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_GeneralPlug.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_GeneralPlugOld.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_Hook.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_IO.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_Macros.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AEConfig.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\FIEL_Public.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\PF_Masks.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\PR_Public.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Util\entry.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Util\AEGP_SuiteHandler.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AE_EffectCB.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\AEFX_SuiteHandlerTemplate.h" />
+    <ClInclude Include="3rdparty\AfterEffectsSDK\Headers\SuiteHelper.h" />
+    <ClInclude Include="src\comfy\file_format_db.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src_res\AetPlugin_PiPL.rc" />
+  </ItemGroup>
+</Project>

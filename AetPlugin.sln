@@ -4,6 +4,10 @@ VisualStudioVersion = 15.0.28307.1082
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AetPlugin", "AetPlugin.vcxproj", "{BEF09DC0-4876-49E8-9B92-497D7E889384}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "3rdparty\zlib\zlib.vcxproj", "{86AA0493-F0AB-4D08-922C-98205271AC58}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "3rdparty\DirectXTex\DirectXTex.vcxproj", "{9F3380AA-8244-440A-9F63-F0774928732F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -14,6 +18,14 @@ Global
 		{BEF09DC0-4876-49E8-9B92-497D7E889384}.Debug|x64.Build.0 = Debug|x64
 		{BEF09DC0-4876-49E8-9B92-497D7E889384}.Release|x64.ActiveCfg = Release|x64
 		{BEF09DC0-4876-49E8-9B92-497D7E889384}.Release|x64.Build.0 = Release|x64
+		{86AA0493-F0AB-4D08-922C-98205271AC58}.Debug|x64.ActiveCfg = Debug|x64
+		{86AA0493-F0AB-4D08-922C-98205271AC58}.Debug|x64.Build.0 = Debug|x64
+		{86AA0493-F0AB-4D08-922C-98205271AC58}.Release|x64.ActiveCfg = Release|x64
+		{86AA0493-F0AB-4D08-922C-98205271AC58}.Release|x64.Build.0 = Release|x64
+		{9F3380AA-8244-440A-9F63-F0774928732F}.Debug|x64.ActiveCfg = Debug|x64
+		{9F3380AA-8244-440A-9F63-F0774928732F}.Debug|x64.Build.0 = Debug|x64
+		{9F3380AA-8244-440A-9F63-F0774928732F}.Release|x64.ActiveCfg = Release|x64
+		{9F3380AA-8244-440A-9F63-F0774928732F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

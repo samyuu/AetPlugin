@@ -69,7 +69,7 @@ BEGIN
             VALUE "FileDescription", "Project DIVA AetSet plugin\0"
             VALUE "FileVersion", "1, 0, 0, 1\0"
             VALUE "InternalName", "AetPlugin\0"
-            VALUE "LegalCopyright", "Copyright © 2020 Samyuu\0"
+            VALUE "LegalCopyright", "Copyright © 2022 Samyuu\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "AetPlugin.aex\0"
             VALUE "PrivateBuild", "\0"

@@ -20,8 +20,10 @@
 x64/
 x86/
 bld/
+build/
 bin/
 bin-int/
+src_backup/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
